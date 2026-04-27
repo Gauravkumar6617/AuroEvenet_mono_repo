@@ -9,5 +9,5 @@ class Like(BaseModel):
     author_id=Column(Integer,ForeignKey("users.id",ondelete="CASCADE"),nullable=False)
     post_id=Column(Integer,ForeignKey("posts.id",ondelete="CASCADE"),nullable=False)
 
-    author=relationship("User",back_populates="like")
+    author=relationship("User",back_populates="likes")
     post=relationship("Post",back_populates="likes")

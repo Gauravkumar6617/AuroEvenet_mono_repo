@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text,Table
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text,Table 
+from sqlalchemy.orm import relationship ,Mapped , mapped_column
 from app.models.baseModel import BaseModel
-
+from typing import Optional
 
 ####tags used to related contents 
 
@@ -31,7 +31,10 @@ class Post(BaseModel):
     content = Column(Text, nullable=False) 
     slug = Column(String(255), nullable=False, unique=True, index=True)
     thumbnail_url = Column(String(512), nullable=True) 
+    
 
+    ###ai feautre
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # VISIBILITY
     is_active = Column(Boolean, default=False)

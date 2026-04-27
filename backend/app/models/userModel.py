@@ -20,9 +20,9 @@ class User(BaseModel):
 
 
     ## to create relationship
-    post=relationship("Post", back_populates="author" ,cascade="all,delete-orphan")
-    comment=relationship("Comment", back_populates="author",cascade="all , delete-orphan")
-    like=relationship("Like", back_populates="author", cascade="all , delete-orphan")
+    posts=relationship("Post", back_populates="author" ,cascade="all,delete-orphan")
+    comments=relationship("Comment", back_populates="author",cascade="all , delete-orphan")
+    likes=relationship("Like", back_populates="author", cascade="all , delete-orphan")
 
 
 

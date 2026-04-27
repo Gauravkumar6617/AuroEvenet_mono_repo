@@ -26,6 +26,17 @@ class Settings(BaseSettings):
     
 
     APP_MODE: str
+
+
+    ### Gorq AI settings
+    GORQ_API_KEY: str
+
+
+    ### cloudinary api key 
+
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
     
     # Email settings for development (in production, use proper SMTP)
     SMTP_HOST: str = "localhost"
