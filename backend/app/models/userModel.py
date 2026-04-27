@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String ,Boolean
+from sqlalchemy.orm import relationship
 from app.models.baseModel import BaseModel
 from app.models.models_enum import UserRole , AuthProvider
 
@@ -16,6 +17,12 @@ class User(BaseModel):
     is_active = Column(Boolean, default=True) #account status
 
     is_verified = Column(Boolean, default=False) #email verification status
+
+
+    ## to create relationship
+    post=relationship("Post", back_populates="author" ,cascade="all,delete-orphan")
+    comment=relationship("Comment", back_populates="author",cascade="all , delete-orphan")
+    like=relationship("Like", back_populates="author", cascade="all , delete-orphan")
 
 
 
