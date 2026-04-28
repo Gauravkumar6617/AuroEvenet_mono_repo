@@ -6,9 +6,10 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from slugify import slugify
 from app.schemas.postSchema import PostCreate
-from fastapi import HTTPException , UploadFile,BackgroundTasks
+from fastapi import HTTPException , UploadFile,BackgroundTasks ,Depends
 from app.core.config import settings
 from app.service.aiService import generate_summary
+from app.core.dependencies import verify_internal_api_key
 
 # Configure Cloudinary
 cloudinary.config(
@@ -82,3 +83,22 @@ class PostRepository:
             with SessionLocal() as db:
                 db.query(Post).filter(Post.id == post_id).update({"summary": summary})
                 db.commit() # Correct: commit() doesn't take arguments
+        else:
+            print(f"Failed to generate summary for post {post_id}")
+    
+    def fetch_all_post(db: Session,):
+        return db.query(Post).all()
+    
+
+    def fetch_post_by_id(db:Session,post_id=int):
+        return db.query(Post).filter(Post.id == post_id).first()
+    
+
+    
+    def fetch_post_by_slug(db:Session,slug:str):
+        return db.query(Post).filter(Post.slug == slug).first()
+    
+
+
+
+    
