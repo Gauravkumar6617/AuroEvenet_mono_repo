@@ -11,8 +11,11 @@ Base.metadata.create_all(engine)
 from app.routers.systemRouter import router as system_router
 from app.api.v1.enpoint.auth import router as auth_router
 from app.api.v1.enpoint.postEnpoint import router as post_router
+from app.api.v1.enpoint.categoryEnpoint import router as category_router
+
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(post_router, prefix="/api/v1")
+app.include_router(category_router, prefix="/api/v1")
 app.include_router(system_router)
 
 

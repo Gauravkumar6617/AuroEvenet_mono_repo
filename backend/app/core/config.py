@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "noreply@blogbyte.com"
     EMAIL_FROM_NAME: str = "BlogByte"
 
+
+    ###OAuth
+    GOOGLE_REDIRECT_URI:str
+    GOOGLE_CLIENT_ID:str
+    GOOGLE_CLIENT_SECRET:str
+    GITHUB_CLIENT_ID:str
+    GITHUB_CLIENT_SECRET:str
+
     model_config=SettingsConfigDict(env_file=".env.dev", env_file_encoding="utf-8", case_sensitive=False ,extra="ignore")
 
 

@@ -6,7 +6,7 @@ from app.schemas.postSchema import PostRead
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
-@router.post("/", response_model=PostRead)
+@router.post("/", response_model=PostRead,)
 async def create_post(
     bg_tasks: BackgroundTasks,
     title: str = Form(...),

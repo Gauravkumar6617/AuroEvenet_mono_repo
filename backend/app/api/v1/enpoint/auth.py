@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status ,Response ,Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.service.AuthService import AuthService 
@@ -120,3 +120,24 @@ def resend_otp(email: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to resend OTP. Please try again."
         )
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    user_agent = request.headers.get("user-agent", "unknown")
+    auth_service = AuthService()
+    return await auth_service.google_auth(db, code, user_agent)
+
+
+@router.get("/github/callback")
+async def github_callback(
+    code: str, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    user_agent = request.headers.get("user-agent", "unknown")
+    auth_service = AuthService()
+    return await auth_service.github_auth(db, code, user_agent)
