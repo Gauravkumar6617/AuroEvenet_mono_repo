@@ -149,7 +149,7 @@ async def google_callback(
         tokens = await auth_service.google_auth(db, code, user_agent)
         
         # Redirect to frontend with tokens
-        frontend_url = "http://localhost:5173/oauth/callback"
+        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
         redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
         
         return Response(
@@ -158,7 +158,7 @@ async def google_callback(
         )
     except Exception as e:
         # Redirect to frontend with error
-        frontend_url = "http://localhost:5173/oauth/callback"
+        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
         redirect_url = f"{frontend_url}?error=oauth_failed"
         
         return Response(
@@ -189,7 +189,7 @@ async def github_callback(
         )
     except Exception as e:
         # Redirect to frontend with error
-        frontend_url = "http://localhost:5173/oauth/callback"
+        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
         redirect_url = f"{frontend_url}?error=oauth_failed"
         
         return Response(
