@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker 
 from app.core.config import settings
@@ -11,8 +11,8 @@ def get_db():
     print("DEBUG: Creating new database session...")
     db=SessionLocal()
     try:
-        # Test connection
-        db.execute("SELECT 1")
+        # Test connection (SQLAlchemy 2.0 requires text() wrapper)
+        db.execute(text("SELECT 1"))
         yield db
     except Exception as e:
         print(f"DEBUG: Database session error: {str(e)}")
@@ -21,3 +21,6 @@ def get_db():
         raise
     finally:
         db.close()
+
+
+# postgresql://postgres:7Ov71Xg2BRaNq7Wi@db.xybfeerxyrzhdnerqfqv.supabase.co:5432/postgres
