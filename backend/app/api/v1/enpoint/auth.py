@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status ,Response ,Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.service.AuthService import AuthService 
-from app.schemas.userSchema import UserCreate, UserResponse, RegisterResponse
+from app.schemas.userSchema import UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse
 from app.repositories.UserRespositories import UserRepository
 from app.service.OTPService import OTPService
+from pydantic import BaseModel
 import redis
 from app.core.config import settings
 from pydantic import BaseModel
@@ -17,6 +18,7 @@ redis_client = redis.from_url(
 router = APIRouter(prefix="/auth", tags=["Auth"])
 auth_service = AuthService()
 otp_service = OTPService()
+
 
 # OTP verification schema
 class OTPVerifyRequest(BaseModel):
@@ -40,6 +42,19 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+@router.post("/login", response_model=TokenResponse)
+def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    """Login user with email and password"""
+    try:
+        return auth_service.login_user(db, login_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed. Please try again."
         )
 
 @router.get("/verify")
@@ -129,7 +144,27 @@ async def google_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
-    return await auth_service.google_auth(db, code, user_agent)
+    
+    try:
+        tokens = await auth_service.google_auth(db, code, user_agent)
+        
+        # Redirect to frontend with tokens
+        frontend_url = "http://localhost:5173/oauth/callback"
+        redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
+        
+        return Response(
+            status_code=302,
+            headers={"Location": redirect_url}
+        )
+    except Exception as e:
+        # Redirect to frontend with error
+        frontend_url = "http://localhost:5173/oauth/callback"
+        redirect_url = f"{frontend_url}?error=oauth_failed"
+        
+        return Response(
+            status_code=302,
+            headers={"Location": redirect_url}
+        )
 
 
 @router.get("/github/callback")
@@ -140,4 +175,24 @@ async def github_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
-    return await auth_service.github_auth(db, code, user_agent)
+    
+    try:
+        tokens = await auth_service.github_auth(db, code, user_agent)
+        
+        # Redirect to frontend with tokens
+        frontend_url = "http://localhost:5173/oauth/callback"
+        redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
+        
+        return Response(
+            status_code=302,
+            headers={"Location": redirect_url}
+        )
+    except Exception as e:
+        # Redirect to frontend with error
+        frontend_url = "http://localhost:5173/oauth/callback"
+        redirect_url = f"{frontend_url}?error=oauth_failed"
+        
+        return Response(
+            status_code=302,
+            headers={"Location": redirect_url}
+        )

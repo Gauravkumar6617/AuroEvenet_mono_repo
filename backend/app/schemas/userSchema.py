@@ -30,6 +30,7 @@ class UserResponse(UserBase):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    user_Agent: str = "web-app"
 
 class TokenResponse(BaseModel):
     access_token: str

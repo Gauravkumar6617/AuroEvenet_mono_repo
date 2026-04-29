@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Signup() {
     const navigate = useNavigate();
+    const { register, loading, error, clearError } = useAuth();
     const [form, setForm] = useState({ name: "", email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [agreed, setAgreed] = useState(false);
 
     const passwordStrength = () => {
@@ -21,10 +22,18 @@ export default function Signup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!agreed) return;
-        setLoading(true);
-        await new Promise((res) => setTimeout(res, 1000));
-        setLoading(false);
-        navigate("/verify-otp");
+        clearError();
+        try {
+            await register({
+                email: form.email,
+                password: form.password,
+                username: form.name,
+                full_name: form.name
+            });
+            navigate("/verify-otp");
+        } catch (error) {
+            console.error('Registration failed:', error);
+        }
     };
 
     return (
@@ -56,6 +65,13 @@ export default function Signup() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        {/* Error Display */}
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                                <p className="text-red-400 text-sm">{error}</p>
+                            </div>
+                        )}
+                        
                         {/* Name */}
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">Full name</label>

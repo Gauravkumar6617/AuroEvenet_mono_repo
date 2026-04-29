@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useAppStore from "../store/useAppStore";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function VerifyOtp() {
     const navigate = useNavigate();
-    const { login } = useAppStore();
+    const { verifyOTP, resendOTP, loading, error, clearError } = useAuth();
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const [resendTimer, setResendTimer] = useState(59);
+    const [email, setEmail] = useState(""); // Get this from previous step or localStorage
     const inputs = useRef([]);
 
     // Auto-focus first input
@@ -69,17 +68,15 @@ export default function VerifyOtp() {
     };
 
     const handleVerify = async (code) => {
-        setLoading(true);
-        await new Promise((res) => setTimeout(res, 1200));
-        if (code === "123456") { // demo valid code
-            login({ username: "newuser" });
+        clearError();
+        try {
+            const emailFromStorage = localStorage.getItem('pending_email') || email;
+            await verifyOTP(emailFromStorage, code);
             navigate("/");
-        } else {
-            setError("Invalid OTP. Please try again.");
+        } catch (error) {
             setOtp(["", "", "", "", "", ""]);
             inputs.current[0]?.focus();
         }
-        setLoading(false);
     };
 
     const handleResend = () => {
