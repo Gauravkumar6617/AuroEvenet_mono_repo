@@ -33,12 +33,13 @@ export default function Login() {
             return;
         }
 
-        const googleAuthUrl = `https://accounts.google.com/oauth/authorize?` +
+        const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=code` +
             `&scope=openid email profile` +
-            `&access_type=offline`;
+            `&access_type=offline` +
+            `&prompt=select_account`;
         window.location.href = googleAuthUrl;
     };
 
@@ -237,8 +238,8 @@ export default function Login() {
                                     onClick={handleClick}
                                     disabled={!isConfigured}
                                     className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isConfigured
-                                            ? 'text-slate-300 hover:text-white cursor-pointer'
-                                            : 'text-slate-500 cursor-not-allowed opacity-50'
+                                        ? 'text-slate-300 hover:text-white cursor-pointer'
+                                        : 'text-slate-500 cursor-not-allowed opacity-50'
                                         }`}
                                     style={{
                                         background: isConfigured ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
