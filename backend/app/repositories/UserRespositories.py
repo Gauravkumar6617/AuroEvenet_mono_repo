@@ -6,17 +6,17 @@ from typing import Optional
 class UserRepository:
  
 
-    def create_user(self, user_create: UserCreate, hashed_pwd: str, db: Session) -> User:
+    def create_user(self, user_create: UserCreate, hashed_pwd: Optional[str], db: Session) -> User:
         """
         Creates a user and returns the DB Model.
-        Note: We pass the hashed_pwd in from the service layer to keep 
-        this function purely about database interaction.
         """
         new_user = User(
             email=user_create.email,
-            username=user_create.username, # Use the username from your UserBase schema
+            username=user_create.username,
             password_hash=hashed_pwd,
-            is_active=True # Default state
+            auth_provider=user_create.oauth_provider.value if hasattr(user_create.oauth_provider, 'value') else user_create.oauth_provider,
+            auth_provider_id=user_create.oauth_id,
+            is_active=True
         )
         db.add(new_user)
         db.commit()

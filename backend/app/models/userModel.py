@@ -9,7 +9,7 @@ class User(BaseModel):
 
     username = Column(String(255), unique=True, index=True, nullable=False) #identity
     email = Column(String(255), unique=True, index=True, nullable=False) #identity
-    password_hash = Column(String(255), nullable=False)  #security
+    password_hash = Column(String(255), nullable=True)  #security
     role = Column(String, default=UserRole.USER.value) #authorization
     auth_provider = Column(String, default=AuthProvider.EMAIL.value) #authentication method
     auth_provider_id = Column(String(255), nullable=True) #for social logins

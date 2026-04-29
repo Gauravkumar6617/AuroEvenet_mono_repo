@@ -8,5 +8,6 @@ class AuthProvider(str, enum.Enum):
     EMAIL = "email"
     GOOGLE = "google"
     FACEBOOK = "facebook"
+    GITHUB = "github"
 
 

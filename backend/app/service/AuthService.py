@@ -8,7 +8,8 @@ from fastapi import HTTPException, status
 from app.models.userModel import User
 from app.repositories.UserRespositories import UserRepository
 from app.core.security import hashed_password, verify_password, create_access_token
-from app.schemas.userSchema import UserCreate, LoginRequest, TokenResponse, OAuthProviderEnum
+from app.schemas.userSchema import UserCreate, LoginRequest, TokenResponse
+from app.models.models_enum import AuthProvider
 from app.core.config import settings
 from app.service.EmailService import EmailService
 
@@ -105,7 +106,7 @@ class AuthService:
                     email=google_info["email"],
                     username=google_info.get("name", google_info["email"]),
                     password=None,
-                    oauth_provider=OAuthProviderEnum.GOOGLE,
+                    oauth_provider=AuthProvider.GOOGLE,
                     oauth_id=google_info["sub"]
                 )
                 user = self.user_repo.create_user(user_data, None, db)
@@ -172,7 +173,7 @@ class AuthService:
                     email=github_user["email"],
                     username=github_user.get("login", github_user["email"]), # GitHub uses 'login' for username
                     password=None,
-                    oauth_provider=OAuthProviderEnum.GITHUB,
+                    oauth_provider=AuthProvider.GITHUB,
                     oauth_id=str(github_user["id"])
                 )
                 user = self.user_repo.create_user(user_data, None, db)
