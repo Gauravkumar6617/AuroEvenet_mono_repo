@@ -11,31 +11,28 @@ export default function Login() {
     // Check OAuth configuration
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    
-    const isGoogleConfigured = googleClientId && 
+
+    const isGoogleConfigured = googleClientId &&
         !googleClientId.includes('your-google-client-id') &&
-        !googleClientId.includes('467250469339-6fknhfr7') &&
         googleClientId.length > 10;
-    
-    const isGitHubConfigured = githubClientId && 
+
+    const isGitHubConfigured = githubClientId &&
         !githubClientId.includes('your-github-client-id') &&
-        githubClientId !== '54b909518d26c786f0cbae81ba54be2800eb6fef' &&
         githubClientId.length > 10;
 
     const handleGoogleLogin = () => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback';
-        
+
         // More comprehensive validation
-        if (!clientId || 
-            clientId === 'your-google-client-id' || 
+        if (!clientId ||
+            clientId === 'your-google-client-id' ||
             clientId.includes('your-google-client-id') ||
-            clientId.includes('467250469339-6fknhfr7') || // Invalid ID from error
             clientId.length < 10) {
             alert('Google OAuth is not configured. Please set a valid VITE_GOOGLE_CLIENT_ID in your .env file.\n\nCurrent value: ' + (clientId || 'not set'));
             return;
         }
-        
+
         const googleAuthUrl = `https://accounts.google.com/oauth/authorize?` +
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
@@ -48,17 +45,16 @@ export default function Login() {
     const handleGitHubLogin = () => {
         const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
         const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/github/callback';
-        
+
         // More comprehensive validation
-        if (!clientId || 
-            clientId === 'your-github-client-id' || 
+        if (!clientId ||
+            clientId === 'your-github-client-id' ||
             clientId.includes('your-github-client-id') ||
-            clientId === '54b909518d26c786f0cbae81ba54be2800eb6fef' ||
             clientId.length < 10) {
             alert('GitHub OAuth is not configured. Please set a valid VITE_GITHUB_CLIENT_ID in your .env file.\n\nCurrent value: ' + (clientId || 'not set'));
             return;
         }
-        
+
         const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
@@ -114,7 +110,7 @@ export default function Login() {
                                 <p className="text-red-400 text-sm">{error}</p>
                             </div>
                         )}
-                        
+
                         {/* Email */}
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">Email address</label>
@@ -234,26 +230,25 @@ export default function Login() {
                         ].map(({ label, icon }) => {
                             const isConfigured = label === "Google" ? isGoogleConfigured : isGitHubConfigured;
                             const handleClick = label === "Google" ? handleGoogleLogin : handleGitHubLogin;
-                            
+
                             return (
                                 <button
                                     key={label}
                                     onClick={handleClick}
                                     disabled={!isConfigured}
-                                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                        isConfigured 
-                                            ? 'text-slate-300 hover:text-white cursor-pointer' 
+                                    className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isConfigured
+                                            ? 'text-slate-300 hover:text-white cursor-pointer'
                                             : 'text-slate-500 cursor-not-allowed opacity-50'
-                                    }`}
-                                    style={{ 
-                                        background: isConfigured ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)', 
-                                        border: '1px solid rgba(255,255,255,0.08)' 
+                                        }`}
+                                    style={{
+                                        background: isConfigured ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.08)'
                                     }}
-                                    onMouseEnter={e => { 
-                                        if (isConfigured) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; 
+                                    onMouseEnter={e => {
+                                        if (isConfigured) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                                     }}
-                                    onMouseLeave={e => { 
-                                        if (isConfigured) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; 
+                                    onMouseLeave={e => {
+                                        if (isConfigured) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
                                     }}
                                     title={isConfigured ? `Login with ${label}` : `${label} OAuth not configured`}
                                 >
