@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET:str
     GITHUB_CLIENT_ID:str
     GITHUB_CLIENT_SECRET:str
+    FRONTEND_URL: str = "http://localhost:5173"
 
     model_config=SettingsConfigDict(env_file=".env.dev", env_file_encoding="utf-8", case_sensitive=False ,extra="ignore")
 

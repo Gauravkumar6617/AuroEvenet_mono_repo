@@ -180,7 +180,7 @@ async def github_callback(
         tokens = await auth_service.github_auth(db, code, user_agent)
         
         # Redirect to frontend with tokens
-        frontend_url = "http://localhost:5173/oauth/callback"
+        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
         redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
         
         return Response(
