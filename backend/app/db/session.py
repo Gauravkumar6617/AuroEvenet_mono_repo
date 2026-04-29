@@ -8,8 +8,16 @@ SessionLocal=sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base=declarative_base()
 
 def get_db():
+    print("DEBUG: Creating new database session...")
     db=SessionLocal()
     try:
+        # Test connection
+        db.execute("SELECT 1")
         yield db
+    except Exception as e:
+        print(f"DEBUG: Database session error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
     finally:
         db.close()

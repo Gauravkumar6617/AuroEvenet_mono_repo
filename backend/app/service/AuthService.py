@@ -96,6 +96,7 @@ class AuthService:
                     headers={"Authorization": f"Bearer {access_token}"}
                 )
                 google_info = user_info_res.json() # Contains 'email', 'sub', 'name'
+                print(f"DEBUG: Received Google user info: {google_info}")
 
             # 3. Sync with local database
             user = self.user_repo.get_by_email(google_info["email"], db)
@@ -152,6 +153,7 @@ class AuthService:
                     headers={"Authorization": f"token {access_token}"}
                 )
                 github_user = user_res.json()
+                print(f"DEBUG: Received GitHub user info: {github_user}")
 
                 # 3. Get User Email (GitHub sometimes hides email in the profile call)
                 if not github_user.get("email"):
