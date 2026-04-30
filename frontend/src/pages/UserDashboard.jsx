@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import useAppStore from "../store/useAppStore";
+import { useAuth } from "../contexts/AuthContext";
 
 const MY_ARTICLES = [
     { id: 1, title: "Building a REST API with FastAPI and PostgreSQL", status: "published", date: "Apr 24, 2026", views: 4210, likes: 187, comments: 14 },
@@ -24,7 +24,7 @@ const NAV = [
 ];
 
 export default function UserDashboard() {
-    const { user, logout } = useAppStore();
+    const { user, logout } = useAuth();
     const [active, setActive] = useState("overview");
     const username = user?.username || "Writer";
 

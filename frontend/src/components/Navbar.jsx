@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import useAppStore from "../store/useAppStore";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Navbar() {
-    const { user, logout } = useAppStore();
+    const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const location = useLocation();
