@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { usePosts } from "../contexts/PostsContext";
 import { useEffect, useState } from "react";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 const features = [
   {
