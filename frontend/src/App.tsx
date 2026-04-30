@@ -21,6 +21,7 @@ const App: React.FC = () => {
               <Navbar />
               <main className="flex-grow container mx-auto px-4">
                 <Routes>
+
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
