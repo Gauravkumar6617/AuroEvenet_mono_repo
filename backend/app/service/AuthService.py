@@ -118,7 +118,12 @@ class AuthService:
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
             
-            return TokenResponse(**tokens)
+            return TokenResponse(
+                access_token=tokens["access_token"],
+                refresh_token=tokens["refresh_token"],
+                email=user.email,
+                username=user.username
+            )
         except Exception as e:
             print(f"DEBUG: google_auth error: {str(e)}")
             traceback.print_exc()
@@ -186,7 +191,12 @@ class AuthService:
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
             
-            return TokenResponse(**tokens)
+            return TokenResponse(
+                access_token=tokens["access_token"],
+                refresh_token=tokens["refresh_token"],
+                email=user.email,
+                username=user.username
+            )
         except Exception as e:
             print(f"DEBUG: github_auth error: {str(e)}")
             traceback.print_exc()

@@ -149,8 +149,7 @@ async def google_callback(
         tokens = await auth_service.google_auth(db, code, user_agent)
         
         # Redirect to frontend with tokens
-        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
-        redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
+        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?token={tokens.access_token}&refresh_token={tokens.refresh_token}&email={tokens.email}&username={tokens.username}"
         
         return Response(
             status_code=302,
@@ -180,8 +179,7 @@ async def github_callback(
         tokens = await auth_service.github_auth(db, code, user_agent)
         
         # Redirect to frontend with tokens
-        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
-        redirect_url = f"{frontend_url}?token={tokens.access_token}&refresh_token={tokens.refresh_token}"
+        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?token={tokens.access_token}&refresh_token={tokens.refresh_token}&email={tokens.email}&username={tokens.username}"
         
         return Response(
             status_code=302,

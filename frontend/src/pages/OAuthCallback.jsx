@@ -11,31 +11,31 @@ export default function OAuthCallback() {
         const handleOAuthCallback = async () => {
             const token = searchParams.get('token');
             const error = searchParams.get('error');
-            
+
             if (error) {
                 console.error('OAuth error:', error);
                 navigate('/login?error=oauth_failed');
                 return;
             }
-            
+
             if (token) {
                 try {
                     // Store the token and user info
                     localStorage.setItem('token', token);
-                    
+
                     // Create a minimal user object - you might want to fetch full user details
                     const user = {
                         id: 0,
-                        email: searchParams.get('email') || 'oauth_user@example.com',
-                        username: searchParams.get('username') || 'oauth_user',
+                        email: searchParams.get('email') || 'user@example.com',
+                        username: searchParams.get('username') || 'User',
                         is_active: true,
                         is_verified: true,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
                     };
-                    
+
                     localStorage.setItem('user', JSON.stringify(user));
-                    
+
                     // Navigate to home page
                     navigate('/');
                 } catch (error) {

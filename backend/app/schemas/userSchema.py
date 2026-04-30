@@ -37,6 +37,8 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     message: str = "Login successful"
+    email: Optional[str] = None
+    username: Optional[str] = None
 
 class RegisterResponse(BaseModel):
     user: UserResponse
