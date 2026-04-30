@@ -10,7 +10,18 @@ export default function OAuthCallback() {
     useEffect(() => {
         const handleOAuthCallback = async () => {
             const token = searchParams.get('token');
+            const refreshToken = searchParams.get('refresh_token');
+            const email = searchParams.get('email');
+            const username = searchParams.get('username');
             const error = searchParams.get('error');
+
+            console.log('OAuth Callback Params:', {
+                hasToken: !!token,
+                hasRefreshToken: !!refreshToken,
+                email,
+                username,
+                error
+            });
 
             if (error) {
                 console.error('OAuth error:', error);

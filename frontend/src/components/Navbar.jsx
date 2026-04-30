@@ -71,17 +71,26 @@ export default function Navbar() {
                     {/* Desktop Auth */}
                     <div className="hidden md:flex items-center space-x-3">
                         {user ? (
-                            <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full"
-                                    style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
-                                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                    <span className="text-sm font-medium text-slate-300">
-                                        Hi, <span className="text-indigo-300 font-semibold">{user.username}</span>
+                            <div className="flex items-center space-x-3">
+                                <Link
+                                    to="/dashboard"
+                                    className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                >
+                                    Dashboard
+                                </Link>
+                                <div className="h-4 w-px bg-indigo-500/20 mx-1" />
+                                <div className="flex items-center space-x-3 pl-1 pr-1 py-1 rounded-full bg-white/5 border border-white/10">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg"
+                                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                                        {user.username?.slice(0, 2).toUpperCase() || 'U'}
+                                    </div>
+                                    <span className="text-sm font-semibold text-slate-200 pr-3">
+                                        {user.username}
                                     </span>
                                 </div>
                                 <button
                                     onClick={logout}
-                                    className="px-4 py-2 text-sm rounded-lg font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all duration-200"
+                                    className="px-3 py-2 text-sm font-medium text-rose-400 hover:text-rose-300 transition-all ml-2"
                                 >
                                     Logout
                                 </button>
@@ -137,12 +146,21 @@ export default function Navbar() {
                     <div className="pt-3 border-t border-indigo-500/10 space-y-2">
                         {user ? (
                             <>
-                                <div className="flex items-center space-x-2 px-4 py-2">
-                                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                    <span className="text-sm text-slate-300">Hi, <span className="text-indigo-300 font-semibold">{user.username}</span></span>
+                                <div className="flex items-center space-x-3 px-4 py-3 mb-2 rounded-xl bg-white/5 border border-white/10">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-white"
+                                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                                        {user.username?.slice(0, 2).toUpperCase() || 'U'}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white">{user.username}</p>
+                                        <p className="text-xs text-slate-500">{user.email}</p>
+                                    </div>
                                 </div>
-                                <button onClick={logout} className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-all duration-200">
-                                    Logout
+                                <Link to="/dashboard" className="block px-4 py-2.5 rounded-lg text-sm font-medium text-indigo-300 hover:bg-indigo-500/10 transition-all">
+                                    📊 Dashboard
+                                </Link>
+                                <button onClick={logout} className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-all">
+                                    🚪 Logout
                                 </button>
                             </>
                         ) : (

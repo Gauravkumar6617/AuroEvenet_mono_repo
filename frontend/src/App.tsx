@@ -10,6 +10,7 @@ import Signup from './pages/Signup';
 import VerifyOtp from './pages/VerifyOtp';
 import Home from './pages/Home';
 import OAuthCallback from './pages/OAuthCallback';
+import UserDashboard from './pages/UserDashboard';
 
 const App: React.FC = () => {
   return (
@@ -26,6 +27,7 @@ const App: React.FC = () => {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/oauth/callback" element={<OAuthCallback />} />
+                  <Route path="/dashboard" element={<UserDashboard />} />
                 </Routes>
               </main>
               <Footer />

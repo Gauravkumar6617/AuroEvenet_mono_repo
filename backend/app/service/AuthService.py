@@ -114,6 +114,7 @@ class AuthService:
                 user.is_verified = True
                 db.commit()
 
+            print(f"DEBUG: Returning Google user: email={user.email}, username={user.username}")
             # 4. Generate internal tokens
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
@@ -187,6 +188,7 @@ class AuthService:
                 user.is_verified = True
                 db.commit()
 
+            print(f"DEBUG: Returning GitHub user: email={user.email}, username={user.username}")
             # 5. Generate internal tokens
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
