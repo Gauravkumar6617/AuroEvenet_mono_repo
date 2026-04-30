@@ -13,8 +13,7 @@ interface CategoriesContextType extends CategoriesState {
   fetchCategoryById: (categoryId: number) => Promise<void>;
   createCategory: (categoryData: {
     name: string;
-    description?: string;
-    slug?: string;
+    slug: string;
   }) => Promise<Category>;
   deleteCategory: (categoryId: number) => Promise<void>;
   clearError: () => void;
@@ -146,8 +145,7 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
 
   const createCategory = async (categoryData: {
     name: string;
-    description?: string;
-    slug?: string;
+    slug: string;
   }) => {
     dispatch({ type: 'CREATE_CATEGORY_START' });
     try {

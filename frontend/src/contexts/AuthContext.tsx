@@ -144,11 +144,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
     dispatch({ type: 'REGISTER_START' });
     try {
-      const response = await apiClient.register(userData) as RegisterResponse;
-      // Note: Registration might require OTP verification before full login
-      if (response.user) {
-        dispatch({ type: 'REGISTER_SUCCESS', payload: response.user });
-      }
+      const response = await apiClient.register({
+        email: userData.email,
+        username: userData.username || userData.email.split('@')[0],
+        password: userData.password,
+        oauth_provider: 'none',
+        oauth_id: ''
+      }) as RegisterResponse;
+      
+      // Store email for OTP verification
+      localStorage.setItem('pending_email', userData.email);
+      
+      // Registration successful but requires OTP verification
+      dispatch({ type: 'REGISTER_SUCCESS', payload: response.user });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       dispatch({ type: 'REGISTER_FAILURE', payload: errorMessage });

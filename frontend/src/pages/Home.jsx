@@ -1,4 +1,7 @@
 import { Link } from "react-router-dom";
+import { usePosts } from "../contexts/PostsContext";
+import { useEffect, useState } from "react";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
 
 const features = [
   {
@@ -72,6 +75,13 @@ const tagColors = [
 const trendingTags = ["#javascript", "#python", "#webdev", "#ai", "#devops", "#career", "#react", "#golang"];
 
 export default function Home() {
+  const { posts, loading, error, fetchPosts } = usePosts();
+  const [showPosts, setShowPosts] = useState(false);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
   return (
     <div className="relative">
       {/* ─── Hero ─── */}
@@ -259,6 +269,83 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ─── Latest Posts ─── */}
+      <section className="py-24 relative">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
+              Latest Posts
+            </h2>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+              Discover the latest insights and tutorials from our community
+            </p>
+          </div>
+
+          {loading && (
+            <div className="flex justify-center py-12">
+              <LoadingSpinner />
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-red-400">Failed to load posts: {error}</p>
+            </div>
+          )}
+
+          {!loading && !error && posts.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {posts.slice(0, 6).map((post) => (
+                <div
+                  key={post.id}
+                  className="group cursor-pointer rounded-xl overflow-hidden transition-all duration-300"
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {post.thumbnail_url && (
+                    <div className="h-48 overflow-hidden">
+                      <img
+                        src={post.thumbnail_url}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-4 line-clamp-3">
+                      {post.content}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                      <span>{post.view_count} views</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && !error && posts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-slate-400">No posts available yet.</p>
+            </div>
+          )}
         </div>
       </section>
 

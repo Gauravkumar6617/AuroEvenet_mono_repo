@@ -20,10 +20,9 @@ interface PostsContextType extends PostsState {
   createPost: (postData: {
     title: string;
     content: string;
-    excerpt?: string;
-    slug?: string;
-    category_id?: number;
-    tags?: number[];
+    category_id: number;
+    tags?: string;
+    thumbnail: string;
   }) => Promise<Post>;
   deletePost: (postId: number) => Promise<void>;
   clearError: () => void;
@@ -180,14 +179,19 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   const createPost = async (postData: {
     title: string;
     content: string;
-    excerpt?: string;
-    slug?: string;
-    category_id?: number;
-    tags?: number[];
+    category_id: number;
+    tags?: string;
+    thumbnail: string;
   }) => {
     dispatch({ type: 'CREATE_POST_START' });
     try {
-      const post = await apiClient.createPost(postData) as Post;
+      const post = await apiClient.createPost({
+        title: postData.title,
+        content: postData.content,
+        category_id: postData.category_id,
+        tags: postData.tags || '',
+        thumbnail: postData.thumbnail
+      }) as Post;
       dispatch({ type: 'CREATE_POST_SUCCESS', payload: post });
       return post;
     } catch (error) {
