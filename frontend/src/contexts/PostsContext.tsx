@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, Post } from '../services/api';
 
 interface PostsState {
@@ -83,7 +83,7 @@ const postsReducer = (state: PostsState, action: PostsAction): PostsState => {
         currentPost: action.payload,
         loading: false,
         error: null,
-        posts: action.type === 'CREATE_POST_SUCCESS' 
+        posts: action.type === 'CREATE_POST_SUCCESS'
           ? [action.payload, ...state.posts]
           : state.posts,
       };
@@ -134,15 +134,15 @@ interface PostsProviderProps {
 export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(postsReducer, initialState);
 
-  const fetchPosts = async (params?: { skip?: number; limit?: number; category_id?: number }) => {
+  const fetchPosts = useCallback(async (params?: { skip?: number; limit?: number; category_id?: number }) => {
     dispatch({ type: 'FETCH_POSTS_START' });
     try {
       const response = await apiClient.getAllPosts(params);
-      dispatch({ 
-        type: 'FETCH_POSTS_SUCCESS', 
-        payload: { 
+      dispatch({
+        type: 'FETCH_POSTS_SUCCESS',
+        payload: {
           posts: Array.isArray(response) ? response as Post[] : (response as any).posts || [],
-          total: (response as any)?.total 
+          total: (response as any)?.total
         }
       });
     } catch (error) {
@@ -150,9 +150,9 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       dispatch({ type: 'FETCH_POSTS_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const fetchPostById = async (postId: number) => {
+  const fetchPostById = useCallback(async (postId: number) => {
     dispatch({ type: 'FETCH_POST_START' });
     try {
       const post = await apiClient.getPostById(postId) as Post;
@@ -162,9 +162,9 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       dispatch({ type: 'FETCH_POST_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const fetchPostBySlug = async (slug: string) => {
+  const fetchPostBySlug = useCallback(async (slug: string) => {
     dispatch({ type: 'FETCH_POST_START' });
     try {
       const post = await apiClient.getPostBySlug(slug) as Post;
@@ -174,9 +174,9 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       dispatch({ type: 'FETCH_POST_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const createPost = async (postData: {
+  const createPost = useCallback(async (postData: {
     title: string;
     content: string;
     category_id: number;
@@ -199,9 +199,9 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       dispatch({ type: 'CREATE_POST_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const deletePost = async (postId: number) => {
+  const deletePost = useCallback(async (postId: number) => {
     dispatch({ type: 'DELETE_POST_START' });
     try {
       await apiClient.deletePost(postId);
@@ -211,17 +211,17 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       dispatch({ type: 'DELETE_POST_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
-  };
+  }, []);
 
-  const setCurrentPost = (post: Post | null) => {
+  const setCurrentPost = useCallback((post: Post | null) => {
     dispatch({ type: 'SET_CURRENT_POST', payload: post });
-  };
+  }, []);
 
-  const value: PostsContextType = {
+  const value: PostsContextType = useMemo(() => ({
     ...state,
     fetchPosts,
     fetchPostById,
@@ -230,7 +230,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     deletePost,
     clearError,
     setCurrentPost,
-  };
+  }), [state, fetchPosts, fetchPostById, fetchPostBySlug, createPost, deletePost, clearError, setCurrentPost]);
 
   return <PostsContext.Provider value={value}>{children}</PostsContext.Provider>;
 };

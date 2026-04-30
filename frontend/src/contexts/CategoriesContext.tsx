@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, Category } from '../services/api';
 
 interface CategoriesState {
@@ -65,7 +65,7 @@ const categoriesReducer = (state: CategoriesState, action: CategoriesAction): Ca
         currentCategory: action.payload,
         loading: false,
         error: null,
-        categories: action.type === 'CREATE_CATEGORY_SUCCESS' 
+        categories: action.type === 'CREATE_CATEGORY_SUCCESS'
           ? [...state.categories, action.payload]
           : state.categories,
       };
@@ -116,12 +116,12 @@ interface CategoriesProviderProps {
 export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(categoriesReducer, initialState);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     dispatch({ type: 'FETCH_CATEGORIES_START' });
     try {
       const response = await apiClient.getAllCategories();
-      dispatch({ 
-        type: 'FETCH_CATEGORIES_SUCCESS', 
+      dispatch({
+        type: 'FETCH_CATEGORIES_SUCCESS',
         payload: Array.isArray(response) ? response as Category[] : []
       });
     } catch (error) {
@@ -129,9 +129,9 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
       dispatch({ type: 'FETCH_CATEGORIES_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const fetchCategoryById = async (categoryId: number) => {
+  const fetchCategoryById = useCallback(async (categoryId: number) => {
     dispatch({ type: 'FETCH_CATEGORY_START' });
     try {
       const category = await apiClient.getCategoryById(categoryId) as Category;
@@ -141,9 +141,9 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
       dispatch({ type: 'FETCH_CATEGORY_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const createCategory = async (categoryData: {
+  const createCategory = useCallback(async (categoryData: {
     name: string;
     slug: string;
   }) => {
@@ -157,9 +157,9 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
       dispatch({ type: 'CREATE_CATEGORY_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const deleteCategory = async (categoryId: number) => {
+  const deleteCategory = useCallback(async (categoryId: number) => {
     dispatch({ type: 'DELETE_CATEGORY_START' });
     try {
       await apiClient.deleteCategory(categoryId);
@@ -169,17 +169,17 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
       dispatch({ type: 'DELETE_CATEGORY_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
-  };
+  }, []);
 
-  const setCurrentCategory = (category: Category | null) => {
+  const setCurrentCategory = useCallback((category: Category | null) => {
     dispatch({ type: 'SET_CURRENT_CATEGORY', payload: category });
-  };
+  }, []);
 
-  const value: CategoriesContextType = {
+  const value: CategoriesContextType = useMemo(() => ({
     ...state,
     fetchCategories,
     fetchCategoryById,
@@ -187,7 +187,7 @@ export const CategoriesProvider: React.FC<CategoriesProviderProps> = ({ children
     deleteCategory,
     clearError,
     setCurrentCategory,
-  };
+  }), [state, fetchCategories, fetchCategoryById, createCategory, deleteCategory, clearError, setCurrentCategory]);
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;
 };

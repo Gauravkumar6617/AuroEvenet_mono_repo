@@ -15,18 +15,18 @@ class ApiClient {
 
   private getHeaders(includeApiKey: boolean = false): Record<string, string> {
     const headers = { ...this.defaultHeaders };
-    
+
     // Add internal API key for posts and categories endpoints
     if (includeApiKey) {
       headers['x-internal-api-key'] = import.meta.env.VITE_INTERNAL_API_KEY || 'your-internal-api-key';
     }
-    
+
     // Add authorization token if available
     const token = localStorage.getItem('token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 
@@ -36,7 +36,7 @@ class ApiClient {
     includeApiKey: boolean = false
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: this.getHeaders(includeApiKey),
       ...options,
@@ -44,7 +44,7 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
@@ -71,7 +71,7 @@ class ApiClient {
     });
   }
 
-  async login(credentials: { email: string; password: string; user_Agent: string }) {
+  async login(credentials: { email: string; password: string; user_Agent?: string }) {
     return this.request<LoginResponse>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
@@ -132,8 +132,9 @@ class ApiClient {
     }, true); // Include API key
   }
 
-  async getAllPosts() {
-    return this.request<Post[]>('/api/v1/posts/', {
+  async getAllPosts(params?: any) {
+    const queryParams = params ? '?' + new URLSearchParams(params).toString() : '';
+    return this.request<Post[]>(`/api/v1/posts/${queryParams}`, {
       method: 'GET',
     }, true); // Include API key
   }
@@ -245,6 +246,8 @@ export interface LoginResponse {
 export interface OTPVerifyResponse {
   message: string;
   success: boolean;
+  access_token?: string;
+  refresh_token?: string;
 }
 
 export interface ValidationError {

@@ -1,0 +1,64 @@
+# Google and GitHub OAuth Process in BlogByte
+
+This document explains the end-to-end flow of OAuth authentication (Google and GitHub) as implemented in the BlogByte project.
+
+## 1. High-Level Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as React Frontend
+    participant GoogleGitHub as Google/GitHub
+    participant Backend as FastAPI Backend
+    participant DB as PostgreSQL / Redis
+
+    User->>Frontend: Clicks "Login with Google/GitHub"
+    Frontend->>GoogleGitHub: Redirect to OAuth Consent Page
+    Note over GoogleGitHub: User authenticates & authorizes
+    GoogleGitHub->>Backend: Redirect to Callback with Authorization Code
+    Backend->>GoogleGitHub: Exchange Code for Access Token
+    GoogleGitHub-->>Backend: Return Access Token
+    Backend->>GoogleGitHub: Fetch User Profile Info
+    GoogleGitHub-->>Backend: Return Email, Name, ID
+    Backend->>DB: Sync User (Check exists? Create new?)
+    Backend->>DB: Store Refresh Token in Redis
+    Backend->>Frontend: Redirect with internal JWT & Refresh Token
+    Frontend->>User: Logged in & Redirected to Home
+```
+
+## 2. Detailed Step-by-Step Breakdown
+
+### Phase 1: Frontend Request (The Trigger)
+When you click a social login button in [Login.jsx](file:///home/gaurav/portfolio/blogbyte/frontend/src/pages/Login.jsx), the following happens:
+*   **Google**: Constructs a URL to `https://accounts.google.com/o/oauth2/v2/auth` with your `client_id`, `scope` (openid, email, profile), and `redirect_uri` (your backend callback).
+*   **GitHub**: Constructs a URL to `https://github.com/login/oauth/authorize` with `client_id` and `scope` (user:email).
+*   **Action**: Your browser is redirected to the provider's login page.
+
+### Phase 2: User Authorization
+*   You log in to Google/GitHub and agree to share your info.
+*   The provider then redirects your browser back to your backend callback URL (e.g., `http://localhost:8000/api/v1/auth/google/callback`) with a temporary `code` in the URL.
+
+### Phase 3: Backend Callback & Token Exchange
+The backend handles this in [auth.py](file:///home/gaurav/portfolio/blogbyte/backend/app/api/v1/enpoint/auth.py) and [AuthService.py](file:///home/gaurav/portfolio/blogbyte/backend/app/service/AuthService.py):
+1.  **Code Exchange**: The backend sends a POST request to Google/GitHub's token server, sending the `code` + `client_secret` to prove it's a legitimate request. It gets back an `access_token`.
+2.  **User Data Retrieval**: Using that `access_token`, the backend immediately asks the provider for your profile (Email, Name, unique ID).
+3.  **Database Synchronization**:
+    *   It checks if a user with that email already exists in the `users` table.
+    *   If not, it creates a new user, marks them as `is_verified: true`, and sets their `oauth_provider` (GOOGLE or GITHUB).
+4.  **Internal Token Generation**: The backend generates its own set of tokens (JWT Access Token and a Refresh Token) for your app.
+5.  **Redis Session**: The refresh token is stored in Redis for session tracking and logout support.
+
+### Phase 4: Completing the Loop
+1.  The backend redirects your browser back to the frontend at `/oauth/callback?token=...&refresh_token=...`.
+2.  The [OAuthCallback.jsx](file:///home/gaurav/portfolio/blogbyte/frontend/src/pages/OAuthCallback.jsx) component in React:
+    *   Parses the tokens from the URL.
+    *   Saves them to `localStorage`.
+    *   Updates the Global Auth State (via `useAuth`).
+    *   Redirects you to the Home page.
+
+## 3. Key Components Involved
+
+*   **Frontend Trigger**: [Login.jsx](file:///home/gaurav/portfolio/blogbyte/frontend/src/pages/Login.jsx) (Lines 23-64)
+*   **Backend Routes**: [auth.py](file:///home/gaurav/portfolio/blogbyte/backend/app/api/v1/enpoint/auth.py) (Lines 139-198)
+*   **Logic Layer**: [AuthService.py](file:///home/gaurav/portfolio/blogbyte/backend/app/service/AuthService.py) (Lines 74-193)
+*   **Frontend Finisher**: [OAuthCallback.jsx](file:///home/gaurav/portfolio/blogbyte/frontend/src/pages/OAuthCallback.jsx)

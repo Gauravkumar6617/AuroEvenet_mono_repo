@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, User, LoginResponse, RegisterResponse, OTPVerifyResponse } from '../services/api';
 
 interface AuthState {
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
@@ -113,17 +113,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const response = await apiClient.login({ email, password }) as LoginResponse;
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);
-      
-      // Since backend doesn't return user in login response, create a minimal user object
-      // You might want to add a /me endpoint to get full user details
+
       const user: User = {
-        id: 0, // This should come from the API
+        id: 0,
         email,
         username: email.split('@')[0],
         is_active: true,
@@ -131,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      
+
       localStorage.setItem('user', JSON.stringify(user));
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (error) {
@@ -139,9 +137,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const register = async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
+  const register = useCallback(async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
     dispatch({ type: 'REGISTER_START' });
     try {
       const response = await apiClient.register({
@@ -151,30 +149,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         oauth_provider: 'none',
         oauth_id: ''
       }) as RegisterResponse;
-      
-      // Store email for OTP verification
+
       localStorage.setItem('pending_email', userData.email);
-      
-      // Registration successful but requires OTP verification
       dispatch({ type: 'REGISTER_SUCCESS', payload: response.user });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       dispatch({ type: 'REGISTER_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const verifyOTP = async (email: string, otp: string) => {
+  const verifyOTP = useCallback(async (email: string, otp: string) => {
     dispatch({ type: 'VERIFY_OTP_START' });
     try {
       const response = await apiClient.verifyOTP({ email, otp }) as OTPVerifyResponse;
-      if (response.access_token && response.access_token) {
-        // Get user info after successful OTP verification
-        // You might need to add a /me endpoint to get user info
-        localStorage.setItem('token', response.access_token);
-        // For now, we'll create a minimal user object
+      if (response.success) {
+        if (response.access_token) {
+          localStorage.setItem('token', response.access_token);
+        }
+
+        // Even if we don't have a token, we can mark as success if verified
         const user: User = {
-          id: 0, // This should come from the API
+          id: 0,
           email,
           username: email.split('@')[0],
           is_active: true,
@@ -182,36 +178,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        localStorage.setItem('user', JSON.stringify(user));
-        dispatch({ type: 'VERIFY_OTP_SUCCESS', payload: user });
+
+        if (response.access_token) {
+          localStorage.setItem('user', JSON.stringify(user));
+          dispatch({ type: 'VERIFY_OTP_SUCCESS', payload: user });
+        } else {
+          // If no token, we probably need to redirect to login
+          // For now, just clear loading
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'OTP verification failed';
       dispatch({ type: 'VERIFY_OTP_FAILURE', payload: errorMessage });
       throw error;
     }
-  };
+  }, []);
 
-  const resendOTP = async (email: string) => {
+  const resendOTP = useCallback(async (email: string) => {
     try {
       await apiClient.resendOTP(email);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to resend OTP';
       throw error;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     dispatch({ type: 'LOGOUT' });
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
-  };
+  }, []);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     ...state,
     login,
     register,
@@ -219,7 +222,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendOTP,
     logout,
     clearError,
-  };
+  }), [state, login, register, verifyOTP, resendOTP, logout, clearError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
