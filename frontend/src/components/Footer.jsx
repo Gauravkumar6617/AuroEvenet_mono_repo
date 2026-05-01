@@ -53,21 +53,21 @@ const footerLinks = {
 
 export default function Footer() {
     return (
-        <footer className="relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, #0a0a0f, #0d0d1a)' }}>
+        <footer className="relative overflow-hidden bg-gray-50 border-t border-gray-200">
             {/* Top border glow */}
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.5), rgba(139,92,246,0.5), transparent)' }} />
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.3), rgba(139,92,246,0.3), transparent)' }} />
 
             {/* Background orbs */}
-            <div className="absolute bottom-0 left-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)' }} />
-            <div className="absolute top-0 right-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)' }} />
+            <div className="absolute bottom-0 left-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.03) 0%, transparent 70%)' }} />
+            <div className="absolute top-0 right-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.03) 0%, transparent 70%)' }} />
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative w-full px-4 sm:px-6 lg:px-8 xl:px-12">
                 {/* Newsletter section */}
-                <div className="py-10 border-b border-indigo-500/10">
+                <div className="py-10 border-b border-gray-200">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div>
-                            <h3 className="text-lg font-bold text-white mb-1">Stay in the loop</h3>
-                            <p className="text-slate-400 text-sm">Get the latest articles, tutorials, and updates delivered to your inbox.</p>
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">Stay in the loop</h3>
+                            <p className="text-gray-600 text-sm">Get the latest articles, tutorials, and updates delivered to your inbox.</p>
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                             <input
@@ -83,16 +83,16 @@ export default function Footer() {
                 </div>
 
                 {/* Main footer content */}
-                <div className="py-12 grid md:grid-cols-5 gap-10">
+                <div className="py-12 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
                     {/* Brand */}
-                    <div className="md:col-span-2 space-y-5">
+                    <div className="md:col-span-4 space-y-5">
                         <Link to="/" className="flex items-center space-x-2.5">
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
                                 <span className="text-white font-black text-lg">B</span>
                             </div>
-                            <span className="text-xl font-bold text-white">Blog<span className="gradient-text">Byte</span></span>
+                            <span className="text-xl font-bold text-gray-900">Blog<span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Byte</span></span>
                         </Link>
-                        <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+                        <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
                             The modern platform for developers and creators to share their thoughts, code snippets, and tutorials with a global community.
                         </p>
                         <div className="flex items-center gap-3">
@@ -101,15 +101,15 @@ export default function Footer() {
                                     key={label}
                                     href={href}
                                     aria-label={label}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"
-                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 hover:text-gray-900 transition-all duration-200"
+                                    style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.1)' }}
                                     onMouseEnter={e => {
-                                        e.currentTarget.style.background = 'rgba(99,102,241,0.2)';
-                                        e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)';
+                                        e.currentTarget.style.background = 'rgba(99,102,241,0.1)';
+                                        e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)';
                                     }}
                                     onMouseLeave={e => {
-                                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                        e.currentTarget.style.background = 'rgba(255,255,255,0.8)';
+                                        e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)';
                                     }}
                                 >
                                     {icon}
@@ -120,14 +120,14 @@ export default function Footer() {
 
                     {/* Links */}
                     {Object.entries(footerLinks).map(([group, links]) => (
-                        <div key={group} className="space-y-4">
-                            <h4 className="text-sm font-semibold text-white uppercase tracking-wider">{group}</h4>
+                        <div key={group} className="md:col-span-2 space-y-4">
+                            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">{group}</h4>
                             <ul className="space-y-2.5">
                                 {links.map(({ label, to }) => (
                                     <li key={to}>
                                         <Link
                                             to={to}
-                                            className="text-sm text-slate-400 hover:text-indigo-300 transition-colors duration-200"
+                                            className="text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200"
                                         >
                                             {label}
                                         </Link>
@@ -139,11 +139,11 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="py-6 border-t border-indigo-500/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-slate-500 text-sm">© 2026 BlogByte. All rights reserved.</p>
+                <div className="py-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-gray-500 text-sm">© 2026 BlogByte. All rights reserved.</p>
                     <div className="flex items-center gap-6">
                         {[{ label: "Privacy", to: "/privacy" }, { label: "Terms", to: "/terms" }, { label: "Cookies", to: "/cookies" }].map(({ label, to }) => (
-                            <Link key={to} to={to} className="text-xs text-slate-500 hover:text-slate-300 transition-colors duration-200">
+                            <Link key={to} to={to} className="text-xs text-gray-500 hover:text-gray-700 transition-colors duration-200">
                                 {label}
                             </Link>
                         ))}

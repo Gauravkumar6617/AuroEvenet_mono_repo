@@ -11,6 +11,11 @@ import VerifyOtp from './pages/VerifyOtp';
 import Home from './pages/Home';
 import OAuthCallback from './pages/OAuthCallback';
 import UserDashboard from './pages/UserDashboard';
+import CreatePost from './pages/CreatePost';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Features from './pages/Features';
+import Blog from './pages/Blog';
 
 const App: React.FC = () => {
   return (
@@ -18,9 +23,9 @@ const App: React.FC = () => {
       <PostsProvider>
         <CategoriesProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-[#fafafa] font-sans selection:bg-black selection:text-white text-black">
+            <div className="min-h-screen flex flex-col bg-white font-sans selection:bg-black selection:text-white text-black">
               <Navbar />
-              <main className="flex-grow container mx-auto px-4">
+              <main className="flex-grow">
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
@@ -28,6 +33,11 @@ const App: React.FC = () => {
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/oauth/callback" element={<OAuthCallback />} />
                   <Route path="/dashboard" element={<UserDashboard />} />
+                  <Route path="/create-post" element={<CreatePost />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/features" element={<Features />} />
+                  <Route path="/blog" element={<Blog />} />
                 </Routes>
               </main>
               <Footer />
