@@ -45,36 +45,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearError: clearErrorStore,
   } = useAuthStore();
 
-  const syncUser = useCallback(async () => {
-    try {
-      const user = await apiClient.getMe();
-      setAuth(user);
-    } catch (error) {
-      logoutStore();
+  useEffect(() => {
+    // Check if user is already stored in localStorage on mount
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData);
+        setAuth(user);
+      } catch (error) {
+        logoutStore();
+      }
     }
   }, [setAuth, logoutStore]);
-
-  useEffect(() => {
-    // Attempt to sync user on mount if we think we might be authenticated
-    // or just always check if a session cookie exists (browser handles it, 
-    // we just make the request)
-    syncUser();
-  }, [syncUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await apiClient.login({ email, password });
+      const response = await apiClient.login({ 
+        email, 
+        password, 
+        user_Agent: navigator.userAgent 
+      });
 
-      // Tokens are set in HttpOnly cookies by the backend
-      // We still need to fetch user info if it wasn't returned or to ensure it's fresh
-      await syncUser();
+      // Since backend doesn't return user in login response, create a minimal user object
+      // You might want to add a /me endpoint to get full user details
+      const user: User = {
+        id: 0, // This should come from the API
+        email,
+        username: email.split('@')[0],
+        is_active: true,
+        is_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      localStorage.setItem('user', JSON.stringify(user));
+      setAuth(user);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       throw error;
     }
-  }, [syncUser, setLoading, setError]);
+  }, [setLoading, setError, setAuth]);
 
   const register = useCallback(async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
     setLoading(true);
@@ -102,15 +116,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.verifyOTP({ email, otp });
       if (response.success) {
-        // If the backend sets cookies during OTP verify, sync user
-        await syncUser();
+        // Create a minimal user object after successful OTP verification
+        const user: User = {
+          id: 0, // This should come from the API
+          email,
+          username: email.split('@')[0],
+          is_active: true,
+          is_verified: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        localStorage.setItem('user', JSON.stringify(user));
+        setAuth(user);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'OTP verification failed';
       setError(errorMessage);
       throw error;
     }
-  }, [syncUser, setLoading, setError]);
+  }, [setLoading, setError, setAuth]);
 
   const resendOTP = useCallback(async (email: string) => {
     try {
