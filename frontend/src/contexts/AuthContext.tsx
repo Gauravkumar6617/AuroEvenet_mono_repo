@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, User, LoginResponse, RegisterResponse, OTPVerifyResponse } from '../services/api';
+import useAuthStore from '../store/useAuthStore';
 
 interface AuthState {
   user: User | null;
@@ -17,70 +18,6 @@ interface AuthContextType extends AuthState {
   clearError: () => void;
 }
 
-type AuthAction =
-  | { type: 'LOGIN_START' }
-  | { type: 'LOGIN_SUCCESS'; payload: User }
-  | { type: 'LOGIN_FAILURE'; payload: string }
-  | { type: 'REGISTER_START' }
-  | { type: 'REGISTER_SUCCESS'; payload: User }
-  | { type: 'REGISTER_FAILURE'; payload: string }
-  | { type: 'VERIFY_OTP_START' }
-  | { type: 'VERIFY_OTP_SUCCESS'; payload: User }
-  | { type: 'VERIFY_OTP_FAILURE'; payload: string }
-  | { type: 'LOGOUT' }
-  | { type: 'CLEAR_ERROR' }
-  | { type: 'SET_LOADING'; payload: boolean };
-
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-  error: null,
-};
-
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  switch (action.type) {
-    case 'LOGIN_START':
-    case 'REGISTER_START':
-    case 'VERIFY_OTP_START':
-      return { ...state, loading: true, error: null };
-    case 'LOGIN_SUCCESS':
-    case 'REGISTER_SUCCESS':
-    case 'VERIFY_OTP_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        loading: false,
-        error: null,
-      };
-    case 'LOGIN_FAILURE':
-    case 'REGISTER_FAILURE':
-    case 'VERIFY_OTP_FAILURE':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        loading: false,
-        error: action.payload,
-      };
-    case 'LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        loading: false,
-        error: null,
-      };
-    case 'CLEAR_ERROR':
-      return { ...state, error: null };
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    default:
-      return state;
-  }
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -96,133 +33,119 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const {
+    user,
+    isAuthenticated,
+    loading,
+    error,
+    setAuth,
+    setLoading,
+    setError,
+    logout: logoutStore,
+    clearError: clearErrorStore,
+  } = useAuthStore();
+
+  const syncUser = useCallback(async () => {
+    try {
+      const user = await apiClient.getMe();
+      setAuth(user);
+    } catch (error) {
+      logoutStore();
+    }
+  }, [setAuth, logoutStore]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData);
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-      } catch (error) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    }
-  }, []);
+    // Attempt to sync user on mount if we think we might be authenticated
+    // or just always check if a session cookie exists (browser handles it, 
+    // we just make the request)
+    syncUser();
+  }, [syncUser]);
 
   const login = useCallback(async (email: string, password: string) => {
-    dispatch({ type: 'LOGIN_START' });
+    setLoading(true);
     try {
-      const response = await apiClient.login({ email, password }) as LoginResponse;
-      localStorage.setItem('token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
+      const response = await apiClient.login({ email, password });
 
-      const user: User = {
-        id: 0,
-        email,
-        username: email.split('@')[0],
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      localStorage.setItem('user', JSON.stringify(user));
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+      // Tokens are set in HttpOnly cookies by the backend
+      // We still need to fetch user info if it wasn't returned or to ensure it's fresh
+      await syncUser();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [syncUser, setLoading, setError]);
 
   const register = useCallback(async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
-    dispatch({ type: 'REGISTER_START' });
+    setLoading(true);
     try {
-      const response = await apiClient.register({
+      await apiClient.register({
         email: userData.email,
         username: userData.username || userData.email.split('@')[0],
         password: userData.password,
         oauth_provider: 'none',
         oauth_id: ''
-      }) as RegisterResponse;
+      });
+      console.log(apiClient);
 
       localStorage.setItem('pending_email', userData.email);
-      dispatch({ type: 'REGISTER_SUCCESS', payload: response.user });
+      setLoading(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      dispatch({ type: 'REGISTER_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [setLoading, setError]);
 
   const verifyOTP = useCallback(async (email: string, otp: string) => {
-    dispatch({ type: 'VERIFY_OTP_START' });
+    setLoading(true);
     try {
-      const response = await apiClient.verifyOTP({ email, otp }) as OTPVerifyResponse;
+      const response = await apiClient.verifyOTP({ email, otp });
       if (response.success) {
-        if (response.access_token) {
-          localStorage.setItem('token', response.access_token);
-        }
-
-        // Even if we don't have a token, we can mark as success if verified
-        const user: User = {
-          id: 0,
-          email,
-          username: email.split('@')[0],
-          is_active: true,
-          is_verified: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        if (response.access_token) {
-          localStorage.setItem('user', JSON.stringify(user));
-          dispatch({ type: 'VERIFY_OTP_SUCCESS', payload: user });
-        } else {
-          // If no token, we probably need to redirect to login
-          // For now, just clear loading
-          dispatch({ type: 'SET_LOADING', payload: false });
-        }
+        // If the backend sets cookies during OTP verify, sync user
+        await syncUser();
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'OTP verification failed';
-      dispatch({ type: 'VERIFY_OTP_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [syncUser, setLoading, setError]);
 
   const resendOTP = useCallback(async (email: string) => {
     try {
       await apiClient.resendOTP(email);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to resend OTP';
       throw error;
     }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    dispatch({ type: 'LOGOUT' });
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.logout();
+    } catch (error) {
+      console.error('Logout request failed', error);
+    } finally {
+      logoutStore();
+    }
+  }, [logoutStore]);
 
   const clearError = useCallback(() => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  }, []);
+    clearErrorStore();
+  }, [clearErrorStore]);
 
   const value: AuthContextType = useMemo(() => ({
-    ...state,
+    user,
+    isAuthenticated,
+    loading,
+    error,
     login,
     register,
     verifyOTP,
     resendOTP,
     logout,
     clearError,
-  }), [state, login, register, verifyOTP, resendOTP, logout, clearError]);
+  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

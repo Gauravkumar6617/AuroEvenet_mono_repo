@@ -11,8 +11,7 @@ def get_db():
     print("DEBUG: Creating new database session...")
     db=SessionLocal()
     try:
-        # Test connection (SQLAlchemy 2.0 requires text() wrapper)
-        db.execute(text("SELECT 1"))
+
         yield db
     except Exception as e:
         print(f"DEBUG: Database session error: {str(e)}")

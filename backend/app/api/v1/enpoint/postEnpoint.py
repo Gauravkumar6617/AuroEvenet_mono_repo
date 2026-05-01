@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.repositories.postRepositories import PostRepository
 from app.schemas.postSchema import PostRead
-from app.core.dependencies import verify_internal_api_key
+
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -34,7 +34,7 @@ async def create_post(
     )
 
 @router.get("/", response_model=list[PostRead])
-async def fetch_all_post(db: Session = Depends(get_db),_str=Depends(verify_internal_api_key)):
+async def fetch_all_post(db: Session = Depends(get_db)):
     try:
         posts = PostRepository.fetch_all_post(db)
         return posts

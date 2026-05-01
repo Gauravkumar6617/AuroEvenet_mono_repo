@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, Post } from '../services/api';
+import usePostsStore from '../store/usePostsStore';
 
 interface PostsState {
   posts: Post[];
@@ -29,94 +30,6 @@ interface PostsContextType extends PostsState {
   setCurrentPost: (post: Post | null) => void;
 }
 
-type PostsAction =
-  | { type: 'FETCH_POSTS_START' }
-  | { type: 'FETCH_POSTS_SUCCESS'; payload: { posts: Post[]; total?: number } }
-  | { type: 'FETCH_POSTS_FAILURE'; payload: string }
-  | { type: 'FETCH_POST_START' }
-  | { type: 'FETCH_POST_SUCCESS'; payload: Post }
-  | { type: 'FETCH_POST_FAILURE'; payload: string }
-  | { type: 'CREATE_POST_START' }
-  | { type: 'CREATE_POST_SUCCESS'; payload: Post }
-  | { type: 'CREATE_POST_FAILURE'; payload: string }
-  | { type: 'DELETE_POST_START' }
-  | { type: 'DELETE_POST_SUCCESS'; payload: number }
-  | { type: 'DELETE_POST_FAILURE'; payload: string }
-  | { type: 'SET_CURRENT_POST'; payload: Post | null }
-  | { type: 'CLEAR_ERROR' }
-  | { type: 'SET_LOADING'; payload: boolean };
-
-const initialState: PostsState = {
-  posts: [],
-  currentPost: null,
-  loading: false,
-  error: null,
-  pagination: {
-    skip: 0,
-    limit: 10,
-    total: 0,
-  },
-};
-
-const postsReducer = (state: PostsState, action: PostsAction): PostsState => {
-  switch (action.type) {
-    case 'FETCH_POSTS_START':
-    case 'FETCH_POST_START':
-    case 'CREATE_POST_START':
-    case 'DELETE_POST_START':
-      return { ...state, loading: true, error: null };
-    case 'FETCH_POSTS_SUCCESS':
-      return {
-        ...state,
-        posts: action.payload.posts,
-        loading: false,
-        error: null,
-        pagination: {
-          ...state.pagination,
-          total: action.payload.total || state.posts.length,
-        },
-      };
-    case 'FETCH_POST_SUCCESS':
-    case 'CREATE_POST_SUCCESS':
-      return {
-        ...state,
-        currentPost: action.payload,
-        loading: false,
-        error: null,
-        posts: action.type === 'CREATE_POST_SUCCESS'
-          ? [action.payload, ...state.posts]
-          : state.posts,
-      };
-    case 'DELETE_POST_SUCCESS':
-      return {
-        ...state,
-        posts: state.posts.filter(post => post.id !== action.payload),
-        loading: false,
-        error: null,
-      };
-    case 'FETCH_POSTS_FAILURE':
-    case 'FETCH_POST_FAILURE':
-    case 'CREATE_POST_FAILURE':
-    case 'DELETE_POST_FAILURE':
-      return {
-        ...state,
-        loading: false,
-        error: action.payload,
-      };
-    case 'SET_CURRENT_POST':
-      return {
-        ...state,
-        currentPost: action.payload,
-      };
-    case 'CLEAR_ERROR':
-      return { ...state, error: null };
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    default:
-      return state;
-  }
-};
-
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
 export const usePosts = () => {
@@ -132,49 +45,65 @@ interface PostsProviderProps {
 }
 
 export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(postsReducer, initialState);
+  const {
+    posts,
+    currentPost,
+    loading,
+    error,
+    pagination,
+    setPosts,
+    setCurrentPost: setCurrentPostStore,
+    setLoading,
+    setError,
+    addPost,
+    removePost,
+    setPagination,
+    clearError: clearErrorStore,
+  } = usePostsStore();
 
   const fetchPosts = useCallback(async (params?: { skip?: number; limit?: number; category_id?: number }) => {
-    dispatch({ type: 'FETCH_POSTS_START' });
+    setLoading(true);
     try {
       const response = await apiClient.getAllPosts(params);
-      dispatch({
-        type: 'FETCH_POSTS_SUCCESS',
-        payload: {
-          posts: Array.isArray(response) ? response as Post[] : (response as any).posts || [],
-          total: (response as any)?.total
-        }
-      });
+      const postsData = Array.isArray(response) ? response as Post[] : (response as any).posts || [];
+      const total = (response as any)?.total || postsData.length;
+      
+      setPosts(postsData, total);
+      if (params?.skip !== undefined || params?.limit !== undefined) {
+        setPagination({ skip: params.skip || 0, limit: params.limit || 10 });
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch posts';
-      dispatch({ type: 'FETCH_POSTS_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [setPosts, setLoading, setError, setPagination]);
 
   const fetchPostById = useCallback(async (postId: number) => {
-    dispatch({ type: 'FETCH_POST_START' });
+    setLoading(true);
     try {
       const post = await apiClient.getPostById(postId) as Post;
-      dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
+      setCurrentPostStore(post);
+      setLoading(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch post';
-      dispatch({ type: 'FETCH_POST_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [setCurrentPostStore, setLoading, setError]);
 
   const fetchPostBySlug = useCallback(async (slug: string) => {
-    dispatch({ type: 'FETCH_POST_START' });
+    setLoading(true);
     try {
       const post = await apiClient.getPostBySlug(slug) as Post;
-      dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
+      setCurrentPostStore(post);
+      setLoading(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch post';
-      dispatch({ type: 'FETCH_POST_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [setCurrentPostStore, setLoading, setError]);
 
   const createPost = useCallback(async (postData: {
     title: string;
@@ -183,7 +112,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     tags?: string;
     thumbnail: string;
   }) => {
-    dispatch({ type: 'CREATE_POST_START' });
+    setLoading(true);
     try {
       const post = await apiClient.createPost({
         title: postData.title,
@@ -192,37 +121,42 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
         tags: postData.tags || '',
         thumbnail: postData.thumbnail
       }) as Post;
-      dispatch({ type: 'CREATE_POST_SUCCESS', payload: post });
+      addPost(post);
       return post;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create post';
-      dispatch({ type: 'CREATE_POST_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [addPost, setLoading, setError]);
 
   const deletePost = useCallback(async (postId: number) => {
-    dispatch({ type: 'DELETE_POST_START' });
+    setLoading(true);
     try {
       await apiClient.deletePost(postId);
-      dispatch({ type: 'DELETE_POST_SUCCESS', payload: postId });
+      removePost(postId);
+      setLoading(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete post';
-      dispatch({ type: 'DELETE_POST_FAILURE', payload: errorMessage });
+      setError(errorMessage);
       throw error;
     }
-  }, []);
+  }, [removePost, setLoading, setError]);
 
   const clearError = useCallback(() => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  }, []);
+    clearErrorStore();
+  }, [clearErrorStore]);
 
   const setCurrentPost = useCallback((post: Post | null) => {
-    dispatch({ type: 'SET_CURRENT_POST', payload: post });
-  }, []);
+    setCurrentPostStore(post);
+  }, [setCurrentPostStore]);
 
   const value: PostsContextType = useMemo(() => ({
-    ...state,
+    posts,
+    currentPost,
+    loading,
+    error,
+    pagination,
     fetchPosts,
     fetchPostById,
     fetchPostBySlug,
@@ -230,7 +164,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     deletePost,
     clearError,
     setCurrentPost,
-  }), [state, fetchPosts, fetchPostById, fetchPostBySlug, createPost, deletePost, clearError, setCurrentPost]);
+  }), [posts, currentPost, loading, error, pagination, fetchPosts, fetchPostById, fetchPostBySlug, createPost, deletePost, clearError, setCurrentPost]);
 
   return <PostsContext.Provider value={value}>{children}</PostsContext.Provider>;
 };

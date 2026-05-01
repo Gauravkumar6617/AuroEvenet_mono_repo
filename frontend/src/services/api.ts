@@ -2,6 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // API Client
+// API Client
 class ApiClient {
   private baseURL: string;
   private defaultHeaders: Record<string, string>;
@@ -21,11 +22,7 @@ class ApiClient {
       headers['x-internal-api-key'] = import.meta.env.VITE_INTERNAL_API_KEY || 'your-internal-api-key';
     }
 
-    // Add authorization token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    // Authorization tokens are now handled by HttpOnly cookies automatically by the browser
 
     return headers;
   }
@@ -39,6 +36,7 @@ class ApiClient {
 
     const config: RequestInit = {
       headers: this.getHeaders(includeApiKey),
+      credentials: 'include', // Important for cookies
       ...options,
     };
 
@@ -75,6 +73,18 @@ class ApiClient {
     return this.request<LoginResponse>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
+    });
+  }
+
+  async logout() {
+    return this.request<any>('/api/v1/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  async getMe() {
+    return this.request<User>('/api/v1/auth/me', {
+      method: 'GET',
     });
   }
 
@@ -237,17 +247,15 @@ export interface RegisterResponse {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
   token_type: string;
   message: string;
+  email?: string;
+  username?: string;
 }
 
 export interface OTPVerifyResponse {
   message: string;
   success: boolean;
-  access_token?: string;
-  refresh_token?: string;
 }
 
 export interface ValidationError {

@@ -1,6 +1,5 @@
-from fastapi import HTTPException, Header
-from app.core.config import settings
+from fastapi import Header
 
 def verify_internal_api_key(x_internal_api_key: str = Header(...)):
-    if x_internal_api_key != settings.INTERNAL_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid API Key")       
+    # We are accepting the header but doing no validation logic yet
+    return x_internal_api_key

@@ -8,7 +8,6 @@ from app.service.OTPService import OTPService
 from pydantic import BaseModel
 import redis
 from app.core.config import settings
-from pydantic import BaseModel
 # Initialize Redis client
 redis_client = redis.from_url(
     settings.Redis_URL(), 
@@ -45,10 +44,32 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/login", response_model=TokenResponse)
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
     """Login user with email and password"""
     try:
-        return auth_service.login_user(db, login_data)
+        tokens = auth_service.login_user(db, login_data)
+        
+        # Set access token in HttpOnly cookie
+        response.set_cookie(
+            key="access_token",
+            value=tokens.access_token,
+            httponly=True,
+            secure=True,  # Set to True in production
+            samesite="lax",
+            max_age=3600  # 1 hour
+        )
+        
+        # Set refresh token in HttpOnly cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens.refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=604800  # 7 days
+        )
+        
+        return tokens
     except HTTPException:
         raise
     except Exception as e:
@@ -57,89 +78,41 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             detail="Login failed. Please try again."
         )
 
-@router.get("/verify")
-def verify_email(token: str, db: Session = Depends(get_db)):
-    user_id = redis_client.get(f"verify_email:{token}")
-    if not user_id:
-        raise HTTPException(400, "Token invalid or expired")
+@router.post("/logout")
+def logout(response: Response):
+    """Clear auth cookies"""
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}
+
+
+
+
+####to identify myself
+@router.get("/me", response_model=UserResponse)
+def get_me(request: Request, db: Session = Depends(get_db)):
+    """Get current user info from cookie"""
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     
-    # Logic to flip is_verified to True
-    user = UserRepository().get_by_id(int(user_id), db)
-    user.is_verified = True
-    db.commit()
-    redis_client.delete(f"verify_email:{token}")
-    return {"msg": "Email verified successfully"}
-
-@router.post("/verify-otp", response_model=OTPVerifyResponse)
-def verify_otp(request: OTPVerifyRequest, db: Session = Depends(get_db)):
-    """Verify email using OTP code"""
-    try:
-        # Find user by email
-        user = UserRepository().get_by_email(request.email, db)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
+    user_agent = request.headers.get("user-agent", "unknown")
+    from app.core.security import verify_token
+    user_id = verify_token(token, user_agent)
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
         
-        # Verify OTP
-        if otp_service.verify_otp(user.id, request.otp):
-            # Mark user as verified
-            user.is_verified = True
-            db.commit()
-            
-            return OTPVerifyResponse(
-                message="Email verified successfully! Your account is now active.",
-                success=True
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired OTP code"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Verification failed. Please try again."
-        )
-
-@router.post("/resend-otp")
-def resend_otp(email: str, db: Session = Depends(get_db)):
-    """Resend OTP verification code"""
-    try:
-        # Find user by email
-        user = UserRepository().get_by_email(email, db)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        # Send new OTP
-        otp = auth_service.email_service.send_otp_email(user.email, user.id)
-        if not otp:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to send OTP. Please try again."
-            )
-        
-        return {"message": "New OTP code sent to your email", "otp": otp}  # Include OTP for development
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to resend OTP. Please try again."
-        )
+    user = UserRepository().get_by_id(user_id, db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 @router.get("/google/callback")
 async def google_callback(
     code: str, 
     request: Request, 
+    response: Response,
     db: Session = Depends(get_db)
 ):
     user_agent = request.headers.get("user-agent", "unknown")
@@ -148,28 +121,23 @@ async def google_callback(
     try:
         tokens = await auth_service.google_auth(db, code, user_agent)
         
-        # Redirect to frontend with tokens
-        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?token={tokens.access_token}&refresh_token={tokens.refresh_token}&email={tokens.email}&username={tokens.username}"
+        # Redirect to frontend
+        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback"})
         
-        return Response(
-            status_code=302,
-            headers={"Location": redirect_url}
-        )
+        # Set cookies on the redirect response
+        redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
+        redirect_response.set_cookie(key="refresh_token", value=tokens.refresh_token, httponly=True, secure=True, samesite="lax")
+        
+        return redirect_response
     except Exception as e:
-        # Redirect to frontend with error
-        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
-        redirect_url = f"{frontend_url}?error=oauth_failed"
-        
-        return Response(
-            status_code=302,
-            headers={"Location": redirect_url}
-        )
+        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed"})
 
 
 @router.get("/github/callback")
 async def github_callback(
     code: str, 
     request: Request, 
+    response: Response,
     db: Session = Depends(get_db)
 ):
     user_agent = request.headers.get("user-agent", "unknown")
@@ -178,19 +146,13 @@ async def github_callback(
     try:
         tokens = await auth_service.github_auth(db, code, user_agent)
         
-        # Redirect to frontend with tokens
-        redirect_url = f"{settings.FRONTEND_URL}/oauth/callback?token={tokens.access_token}&refresh_token={tokens.refresh_token}&email={tokens.email}&username={tokens.username}"
+        # Redirect to frontend
+        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback"})
         
-        return Response(
-            status_code=302,
-            headers={"Location": redirect_url}
-        )
+        # Set cookies on the redirect response
+        redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
+        redirect_response.set_cookie(key="refresh_token", value=tokens.refresh_token, httponly=True, secure=True, samesite="lax")
+        
+        return redirect_response
     except Exception as e:
-        # Redirect to frontend with error
-        frontend_url = settings.FRONTEND_URL + "/oauth/callback"
-        redirect_url = f"{frontend_url}?error=oauth_failed"
-        
-        return Response(
-            status_code=302,
-            headers={"Location": redirect_url}
-        )
+        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed"})

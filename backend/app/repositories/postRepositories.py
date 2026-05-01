@@ -9,7 +9,7 @@ from app.schemas.postSchema import PostCreate
 from fastapi import HTTPException , UploadFile,BackgroundTasks ,Depends
 from app.core.config import settings
 from app.service.aiService import generate_summary
-from app.core.dependencies import verify_internal_api_key
+
 
 # Configure Cloudinary
 cloudinary.config(
