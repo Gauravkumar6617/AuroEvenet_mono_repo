@@ -2,6 +2,7 @@ import uuid
 import httpx
 import redis
 import traceback
+import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -18,6 +19,7 @@ r = redis.from_url(
     settings.Redis_URL(), 
     decode_responses=True
 )
+logger = logging.getLogger(__name__)
 
 class AuthService:
     def __init__(self):
@@ -66,7 +68,7 @@ class AuthService:
             
             return TokenResponse(**tokens)
         except Exception as e:
-            print(f"DEBUG: login_user error: {str(e)}")
+            logger.exception("login_user failed: %s", str(e))
             traceback.print_exc()
             raise
     
@@ -83,9 +85,14 @@ class AuthService:
                     "redirect_uri": settings.GOOGLE_REDIRECT_URI,
                     "grant_type": "authorization_code",
                 }
+                logger.info(
+                    "Google token exchange started with redirect_uri=%s code_length=%s",
+                    settings.GOOGLE_REDIRECT_URI,
+                    len(code) if code else 0,
+                )
                 token_res = await client.post(token_url, data=token_data)
                 if token_res.status_code != 200:
-                    print(f"DEBUG: Google token exchange failed: {token_res.text}")
+                    logger.error("Google token exchange failed status=%s body=%s", token_res.status_code, token_res.text)
                     raise HTTPException(status_code=400, detail="Failed to retrieve token from Google")
                 
                 access_token = token_res.json().get("access_token")
@@ -96,7 +103,11 @@ class AuthService:
                     headers={"Authorization": f"Bearer {access_token}"}
                 )
                 google_info = user_info_res.json() # Contains 'email', 'sub', 'name'
-                print(f"DEBUG: Received Google user info: {google_info}")
+                logger.info(
+                    "Google user info fetched email=%s subject=%s",
+                    google_info.get("email"),
+                    google_info.get("sub"),
+                )
 
             # 3. Sync with local database
             user = self.user_repo.get_by_email(google_info["email"], db)
@@ -114,7 +125,7 @@ class AuthService:
                 user.is_verified = True
                 db.commit()
 
-            print(f"DEBUG: Returning Google user: email={user.email}, username={user.username}")
+            logger.info("Google auth completed for email=%s username=%s", user.email, user.username)
             # 4. Generate internal tokens
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
@@ -126,7 +137,7 @@ class AuthService:
                 username=user.username
             )
         except Exception as e:
-            print(f"DEBUG: google_auth error: {str(e)}")
+            logger.exception("google_auth failed: %s", str(e))
             traceback.print_exc()
             raise
     
@@ -146,11 +157,16 @@ class AuthService:
                     },
                     headers={"Accept": "application/json"}
                 )
+                logger.info(
+                    "GitHub token exchange started with redirect_uri=%s code_length=%s",
+                    settings.GITHUB_REDIRECT_URI,
+                    len(code) if code else 0,
+                )
                 token_data = token_res.json()
                 access_token = token_data.get("access_token")
 
                 if not access_token:
-                    print(f"DEBUG: GitHub token exchange failed: {token_res.text}")
+                    logger.error("GitHub token exchange failed status=%s body=%s", token_res.status_code, token_res.text)
                     raise HTTPException(status_code=400, detail="Failed to get GitHub token")
 
                 # 2. Get User Profile
@@ -158,8 +174,16 @@ class AuthService:
                     "https://api.github.com/user",
                     headers={"Authorization": f"token {access_token}"}
                 )
+                if user_res.status_code != 200:
+                    logger.error("GitHub user profile fetch failed status=%s body=%s", user_res.status_code, user_res.text)
+                    raise HTTPException(status_code=400, detail="Failed to fetch GitHub profile")
                 github_user = user_res.json()
-                print(f"DEBUG: Received GitHub user info: {github_user}")
+                logger.info(
+                    "GitHub user info fetched login=%s id=%s email=%s",
+                    github_user.get("login"),
+                    github_user.get("id"),
+                    github_user.get("email"),
+                )
 
                 # 3. Get User Email (GitHub sometimes hides email in the profile call)
                 if not github_user.get("email"):
@@ -167,9 +191,14 @@ class AuthService:
                         "https://api.github.com/user/emails",
                         headers={"Authorization": f"token {access_token}"}
                     )
+                    if email_res.status_code != 200:
+                        logger.error("GitHub emails fetch failed status=%s body=%s", email_res.status_code, email_res.text)
+                        raise HTTPException(status_code=400, detail="Failed to fetch GitHub email")
                     # Find the primary, verified email
                     emails = email_res.json()
-                    primary_email = next((e["email"] for e in emails if e["primary"]), emails[0]["email"])
+                    if not emails:
+                        raise HTTPException(status_code=400, detail="GitHub account has no public/verified email")
+                    primary_email = next((e["email"] for e in emails if e.get("primary")), emails[0]["email"])
                     github_user["email"] = primary_email
 
             # 4. Sync with Database
@@ -188,7 +217,7 @@ class AuthService:
                 user.is_verified = True
                 db.commit()
 
-            print(f"DEBUG: Returning GitHub user: email={user.email}, username={user.username}")
+            logger.info("GitHub auth completed for email=%s username=%s", user.email, user.username)
             # 5. Generate internal tokens
             tokens = create_access_token(user.id, user_agent)
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
@@ -200,6 +229,6 @@ class AuthService:
                 username=user.username
             )
         except Exception as e:
-            print(f"DEBUG: github_auth error: {str(e)}")
+            logger.exception("github_auth failed: %s", str(e))
             traceback.print_exc()
             raise

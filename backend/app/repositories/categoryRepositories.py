@@ -1,6 +1,5 @@
-from app.db.session import SessionLocal
+
 from sqlalchemy.orm import Session
-from fastapi import Depends
 from slugify import slugify
 from app.models.category import Category
 

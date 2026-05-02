@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import PostgresDsn
 from functools import lru_cache
+from typing import Optional
 
 class Settings(BaseSettings):
     DATABASE_URL: PostgresDsn
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     REDIS_USERNAME: str
 
     INTERNAL_API_KEY: str
+    MASTER_TOKEN: Optional[str] = None
+    MASTER_USER_ID: Optional[int] = None
 
     JWT_SECRET: str
     JWT_ALGORITHM: str
@@ -49,6 +52,9 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: str
     GITHUB_CLIENT_SECRET: str
     GITHUB_REDIRECT_URI: str
+
+
+    SENTRY_DSN: str
 
     FRONTEND_URL: str = "https://blog-byte-mono-repo.vercel.app"
 

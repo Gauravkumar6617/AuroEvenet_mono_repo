@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks ,HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks ,HTTPException, Security
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.repositories.postRepositories import PostRepository
 from app.schemas.postSchema import PostRead
+from app.models.userModel import User
+from app.core.dependencies import get_current_user
 
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
@@ -15,18 +17,16 @@ async def create_post(
     category_id: int = Form(...),
     tags: str = Form(""), # Send as "ai, tech, python"
     thumbnail: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Security(get_current_user),
 ):
     tag_list = [t.strip() for t in tags.split(",")] if tags else []
-    
-   # Use 10 to match your actual Supabase User ID
-    current_user_id = 10 
 
     return PostRepository.create_post(
         db=db, 
         title=title, 
         content=content, 
-        author_id=current_user_id, 
+        author_id=current_user.id, 
         category_id=category_id, 
         tags=tag_list, 
         image=thumbnail, 
@@ -63,7 +63,11 @@ async def fetch_post_by_slug(slug: str, db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Error fetching post: {str(e)}")    
 @router.delete("/{post_id}")
-async def delete_post(post_id: int, db: Session = Depends(get_db)):
+async def delete_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    _: User = Security(get_current_user),
+):
     try:
         post=PostRepository.delete_post(db, post_id)
         return post
