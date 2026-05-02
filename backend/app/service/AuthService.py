@@ -174,6 +174,9 @@ class AuthService:
                     "https://api.github.com/user",
                     headers={"Authorization": f"token {access_token}"}
                 )
+                if user_res.status_code != 200:
+                    logger.error("GitHub user profile fetch failed status=%s body=%s", user_res.status_code, user_res.text)
+                    raise HTTPException(status_code=400, detail="Failed to fetch GitHub profile")
                 github_user = user_res.json()
                 logger.info(
                     "GitHub user info fetched login=%s id=%s email=%s",
@@ -188,9 +191,14 @@ class AuthService:
                         "https://api.github.com/user/emails",
                         headers={"Authorization": f"token {access_token}"}
                     )
+                    if email_res.status_code != 200:
+                        logger.error("GitHub emails fetch failed status=%s body=%s", email_res.status_code, email_res.text)
+                        raise HTTPException(status_code=400, detail="Failed to fetch GitHub email")
                     # Find the primary, verified email
                     emails = email_res.json()
-                    primary_email = next((e["email"] for e in emails if e["primary"]), emails[0]["email"])
+                    if not emails:
+                        raise HTTPException(status_code=400, detail="GitHub account has no public/verified email")
+                    primary_email = next((e["email"] for e in emails if e.get("primary")), emails[0]["email"])
                     github_user["email"] = primary_email
 
             # 4. Sync with Database

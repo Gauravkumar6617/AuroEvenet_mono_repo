@@ -8,7 +8,7 @@ from app.service.OTPService import OTPService
 from pydantic import BaseModel
 import logging
 import redis
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote_plus
 from app.core.config import settings
 # Initialize Redis client
 redis_client = redis.from_url(
@@ -30,6 +30,11 @@ def _cookie_policy(request: Request) -> tuple[bool, str]:
     """
     is_https = request.url.scheme == "https"
     return is_https, "none" if is_https else "lax"
+
+
+def _safe_error_detail(exc: Exception) -> str:
+    raw = str(exc).strip() or "oauth_failed"
+    return raw[:180]
 
 
 # OTP verification schema
@@ -201,7 +206,13 @@ async def google_callback(
         return redirect_response
     except Exception as e:
         logger.exception("Google OAuth callback failed: %s", str(e))
-        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=google"})
+        detail = quote_plus(_safe_error_detail(e))
+        return Response(
+            status_code=302,
+            headers={
+                "Location": f"{settings.FRONTEND_URL}/oauth/callback?error=oauth_failed&provider=google&error_detail={detail}"
+            },
+        )
 
 
 @router.get("/github/login")
@@ -274,4 +285,10 @@ async def github_callback(
         return redirect_response
     except Exception as e:
         logger.exception("GitHub OAuth callback failed: %s", str(e))
-        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=github"})
+        detail = quote_plus(_safe_error_detail(e))
+        return Response(
+            status_code=302,
+            headers={
+                "Location": f"{settings.FRONTEND_URL}/oauth/callback?error=oauth_failed&provider=github&error_detail={detail}"
+            },
+        )
