@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../services/api";
 import useAuthStore from "../store/useAuthStore";
+import Card from "../components/ui/Card";
 
 export default function OAuthCallback() {
     const navigate = useNavigate();
@@ -133,23 +134,16 @@ export default function OAuthCallback() {
         }
     };
 
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
-            <div className="text-center max-w-md mx-auto px-4">
-                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${getStatusColor()} mx-auto mb-4`}></div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    {status === 'success' ? '✅ Success!' : '🔐 Authenticating'}
-                </h2>
-                <p className="text-gray-600 text-sm">{getStatusMessage()}</p>
-                
-                {status === 'error' && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-red-600 text-xs">
-                            There was an issue with the authentication. You will be redirected to the login page.
-                        </p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+  return (
+    <div className="py-16">
+      <div className="mx-auto max-w-lg px-4">
+        <Card className="text-center">
+          <div className={`mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 ${getStatusColor()}`} />
+          <h2 className="font-display text-2xl font-bold text-slate-900">{status === "success" ? "Success" : "Authenticating"}</h2>
+          <p className="mt-2 text-sm text-slate-600">{getStatusMessage()}</p>
+          {status === "error" && <p className="mt-3 text-xs text-rose-600">Authentication failed. Redirecting to login.</p>}
+        </Card>
+      </div>
+    </div>
+  );
 }

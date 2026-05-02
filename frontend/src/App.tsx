@@ -16,6 +16,10 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Features from './pages/Features';
 import Blog from './pages/Blog';
+import BlogDetail from './pages/BlogDetail';
+import AdminDashboard from './pages/AdminDashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { AnimatePresence } from 'framer-motion';
 
 const App: React.FC = () => {
   return (
@@ -23,22 +27,27 @@ const App: React.FC = () => {
       <PostsProvider>
         <CategoriesProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-white font-sans selection:bg-black selection:text-white text-black">
+            <div className="min-h-screen flex flex-col bg-slate-25 font-sans text-slate-900 selection:bg-brand-600 selection:text-white">
               <Navbar />
               <main className="flex-grow">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/verify-otp" element={<VerifyOtp />} />
-                  <Route path="/oauth/callback" element={<OAuthCallback />} />
-                  <Route path="/dashboard" element={<UserDashboard />} />
-                  <Route path="/create-post" element={<CreatePost />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/features" element={<Features />} />
-                  <Route path="/blog" element={<Blog />} />
-                </Routes>
+                <AnimatePresence mode="wait">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/verify-otp" element={<VerifyOtp />} />
+                    <Route path="/oauth/callback" element={<OAuthCallback />} />
+                    <Route path="/dashboard" element={<UserDashboard />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/super-admin" element={<SuperAdminDashboard />} />
+                    <Route path="/create-post" element={<CreatePost />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/features" element={<Features />} />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<BlogDetail />} />
+                  </Routes>
+                </AnimatePresence>
               </main>
               <Footer />
             </div>
