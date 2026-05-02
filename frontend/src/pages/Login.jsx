@@ -4,63 +4,26 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login, loading, error, clearError } = useAuth();
+    const { login, loginWithGoogle, loginWithGitHub, loading, error, clearError } = useAuth();
     const [form, setForm] = useState({ email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
 
-    // Check OAuth configuration
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-
-    const isGoogleConfigured = googleClientId &&
-        !googleClientId.includes('your-google-client-id') &&
-        googleClientId.length > 10;
-
-    const isGitHubConfigured = githubClientId &&
-        !githubClientId.includes('your-github-client-id') &&
-        githubClientId.length > 10;
-
     const handleGoogleLogin = () => {
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/google/callback';
-
-        // More comprehensive validation
-        if (!clientId ||
-            clientId === 'your-google-client-id' ||
-            clientId.includes('your-google-client-id') ||
-            clientId.length < 10) {
-            alert('Google OAuth is not configured. Please set a valid VITE_GOOGLE_CLIENT_ID in your .env file.\n\nCurrent value: ' + (clientId || 'not set'));
-            return;
+        try {
+            loginWithGoogle();
+        } catch (error) {
+            console.error('Google login failed:', error);
+            alert('Google login is not available. Please try again later.');
         }
-
-        const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${clientId}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=code` +
-            `&scope=openid email profile` +
-            `&access_type=offline` +
-            `&prompt=select_account`;
-        window.location.href = googleAuthUrl;
     };
 
     const handleGitHubLogin = () => {
-        const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-        const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || 'http://localhost:8000/api/v1/auth/github/callback';
-
-        // More comprehensive validation
-        if (!clientId ||
-            clientId === 'your-github-client-id' ||
-            clientId.includes('your-github-client-id') ||
-            clientId.length < 10) {
-            alert('GitHub OAuth is not configured. Please set a valid VITE_GITHUB_CLIENT_ID in your .env file.\n\nCurrent value: ' + (clientId || 'not set'));
-            return;
+        try {
+            loginWithGitHub();
+        } catch (error) {
+            console.error('GitHub login failed:', error);
+            alert('GitHub login is not available. Please try again later.');
         }
-
-        const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
-            `client_id=${clientId}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&scope=user:email`;
-        window.location.href = githubAuthUrl;
     };
 
     const handleSubmit = async (e) => {

@@ -108,6 +108,26 @@ def get_me(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+@router.get("/google/login")
+async def google_login():
+    """Redirect user to Google OAuth login page"""
+    google_client_id = settings.GOOGLE_CLIENT_ID
+    redirect_uri = settings.FRONTEND_URL + "/oauth/callback"
+    
+    if not google_client_id:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?" \
+        f"client_id={google_client_id}" \
+        f"&redirect_uri={redirect_uri}" \
+        f"&response_type=code" \
+        f"&scope=openid email profile" \
+        f"&access_type=offline" \
+        f"&prompt=select_account" \
+        f"&state=google"
+    
+    return Response(status_code=302, headers={"Location": google_auth_url})
+
 @router.get("/google/callback")
 async def google_callback(
     code: str, 
@@ -122,7 +142,7 @@ async def google_callback(
         tokens = await auth_service.google_auth(db, code, user_agent)
         
         # Redirect to frontend
-        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback"})
+        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?provider=google"})
         
         # Set cookies on the redirect response
         redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
@@ -130,8 +150,25 @@ async def google_callback(
         
         return redirect_response
     except Exception as e:
-        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed"})
+        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=google"})
 
+
+@router.get("/github/login")
+async def github_login():
+    """Redirect user to GitHub OAuth login page"""
+    github_client_id = settings.GITHUB_CLIENT_ID
+    redirect_uri = settings.FRONTEND_URL + "/oauth/callback"
+    
+    if not github_client_id:
+        raise HTTPException(status_code=500, detail="GitHub OAuth not configured")
+    
+    github_auth_url = f"https://github.com/login/oauth/authorize?" \
+        f"client_id={github_client_id}" \
+        f"&redirect_uri={redirect_uri}" \
+        f"&scope=user:email" \
+        f"&state=github"
+    
+    return Response(status_code=302, headers={"Location": github_auth_url})
 
 @router.get("/github/callback")
 async def github_callback(
@@ -147,7 +184,7 @@ async def github_callback(
         tokens = await auth_service.github_auth(db, code, user_agent)
         
         # Redirect to frontend
-        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback"})
+        redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?provider=github"})
         
         # Set cookies on the redirect response
         redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
@@ -155,4 +192,4 @@ async def github_callback(
         
         return redirect_response
     except Exception as e:
-        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed"})
+        return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=github"})

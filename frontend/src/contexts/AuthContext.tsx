@@ -16,6 +16,8 @@ interface AuthContextType extends AuthState {
   resendOTP: (email: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  loginWithGoogle: () => void;
+  loginWithGitHub: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -155,6 +157,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [logoutStore]);
 
+  const loginWithGoogle = useCallback(() => {
+    // Redirect to Google OAuth login
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+    const googleOAuthUrl = `${apiUrl}/api/v1/auth/google/login`;
+    window.location.href = googleOAuthUrl;
+  }, []);
+
+  const loginWithGitHub = useCallback(() => {
+    // Redirect to GitHub OAuth login
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+    const githubOAuthUrl = `${apiUrl}/api/v1/auth/github/login`;
+    window.location.href = githubOAuthUrl;
+  }, []);
+
   const clearError = useCallback(() => {
     clearErrorStore();
   }, [clearErrorStore]);
@@ -170,7 +186,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendOTP,
     logout,
     clearError,
-  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError]);
+    loginWithGoogle,
+    loginWithGitHub,
+  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError, loginWithGoogle, loginWithGitHub]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
