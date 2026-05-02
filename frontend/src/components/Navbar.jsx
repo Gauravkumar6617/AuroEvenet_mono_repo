@@ -35,14 +35,16 @@ export default function Navbar() {
         <motion.nav
           initial={false}
           animate={{
-            boxShadow: scrolled ? "0 10px 30px rgba(2, 10, 48, 0.08)" : "0 0 0 rgba(0,0,0,0)",
+            boxShadow: scrolled
+              ? "0 10px 30px rgba(2, 10, 48, 0.08)"
+              : "0 0 0 rgba(0,0,0,0)",
           }}
           className="surface rounded-2xl px-4 py-3"
         >
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 font-display text-lg text-white">
-                B
+                N
               </span>
               <span className="font-display text-lg font-bold">
                 Nex<span className="gradient-text">os</span>
@@ -61,7 +63,9 @@ export default function Navbar() {
                   key={item.to}
                   to={item.to}
                   className={`rounded-lg px-3 py-2 text-sm ${
-                    location.pathname === item.to ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-100"
+                    location.pathname === item.to
+                      ? "bg-brand-50 text-brand-700"
+                      : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {item.label}
@@ -70,12 +74,18 @@ export default function Navbar() {
             </div>
 
             <div className="hidden items-center gap-2 md:flex">
-              <Link to="/create-post" className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <Link
+                to="/create-post"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              >
                 Create
               </Link>
               {user ? (
                 <>
-                  <Link to="/dashboard" className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                  <Link
+                    to="/dashboard"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
                     Dashboard
                   </Link>
                   <Button variant="ghost" onClick={logout}>
@@ -84,7 +94,10 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                  <Link
+                    to="/login"
+                    className="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  >
                     Login
                   </Link>
                   <Link to="/signup">
@@ -112,11 +125,18 @@ export default function Navbar() {
                 className="mt-4 space-y-2 border-t border-slate-200 pt-3 md:hidden"
               >
                 {navLinks.map((item) => (
-                  <Link key={item.to} to={item.to} className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  >
                     {item.label}
                   </Link>
                 ))}
-                <Link to="/dashboard" className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                <Link
+                  to="/dashboard"
+                  className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                >
                   Dashboard
                 </Link>
               </motion.div>
