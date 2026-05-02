@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { apiClient, User, LoginResponse, RegisterResponse, OTPVerifyResponse } from '../services/api';
 import useAuthStore from '../store/useAuthStore';
+import { useToast } from './ToastContext';
 
 interface AuthState {
   user: User | null;
@@ -38,6 +39,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const { showToast } = useToast();
   const {
     user,
     isAuthenticated,
@@ -88,12 +90,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       localStorage.setItem('user', JSON.stringify(user));
       setAuth(user);
+      showToast('Logged in successfully', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw error;
     }
-  }, [setLoading, setError, setAuth]);
+  }, [setLoading, setError, setAuth, showToast]);
 
   const register = useCallback(async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
     setLoading(true);
@@ -109,12 +113,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('pending_email', userData.email);
       setLoading(false);
+      showToast('Account created. OTP sent to your email.', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw error;
     }
-  }, [setLoading, setError]);
+  }, [setLoading, setError, showToast]);
 
   const verifyOTP = useCallback(async (email: string, otp: string) => {
     setLoading(true);
@@ -134,31 +140,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         localStorage.setItem('user', JSON.stringify(user));
         setAuth(user);
+        showToast('Email verified. Welcome to Nexos!', 'success');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'OTP verification failed';
       setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw error;
     }
-  }, [setLoading, setError, setAuth]);
+  }, [setLoading, setError, setAuth, showToast]);
 
   const resendOTP = useCallback(async (email: string) => {
     try {
       await apiClient.resendOTP(email);
+      showToast('OTP resent successfully', 'info');
     } catch (error) {
+      showToast('Failed to resend OTP', 'error');
       throw error;
     }
-  }, []);
+  }, [showToast]);
 
   const logout = useCallback(async () => {
     try {
       await apiClient.logout();
+      showToast('Logged out successfully', 'info');
     } catch (error) {
       console.error('Logout request failed', error);
+      showToast('Logged out locally', 'info');
     } finally {
       logoutStore();
     }
-  }, [logoutStore]);
+  }, [logoutStore, showToast]);
 
   const loginWithGoogle = useCallback(() => {
     // Redirect to Google OAuth login
@@ -169,8 +181,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       googleOAuthUrl,
       origin: window.location.origin,
     });
+    showToast('Redirecting to Google...', 'info');
     window.location.href = googleOAuthUrl;
-  }, []);
+  }, [showToast]);
 
   const loginWithGitHub = useCallback(() => {
     // Redirect to GitHub OAuth login
@@ -181,8 +194,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       githubOAuthUrl,
       origin: window.location.origin,
     });
+    showToast('Redirecting to GitHub...', 'info');
     window.location.href = githubOAuthUrl;
-  }, []);
+  }, [showToast]);
 
   const clearError = useCallback(() => {
     clearErrorStore();

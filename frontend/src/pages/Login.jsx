@@ -50,6 +50,12 @@ export default function Login() {
               Create one
             </Link>
           </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Forgot password?{" "}
+            <Link to="/forgot-password" className="font-medium text-brand-700">
+              Recover access
+            </Link>
+          </p>
         </Card>
       </div>
     </div>

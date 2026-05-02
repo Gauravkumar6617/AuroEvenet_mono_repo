@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../services/api";
 import useAuthStore from "../store/useAuthStore";
 import Card from "../components/ui/Card";
+import { useToast } from "../contexts/ToastContext";
 
 export default function OAuthCallback() {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function OAuthCallback() {
     const [status, setStatus] = useState('loading');
     const setAuth = useAuthStore((state) => state.setAuth);
     const setError = useAuthStore((state) => state.setError);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const handleOAuthCallback = async () => {
@@ -32,6 +34,7 @@ export default function OAuthCallback() {
                         href: window.location.href,
                     });
                     setError(errorDetail || error);
+                    showToast(errorDetail || "OAuth authentication failed", "error");
                     navigate('/login?error=oauth_failed');
                     return;
                 }
@@ -70,6 +73,7 @@ export default function OAuthCallback() {
                             provider: user.oauth_provider,
                         });
                         setAuth(user);
+                        showToast(`Logged in with ${provider || "OAuth"}`, "success");
                         console.info('[OAuth] Auth store updated successfully');
                         setStatus('success');
                         
@@ -97,6 +101,7 @@ export default function OAuthCallback() {
                     href: window.location.href,
                 });
                 setError(error?.message || 'OAuth authentication failed');
+                showToast(error?.message || "OAuth callback failed", "error");
                 setStatus('error');
                 
                 setTimeout(() => {
@@ -106,7 +111,7 @@ export default function OAuthCallback() {
         };
 
         handleOAuthCallback();
-    }, [searchParams, navigate, setAuth, setError]);
+    }, [searchParams, navigate, setAuth, setError, showToast]);
 
     const getStatusMessage = () => {
         switch (status) {

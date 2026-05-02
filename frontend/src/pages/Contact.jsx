@@ -19,7 +19,7 @@ export default function Contact() {
       <PageContainer>
         <SectionHeader
           eyebrow="Contact"
-          title="Talk to the BlogByte team"
+          title="Talk to the Nexos team"
           description="Share product feedback, support requests, partnerships, or moderation concerns."
         />
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">

@@ -45,7 +45,7 @@ export default function Navbar() {
                 B
               </span>
               <span className="font-display text-lg font-bold">
-                Blog<span className="gradient-text">Byte</span>
+                Nex<span className="gradient-text">os</span>
               </span>
             </Link>
 

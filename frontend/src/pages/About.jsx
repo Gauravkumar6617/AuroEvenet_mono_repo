@@ -15,9 +15,9 @@ export default function About() {
     <div className="py-10">
       <PageContainer>
         <SectionHeader
-          eyebrow="About BlogByte"
+          eyebrow="About Nexos"
           title="A modern knowledge network for builders and learners"
-          description="BlogByte combines fast community discussion with deep answer threads so technical knowledge is easier to share, discover, and trust."
+          description="Nexos combines fast community discussion with deep answer threads so technical knowledge is easier to share, discover, and trust."
         />
         <div className="grid gap-5 lg:grid-cols-3">
           {values.map((item) => (

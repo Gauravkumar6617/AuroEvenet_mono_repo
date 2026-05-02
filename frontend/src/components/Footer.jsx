@@ -25,7 +25,7 @@ export default function Footer() {
         <div className="surface p-6 md:p-8">
           <div className="mb-8 grid gap-5 border-b border-slate-200 pb-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <h3 className="font-display text-2xl font-bold">Build smarter discussions with BlogByte</h3>
+              <h3 className="font-display text-2xl font-bold">Build smarter discussions with Nexos</h3>
               <p className="mt-2 text-sm text-slate-600">One place for questions, deep answers, and community knowledge.</p>
             </div>
             <div className="flex gap-2">
@@ -37,7 +37,7 @@ export default function Footer() {
           <div className="grid gap-8 md:grid-cols-4">
             <div>
               <p className="font-display text-xl font-bold">
-                Blog<span className="gradient-text">Byte</span>
+                Nex<span className="gradient-text">os</span>
               </p>
               <p className="mt-3 text-sm text-slate-600">A premium knowledge-sharing platform combining short-form conversation with in-depth answers.</p>
             </div>
@@ -56,7 +56,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-6 flex flex-col justify-between gap-3 text-sm text-slate-500 sm:flex-row">
-          <p>© 2026 BlogByte. All rights reserved.</p>
+          <p>© 2026 Nexos. All rights reserved.</p>
           <div className="flex gap-4">
             <span>Privacy</span>
             <span>Terms</span>

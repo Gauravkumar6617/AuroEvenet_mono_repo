@@ -6,6 +6,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import TerminalActivity from "../components/TerminalActivity";
+import { useToast } from "../contexts/ToastContext";
 
 const pillars = [
   { title: "Ask better questions", desc: "Structured prompts and topic tagging help users get high-quality answers faster." },
@@ -20,9 +21,16 @@ const stats = [
   { value: "37K", label: "Daily active members" },
 ];
 
+const aiFeatures = [
+  { title: "AI Topic Classifier", desc: "Auto-routes each post to the best-fit community channel." },
+  { title: "Answer Quality Assist", desc: "Highlights incomplete answers and suggests improvements." },
+  { title: "Toxicity Guardrail", desc: "Flags harmful content before it reaches moderation queues." },
+];
+
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 160]);
+  const { showToast } = useToast();
 
   return (
     <div className="pb-8">
@@ -48,6 +56,9 @@ export default function Home() {
                     Explore Feed
                   </Button>
                 </Link>
+                <Button variant="ghost" className="px-6 py-3 text-base" onClick={() => showToast("Live visitor metrics refreshed", "info")}>
+                  Refresh Live Metrics
+                </Button>
               </div>
             </div>
             <TerminalActivity />
@@ -66,6 +77,26 @@ export default function Home() {
         </div>
       </PageContainer>
 
+      <PageContainer className="mt-6">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Visitor Intelligence</p>
+            <p className="mt-3 font-display text-3xl font-bold">12,845</p>
+            <p className="mt-1 text-sm text-slate-600">Unique users visited in the last 24 hours.</p>
+          </Card>
+          <Card>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Realtime Presence</p>
+            <p className="mt-3 font-display text-3xl font-bold">318 online</p>
+            <p className="mt-1 text-sm text-slate-600">Currently reading, answering, and creating posts.</p>
+          </Card>
+          <Card>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">AI Assist Adoption</p>
+            <p className="mt-3 font-display text-3xl font-bold">67%</p>
+            <p className="mt-1 text-sm text-slate-600">Posts improved using AI quality suggestions.</p>
+          </Card>
+        </div>
+      </PageContainer>
+
       <section className="py-20">
         <PageContainer>
           <SectionHeader
@@ -78,6 +109,24 @@ export default function Home() {
               <Card key={item.title}>
                 <h3 className="font-display text-xl font-semibold">{item.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.desc}</p>
+              </Card>
+            ))}
+          </div>
+        </PageContainer>
+      </section>
+
+      <section className="pb-6">
+        <PageContainer>
+          <SectionHeader
+            eyebrow="AI Layer"
+            title="Low-credit AI features that still feel premium"
+            description="Practical, cost-efficient AI enhancements for quality, routing, and moderation."
+          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {aiFeatures.map((feature) => (
+              <Card key={feature.title}>
+                <h3 className="font-display text-lg font-semibold">{feature.title}</h3>
+                <p className="mt-2 text-sm text-slate-600">{feature.desc}</p>
               </Card>
             ))}
           </div>

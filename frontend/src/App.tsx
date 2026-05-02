@@ -20,41 +20,48 @@ import BlogDetail from './pages/BlogDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { AnimatePresence } from 'framer-motion';
+import { ToastProvider } from './contexts/ToastContext';
+import ToastViewport from './components/ui/ToastViewport';
+import ForgotPassword from './pages/ForgotPassword';
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <PostsProvider>
-        <CategoriesProvider>
-          <Router>
-            <div className="min-h-screen flex flex-col bg-slate-25 font-sans text-slate-900 selection:bg-brand-600 selection:text-white">
-              <Navbar />
-              <main className="flex-grow">
-                <AnimatePresence mode="wait">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/verify-otp" element={<VerifyOtp />} />
-                    <Route path="/oauth/callback" element={<OAuthCallback />} />
-                    <Route path="/dashboard" element={<UserDashboard />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/super-admin" element={<SuperAdminDashboard />} />
-                    <Route path="/create-post" element={<CreatePost />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/features" element={<Features />} />
-                    <Route path="/blog" element={<Blog />} />
-                    <Route path="/blog/:slug" element={<BlogDetail />} />
-                  </Routes>
-                </AnimatePresence>
-              </main>
-              <Footer />
-            </div>
-          </Router>
-        </CategoriesProvider>
-      </PostsProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <PostsProvider>
+          <CategoriesProvider>
+            <Router>
+              <div className="min-h-screen flex flex-col bg-slate-25 font-sans text-slate-900 selection:bg-brand-600 selection:text-white">
+                <Navbar />
+                <ToastViewport />
+                <main className="flex-grow">
+                  <AnimatePresence mode="wait">
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/verify-otp" element={<VerifyOtp />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/oauth/callback" element={<OAuthCallback />} />
+                      <Route path="/dashboard" element={<UserDashboard />} />
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/super-admin" element={<SuperAdminDashboard />} />
+                      <Route path="/create-post" element={<CreatePost />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/features" element={<Features />} />
+                      <Route path="/blog" element={<Blog />} />
+                      <Route path="/blog/:slug" element={<BlogDetail />} />
+                    </Routes>
+                  </AnimatePresence>
+                </main>
+                <Footer />
+              </div>
+            </Router>
+          </CategoriesProvider>
+        </PostsProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 

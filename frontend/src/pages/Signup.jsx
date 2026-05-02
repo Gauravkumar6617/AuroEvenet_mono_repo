@@ -25,7 +25,7 @@ export default function Signup() {
     <div className="py-10">
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 lg:grid-cols-2 lg:px-8">
         <Card className="hidden bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white lg:block">
-          <p className="text-sm uppercase tracking-[0.15em] text-white/80">Join BlogByte</p>
+          <p className="text-sm uppercase tracking-[0.15em] text-white/80">Join Nexos</p>
           <h1 className="mt-4 font-display text-4xl font-bold">Create your profile and start sharing high-impact ideas.</h1>
         </Card>
         <Card>
