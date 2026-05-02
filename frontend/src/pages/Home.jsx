@@ -9,9 +9,18 @@ import TerminalActivity from "../components/TerminalActivity";
 import { useToast } from "../contexts/ToastContext";
 
 const pillars = [
-  { title: "Ask better questions", desc: "Structured prompts and topic tagging help users get high-quality answers faster." },
-  { title: "Write long-form answers", desc: "Blend Reddit-style speed with Quora-style depth using rich content cards." },
-  { title: "Grow your reputation", desc: "Public profiles, follower graphs, and verified expertise raise discoverability." },
+  {
+    title: "Ask better questions",
+    desc: "Structured prompts and topic tagging help users get high-quality answers faster.",
+  },
+  {
+    title: "Write long-form answers",
+    desc: "Blend Reddit-style speed with Quora-style depth using rich content cards.",
+  },
+  {
+    title: "Grow your reputation",
+    desc: "Public profiles, follower graphs, and verified expertise raise discoverability.",
+  },
 ];
 
 const stats = [
@@ -22,9 +31,18 @@ const stats = [
 ];
 
 const aiFeatures = [
-  { title: "AI Topic Classifier", desc: "Auto-routes each post to the best-fit community channel." },
-  { title: "Answer Quality Assist", desc: "Highlights incomplete answers and suggests improvements." },
-  { title: "Toxicity Guardrail", desc: "Flags harmful content before it reaches moderation queues." },
+  {
+    title: "AI Topic Classifier",
+    desc: "Auto-routes each post to the best-fit community channel.",
+  },
+  {
+    title: "Answer Quality Assist",
+    desc: "Highlights incomplete answers and suggests improvements.",
+  },
+  {
+    title: "Toxicity Guardrail",
+    desc: "Flags harmful content before it reaches moderation queues.",
+  },
 ];
 
 export default function Home() {
@@ -35,17 +53,26 @@ export default function Home() {
   return (
     <div className="pb-8">
       <section className="relative overflow-hidden bg-hero-gradient pb-20 pt-16">
-        <motion.div style={{ y }} className="pointer-events-none absolute -right-20 top-10 h-56 w-56 rounded-full bg-brand-300/30 blur-3xl" />
-        <motion.div style={{ y: useTransform(scrollYProgress, [0, 1], [0, -120]) }} className="pointer-events-none absolute -left-24 bottom-10 h-64 w-64 rounded-full bg-violet-300/30 blur-3xl" />
+        <motion.div
+          style={{ y }}
+          className="pointer-events-none absolute -right-20 top-10 h-56 w-56 rounded-full bg-brand-300/30 blur-3xl"
+        />
+        <motion.div
+          style={{ y: useTransform(scrollYProgress, [0, 1], [0, -120]) }}
+          className="pointer-events-none absolute -left-24 bottom-10 h-64 w-64 rounded-full bg-violet-300/30 blur-3xl"
+        />
         <PageContainer>
           <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <Badge tone="brand">Modern community knowledge platform</Badge>
               <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-slate-900 md:text-6xl">
-                Reddit speed meets Quora depth for <span className="gradient-text">high-signal discussions</span>.
+                Reddit speed meets Quora depth for{" "}
+                <span className="gradient-text">high-signal discussions</span>.
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-slate-600">
-                Build communities around questions, long-form answers, and insight-driven posts with a premium publishing and moderation experience.
+                Build communities around questions, long-form answers, and
+                insight-driven posts with a premium publishing and moderation
+                experience.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/signup">
@@ -56,7 +83,13 @@ export default function Home() {
                     Explore Feed
                   </Button>
                 </Link>
-                <Button variant="ghost" className="px-6 py-3 text-base" onClick={() => showToast("Live visitor metrics refreshed", "info")}>
+                <Button
+                  variant="ghost"
+                  className="px-6 py-3 text-base"
+                  onClick={() =>
+                    showToast("Live visitor metrics refreshed", "info")
+                  }
+                >
                   Refresh Live Metrics
                 </Button>
               </div>
@@ -70,7 +103,9 @@ export default function Home() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((item) => (
             <Card key={item.label}>
-              <p className="font-display text-3xl font-bold text-slate-900">{item.value}</p>
+              <p className="font-display text-3xl font-bold text-slate-900">
+                {item.value}
+              </p>
               <p className="mt-2 text-sm text-slate-600">{item.label}</p>
             </Card>
           ))}
@@ -80,19 +115,31 @@ export default function Home() {
       <PageContainer className="mt-6">
         <div className="grid gap-4 lg:grid-cols-3">
           <Card>
-            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Visitor Intelligence</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
+              Visitor Intelligence
+            </p>
             <p className="mt-3 font-display text-3xl font-bold">12,845</p>
-            <p className="mt-1 text-sm text-slate-600">Unique users visited in the last 24 hours.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Unique users visited in the last 24 hours.
+            </p>
           </Card>
           <Card>
-            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Realtime Presence</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
+              Realtime Presence
+            </p>
             <p className="mt-3 font-display text-3xl font-bold">318 online</p>
-            <p className="mt-1 text-sm text-slate-600">Currently reading, answering, and creating posts.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Currently reading, answering, and creating posts.
+            </p>
           </Card>
           <Card>
-            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">AI Assist Adoption</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
+              AI Assist Adoption
+            </p>
             <p className="mt-3 font-display text-3xl font-bold">67%</p>
-            <p className="mt-1 text-sm text-slate-600">Posts improved using AI quality suggestions.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Posts improved using AI quality suggestions.
+            </p>
           </Card>
         </div>
       </PageContainer>
@@ -107,8 +154,12 @@ export default function Home() {
           <div className="grid gap-5 lg:grid-cols-3">
             {pillars.map((item) => (
               <Card key={item.title}>
-                <h3 className="font-display text-xl font-semibold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.desc}</p>
+                <h3 className="font-display text-xl font-semibold">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                  {item.desc}
+                </p>
               </Card>
             ))}
           </div>
@@ -125,7 +176,9 @@ export default function Home() {
           <div className="grid gap-4 md:grid-cols-3">
             {aiFeatures.map((feature) => (
               <Card key={feature.title}>
-                <h3 className="font-display text-lg font-semibold">{feature.title}</h3>
+                <h3 className="font-display text-lg font-semibold">
+                  {feature.title}
+                </h3>
                 <p className="mt-2 text-sm text-slate-600">{feature.desc}</p>
               </Card>
             ))}
@@ -137,11 +190,17 @@ export default function Home() {
         <Card className="bg-gradient-to-r from-brand-600 to-violet-600 text-white">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-white/80">Launch fast</p>
-              <h3 className="mt-2 font-display text-2xl font-bold">Create your first discussion space in under 3 minutes.</h3>
+              <p className="text-xs uppercase tracking-[0.14em] text-white/80">
+                Launch fast
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-bold">
+                Create your first discussion space in under 3 minutes.
+              </h3>
             </div>
             <Link to="/create-post">
-              <Button className="bg-white text-brand-700 hover:bg-brand-50">Create your first post</Button>
+              <Button className="bg-white text-brand-700 hover:bg-brand-50">
+                Create your first post
+              </Button>
             </Link>
           </div>
         </Card>

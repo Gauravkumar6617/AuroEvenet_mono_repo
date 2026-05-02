@@ -39,8 +39,12 @@ export default function ForgotPassword() {
       <PageContainer>
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1.1fr]">
           <Card className="bg-gradient-to-br from-brand-600 to-violet-600 text-white">
-            <p className="text-sm uppercase tracking-[0.15em] text-white/80">AI Recovery Mode</p>
-            <h1 className="mt-3 font-display text-3xl font-bold">Image-based password recovery with smart OTP validation.</h1>
+            <p className="text-sm uppercase tracking-[0.15em] text-white/80">
+              AI Recovery Mode
+            </p>
+            <h1 className="mt-3 font-display text-3xl font-bold">
+              Image-based password recovery with smart OTP validation.
+            </h1>
             <div className="mt-6 space-y-2 text-sm text-white/90">
               {aiTips.map((tip) => (
                 <p key={tip}>- {tip}</p>
@@ -52,18 +56,38 @@ export default function ForgotPassword() {
             <h2 className="font-display text-2xl font-bold">Forgot password</h2>
             {step === 1 && (
               <form className="mt-5 space-y-4" onSubmit={sendOtp}>
-                <Input label="Account email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input
+                  label="Account email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
                 <Button type="submit">Send OTP</Button>
               </form>
             )}
 
             {step === 2 && (
               <form className="mt-5 space-y-4" onSubmit={verify}>
-                <Input label="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} required />
+                <Input
+                  label="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required
+                />
                 <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Choose your image pattern</p>
+                  <p className="mb-2 text-sm font-medium text-slate-700">
+                    Choose your image pattern
+                  </p>
                   <div className="grid grid-cols-3 gap-2">
-                    {["mountain", "cube", "planet", "leaf", "cloud", "flame"].map((item) => (
+                    {[
+                      "mountain",
+                      "cube",
+                      "planet",
+                      "leaf",
+                      "cloud",
+                      "flame",
+                    ].map((item) => (
                       <button
                         type="button"
                         key={item}
@@ -81,8 +105,17 @@ export default function ForgotPassword() {
 
             {step === 3 && (
               <div className="mt-6 space-y-3">
-                <p className="text-sm text-slate-700">Verification successful. You can now create a new password in the next secure step.</p>
-                <Button onClick={() => showToast("Password reset flow connected", "info")}>Proceed</Button>
+                <p className="text-sm text-slate-700">
+                  Verification successful. You can now create a new password in
+                  the next secure step.
+                </p>
+                <Button
+                  onClick={() =>
+                    showToast("Password reset flow connected", "info")
+                  }
+                >
+                  Proceed
+                </Button>
               </div>
             )}
           </Card>

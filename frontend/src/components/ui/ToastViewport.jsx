@@ -19,7 +19,11 @@ export default function ToastViewport() {
         >
           <div className="flex items-center justify-between gap-3">
             <p>{toast.message}</p>
-            <button type="button" onClick={() => removeToast(toast.id)} className="text-xs opacity-70 hover:opacity-100">
+            <button
+              type="button"
+              onClick={() => removeToast(toast.id)}
+              className="text-xs opacity-70 hover:opacity-100"
+            >
               Close
             </button>
           </div>

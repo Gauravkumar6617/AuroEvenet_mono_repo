@@ -7,14 +7,14 @@ export const postsApi = {
     content: string;
     category_id: number;
     tags?: string;
-    thumbnail: string;
+    thumbnail: File;
   }) {
     const formData = new FormData();
     formData.append("title", postData.title);
     formData.append("content", postData.content);
     formData.append("category_id", postData.category_id.toString());
     if (postData.tags) formData.append("tags", postData.tags);
-    formData.append("thumbnail", postData.thumbnail);
+    formData.append("thumbnail", postData.thumbnail, postData.thumbnail.name);
 
     return apiClientCore.request<Post>(
       "/api/v1/posts/",

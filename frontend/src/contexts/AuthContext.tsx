@@ -1,8 +1,17 @@
-import React, { createContext, useContext, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { apiClient, User, LoginResponse, RegisterResponse, OTPVerifyResponse } from '../services/api';
-import useAuthStore from '../store/useAuthStore';
-import { useToast } from './ToastContext';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from "react";
+import { User } from "../services/api/types";
+import useAuthStore from "../store/useAuthStore";
+import { authApi } from "../services/api/authApi";
 
+import { apiClientCore } from "../services/api/client";
+import { useToast } from "./ToastContext";
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -12,7 +21,12 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: { email: string; password: string; username?: string; full_name?: string }) => Promise<void>;
+  register: (userData: {
+    email: string;
+    password: string;
+    username?: string;
+    full_name?: string;
+  }) => Promise<void>;
   verifyOTP: (email: string, otp: string) => Promise<void>;
   resendOTP: (email: string) => Promise<void>;
   logout: () => void;
@@ -29,7 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -54,9 +68,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check if user is already stored in localStorage on mount
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
@@ -67,106 +81,126 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [setAuth, logoutStore]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const response = await apiClient.login({ 
-        email, 
-        password, 
-        user_Agent: navigator.userAgent 
-      });
+  const login = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true);
+      try {
+        const response = await authApi.login({
+          email,
+          password,
+          user_Agent: navigator.userAgent,
+        });
 
-      // Since backend doesn't return user in login response, create a minimal user object
-      // You might want to add a /me endpoint to get full user details
-      const user: User = {
-        id: 0, // This should come from the API
-        email,
-        username: email.split('@')[0],
-        is_active: true,
-        is_verified: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('user', JSON.stringify(user));
-      setAuth(user);
-      showToast('Logged in successfully', 'success');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
-      throw error;
-    }
-  }, [setLoading, setError, setAuth, showToast]);
-
-  const register = useCallback(async (userData: { email: string; password: string; username?: string; full_name?: string }) => {
-    setLoading(true);
-    try {
-      await apiClient.register({
-        email: userData.email,
-        username: userData.username || userData.email.split('@')[0],
-        password: userData.password,
-        oauth_provider: 'none',
-        oauth_id: ''
-      });
-      console.log(apiClient);
-
-      localStorage.setItem('pending_email', userData.email);
-      setLoading(false);
-      showToast('Account created. OTP sent to your email.', 'success');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
-      throw error;
-    }
-  }, [setLoading, setError, showToast]);
-
-  const verifyOTP = useCallback(async (email: string, otp: string) => {
-    setLoading(true);
-    try {
-      const response = await apiClient.verifyOTP({ email, otp });
-      if (response.success) {
-        // Create a minimal user object after successful OTP verification
+        // Since backend doesn't return user in login response, create a minimal user object
+        // You might want to add a /me endpoint to get full user details
         const user: User = {
           id: 0, // This should come from the API
           email,
-          username: email.split('@')[0],
+          username: email.split("@")[0],
           is_active: true,
           is_verified: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        
-        localStorage.setItem('user', JSON.stringify(user));
-        setAuth(user);
-        showToast('Email verified. Welcome to Nexos!', 'success');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'OTP verification failed';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
-      throw error;
-    }
-  }, [setLoading, setError, setAuth, showToast]);
 
-  const resendOTP = useCallback(async (email: string) => {
-    try {
-      await apiClient.resendOTP(email);
-      showToast('OTP resent successfully', 'info');
-    } catch (error) {
-      showToast('Failed to resend OTP', 'error');
-      throw error;
-    }
-  }, [showToast]);
+        localStorage.setItem("user", JSON.stringify(user));
+        setAuth(user);
+        showToast("Logged in successfully", "success");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Login failed";
+        setError(errorMessage);
+        showToast(errorMessage, "error");
+        throw error;
+      }
+    },
+    [setLoading, setError, setAuth, showToast],
+  );
+
+  const register = useCallback(
+    async (userData: {
+      email: string;
+      password: string;
+      username?: string;
+      full_name?: string;
+    }) => {
+      setLoading(true);
+      try {
+        await authApi.register({
+          email: userData.email,
+          username: userData.username || userData.email.split("@")[0],
+          password: userData.password,
+          oauth_provider: "none",
+          oauth_id: "",
+        });
+        console.log(apiClientCore);
+
+        localStorage.setItem("pending_email", userData.email);
+        setLoading(false);
+        showToast("Account created. OTP sent to your email.", "success");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Registration failed";
+        setError(errorMessage);
+        showToast(errorMessage, "error");
+        throw error;
+      }
+    },
+    [setLoading, setError, showToast],
+  );
+
+  const verifyOTP = useCallback(
+    async (email: string, otp: string) => {
+      setLoading(true);
+      try {
+        const response = await authApi.verifyOTP({ email, otp });
+        if (response.success) {
+          // Create a minimal user object after successful OTP verification
+          const user: User = {
+            id: 0, // This should come from the API
+            email,
+            username: email.split("@")[0],
+            is_active: true,
+            is_verified: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          localStorage.setItem("user", JSON.stringify(user));
+          setAuth(user);
+          showToast("Email verified. Welcome to Nexos!", "success");
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "OTP verification failed";
+        setError(errorMessage);
+        showToast(errorMessage, "error");
+        throw error;
+      }
+    },
+    [setLoading, setError, setAuth, showToast],
+  );
+
+  const resendOTP = useCallback(
+    async (email: string) => {
+      try {
+        await authApi.resendOTP(email);
+        showToast("OTP resent successfully", "info");
+      } catch (error) {
+        showToast("Failed to resend OTP", "error");
+        throw error;
+      }
+    },
+    [showToast],
+  );
 
   const logout = useCallback(async () => {
     try {
-      await apiClient.logout();
-      showToast('Logged out successfully', 'info');
+      await authApi.logout();
+      showToast("Logged out successfully", "info");
     } catch (error) {
-      console.error('Logout request failed', error);
-      showToast('Logged out locally', 'info');
+      console.error("Logout request failed", error);
+      showToast("Logged out locally", "info");
     } finally {
       logoutStore();
     }
@@ -174,27 +208,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithGoogle = useCallback(() => {
     // Redirect to Google OAuth login
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl =
+      (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
     const googleOAuthUrl = `${apiUrl}/api/v1/auth/google/login`;
-    console.info('[OAuth] Starting Google login', {
+    console.info("[OAuth] Starting Google login", {
       apiUrl,
       googleOAuthUrl,
       origin: window.location.origin,
     });
-    showToast('Redirecting to Google...', 'info');
+    showToast("Redirecting to Google...", "info");
     window.location.href = googleOAuthUrl;
   }, [showToast]);
 
   const loginWithGitHub = useCallback(() => {
     // Redirect to GitHub OAuth login
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl =
+      (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
     const githubOAuthUrl = `${apiUrl}/api/v1/auth/github/login`;
-    console.info('[OAuth] Starting GitHub login', {
+    console.info("[OAuth] Starting GitHub login", {
       apiUrl,
       githubOAuthUrl,
       origin: window.location.origin,
     });
-    showToast('Redirecting to GitHub...', 'info');
+    showToast("Redirecting to GitHub...", "info");
     window.location.href = githubOAuthUrl;
   }, [showToast]);
 
@@ -202,23 +238,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearErrorStore();
   }, [clearErrorStore]);
 
-  const value: AuthContextType = useMemo(() => ({
-    user,
-    isAuthenticated,
-    loading,
-    error,
-    login,
-    register,
-    verifyOTP,
-    resendOTP,
-    logout,
-    clearError,
-    setAuth,
-    setLoading,
-    setError,
-    loginWithGoogle,
-    loginWithGitHub,
-  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError, setAuth, setLoading, setError, loginWithGoogle, loginWithGitHub]);
+  const value: AuthContextType = useMemo(
+    () => ({
+      user,
+      isAuthenticated,
+      loading,
+      error,
+      login,
+      register,
+      verifyOTP,
+      resendOTP,
+      logout,
+      clearError,
+      setAuth,
+      setLoading,
+      setError,
+      loginWithGoogle,
+      loginWithGitHub,
+    }),
+    [
+      user,
+      isAuthenticated,
+      loading,
+      error,
+      login,
+      register,
+      verifyOTP,
+      resendOTP,
+      logout,
+      clearError,
+      setAuth,
+      setLoading,
+      setError,
+      loginWithGoogle,
+      loginWithGitHub,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

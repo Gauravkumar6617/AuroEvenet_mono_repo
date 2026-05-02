@@ -23,7 +23,7 @@ export default function CreatePost() {
     content: "",
     category_id: "",
     tags: "",
-    thumbnail: "",
+    thumbnail: null,
   });
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export default function CreatePost() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.thumbnail) return;
     setSaving(true);
     try {
       await createPost({
@@ -98,7 +99,21 @@ export default function CreatePost() {
                 </select>
               </label>
               <Input label="Tags (comma separated)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
-              <Input label="Thumbnail URL" value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} />
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Thumbnail Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="input-field py-2"
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      thumbnail: e.target.files && e.target.files.length > 0 ? e.target.files[0] : null,
+                    })
+                  }
+                  required
+                />
+              </label>
             </Card>
             <Card>
               <p className="text-sm text-slate-600">Publishing as {mode}. Make sure title and tags clearly reflect intent.</p>
