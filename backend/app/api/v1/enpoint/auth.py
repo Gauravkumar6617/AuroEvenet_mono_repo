@@ -6,7 +6,9 @@ from app.schemas.userSchema import UserCreate, UserResponse, RegisterResponse, L
 from app.repositories.UserRespositories import UserRepository
 from app.service.OTPService import OTPService
 from pydantic import BaseModel
+import logging
 import redis
+from urllib.parse import urlencode
 from app.core.config import settings
 # Initialize Redis client
 redis_client = redis.from_url(
@@ -17,6 +19,7 @@ redis_client = redis.from_url(
 router = APIRouter(prefix="/auth", tags=["Auth"])
 auth_service = AuthService()
 otp_service = OTPService()
+logger = logging.getLogger(__name__)
 
 
 # OTP verification schema
@@ -112,19 +115,25 @@ def get_me(request: Request, db: Session = Depends(get_db)):
 async def google_login():
     """Redirect user to Google OAuth login page"""
     google_client_id = settings.GOOGLE_CLIENT_ID
-    redirect_uri = settings.FRONTEND_URL + "/oauth/callback"
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
     
     if not google_client_id:
+        logger.error("Google OAuth login requested but client ID is not configured")
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    
-    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?" \
-        f"client_id={google_client_id}" \
-        f"&redirect_uri={redirect_uri}" \
-        f"&response_type=code" \
-        f"&scope=openid email profile" \
-        f"&access_type=offline" \
-        f"&prompt=select_account" \
-        f"&state=google"
+
+    query = urlencode(
+        {
+            "client_id": google_client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "select_account",
+            "state": "google",
+        }
+    )
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{query}"
+    logger.info("Google OAuth login redirect generated with redirect_uri=%s", redirect_uri)
     
     return Response(status_code=302, headers={"Location": google_auth_url})
 
@@ -137,6 +146,12 @@ async def google_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
+    logger.info(
+        "Google callback received code_length=%s state=%s redirect_target=%s",
+        len(code) if code else 0,
+        request.query_params.get("state"),
+        settings.FRONTEND_URL + "/oauth/callback?provider=google",
+    )
     
     try:
         tokens = await auth_service.google_auth(db, code, user_agent)
@@ -150,6 +165,7 @@ async def google_callback(
         
         return redirect_response
     except Exception as e:
+        logger.exception("Google OAuth callback failed: %s", str(e))
         return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=google"})
 
 
@@ -157,16 +173,22 @@ async def google_callback(
 async def github_login():
     """Redirect user to GitHub OAuth login page"""
     github_client_id = settings.GITHUB_CLIENT_ID
-    redirect_uri = settings.FRONTEND_URL + "/oauth/callback"
+    redirect_uri = settings.GITHUB_REDIRECT_URI
     
     if not github_client_id:
+        logger.error("GitHub OAuth login requested but client ID is not configured")
         raise HTTPException(status_code=500, detail="GitHub OAuth not configured")
-    
-    github_auth_url = f"https://github.com/login/oauth/authorize?" \
-        f"client_id={github_client_id}" \
-        f"&redirect_uri={redirect_uri}" \
-        f"&scope=user:email" \
-        f"&state=github"
+
+    query = urlencode(
+        {
+            "client_id": github_client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "user:email",
+            "state": "github",
+        }
+    )
+    github_auth_url = f"https://github.com/login/oauth/authorize?{query}"
+    logger.info("GitHub OAuth login redirect generated with redirect_uri=%s", redirect_uri)
     
     return Response(status_code=302, headers={"Location": github_auth_url})
 
@@ -179,6 +201,12 @@ async def github_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
+    logger.info(
+        "GitHub callback received code_length=%s state=%s redirect_target=%s",
+        len(code) if code else 0,
+        request.query_params.get("state"),
+        settings.FRONTEND_URL + "/oauth/callback?provider=github",
+    )
     
     try:
         tokens = await auth_service.github_auth(db, code, user_agent)
@@ -192,4 +220,5 @@ async def github_callback(
         
         return redirect_response
     except Exception as e:
+        logger.exception("GitHub OAuth callback failed: %s", str(e))
         return Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?error=oauth_failed&provider=github"})

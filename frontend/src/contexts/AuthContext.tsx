@@ -161,6 +161,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Redirect to Google OAuth login
     const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
     const googleOAuthUrl = `${apiUrl}/api/v1/auth/google/login`;
+    console.info('[OAuth] Starting Google login', {
+      apiUrl,
+      googleOAuthUrl,
+      origin: window.location.origin,
+    });
     window.location.href = googleOAuthUrl;
   }, []);
 
@@ -168,6 +173,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Redirect to GitHub OAuth login
     const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
     const githubOAuthUrl = `${apiUrl}/api/v1/auth/github/login`;
+    console.info('[OAuth] Starting GitHub login', {
+      apiUrl,
+      githubOAuthUrl,
+      origin: window.location.origin,
+    });
     window.location.href = githubOAuthUrl;
   }, []);
 

@@ -21,6 +21,11 @@ export default function Login() {
         githubClientId.length > 10;
 
     const handleGoogleLogin = () => {
+        console.info('[OAuth] Google button clicked', {
+            isGoogleConfigured,
+            frontendOrigin: window.location.origin,
+            apiBaseUrl: import.meta.env?.VITE_API_URL || 'http://localhost:8000',
+        });
         if (!isGoogleConfigured) {
             alert('Google OAuth is not configured. Please set a valid VITE_GOOGLE_CLIENT_ID in your .env file.');
             return;
@@ -34,6 +39,11 @@ export default function Login() {
     };
 
     const handleGitHubLogin = () => {
+        console.info('[OAuth] GitHub button clicked', {
+            isGitHubConfigured,
+            frontendOrigin: window.location.origin,
+            apiBaseUrl: import.meta.env?.VITE_API_URL || 'http://localhost:8000',
+        });
         if (!isGitHubConfigured) {
             alert('GitHub OAuth is not configured. Please set a valid VITE_GITHUB_CLIENT_ID in your .env file.');
             return;

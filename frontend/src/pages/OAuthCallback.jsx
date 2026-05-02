@@ -14,6 +14,12 @@ export default function OAuthCallback() {
             try {
                 const error = searchParams.get('error');
                 const provider = searchParams.get('provider');
+                console.info('[OAuth] Callback page loaded', {
+                    href: window.location.href,
+                    provider,
+                    error,
+                    params: Object.fromEntries(searchParams.entries()),
+                });
 
                 if (error) {
                     console.error('OAuth error:', error);
@@ -26,9 +32,16 @@ export default function OAuthCallback() {
 
                 // Since OAuth uses HttpOnly cookies, we need to verify authentication by calling /me endpoint
                 try {
+                    console.info('[OAuth] Fetching authenticated user via /me');
                     const response = await apiClient.getMe();
                     
                     if (response) {
+                        console.info('[OAuth] /me returned user', {
+                            id: response.id,
+                            email: response.email,
+                            username: response.username,
+                            oauth_provider: response.oauth_provider,
+                        });
                         // Store the user data from OAuth response
                         const user = {
                             id: response.id || 0,
@@ -48,6 +61,7 @@ export default function OAuthCallback() {
                         
                         // Redirect to dashboard or home
                         setTimeout(() => {
+                            console.info('[OAuth] Redirecting authenticated user to dashboard');
                             navigate('/dashboard');
                         }, 1000);
                     } else {
