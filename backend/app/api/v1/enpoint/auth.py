@@ -22,6 +22,16 @@ otp_service = OTPService()
 logger = logging.getLogger(__name__)
 
 
+def _cookie_policy(request: Request) -> tuple[bool, str]:
+    """
+    Use cross-site compatible cookie settings on HTTPS:
+    - SameSite=None + Secure for frontend/API on different domains.
+    - SameSite=Lax + non-secure fallback for local http development.
+    """
+    is_https = request.url.scheme == "https"
+    return is_https, "none" if is_https else "lax"
+
+
 # OTP verification schema
 class OTPVerifyRequest(BaseModel):
     email: str
@@ -47,18 +57,25 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/login", response_model=TokenResponse)
-def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(login_data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login user with email and password"""
     try:
         tokens = auth_service.login_user(db, login_data)
+        secure_cookie, samesite_policy = _cookie_policy(request)
+        logger.info(
+            "Password login setting auth cookies secure=%s samesite=%s origin=%s",
+            secure_cookie,
+            samesite_policy,
+            request.headers.get("origin"),
+        )
         
         # Set access token in HttpOnly cookie
         response.set_cookie(
             key="access_token",
             value=tokens.access_token,
             httponly=True,
-            secure=True,  # Set to True in production
-            samesite="lax",
+            secure=secure_cookie,
+            samesite=samesite_policy,
             max_age=3600  # 1 hour
         )
         
@@ -67,8 +84,8 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
             key="refresh_token",
             value=tokens.refresh_token,
             httponly=True,
-            secure=True,
-            samesite="lax",
+            secure=secure_cookie,
+            samesite=samesite_policy,
             max_age=604800  # 7 days
         )
         
@@ -146,6 +163,7 @@ async def google_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
+    secure_cookie, samesite_policy = _cookie_policy(request)
     logger.info(
         "Google callback received code_length=%s state=%s redirect_target=%s",
         len(code) if code else 0,
@@ -160,8 +178,25 @@ async def google_callback(
         redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?provider=google"})
         
         # Set cookies on the redirect response
-        redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
-        redirect_response.set_cookie(key="refresh_token", value=tokens.refresh_token, httponly=True, secure=True, samesite="lax")
+        redirect_response.set_cookie(
+            key="access_token",
+            value=tokens.access_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_policy,
+        )
+        redirect_response.set_cookie(
+            key="refresh_token",
+            value=tokens.refresh_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_policy,
+        )
+        logger.info(
+            "Google callback set cookies secure=%s samesite=%s",
+            secure_cookie,
+            samesite_policy,
+        )
         
         return redirect_response
     except Exception as e:
@@ -201,6 +236,7 @@ async def github_callback(
 ):
     user_agent = request.headers.get("user-agent", "unknown")
     auth_service = AuthService()
+    secure_cookie, samesite_policy = _cookie_policy(request)
     logger.info(
         "GitHub callback received code_length=%s state=%s redirect_target=%s",
         len(code) if code else 0,
@@ -215,8 +251,25 @@ async def github_callback(
         redirect_response = Response(status_code=302, headers={"Location": settings.FRONTEND_URL + "/oauth/callback?provider=github"})
         
         # Set cookies on the redirect response
-        redirect_response.set_cookie(key="access_token", value=tokens.access_token, httponly=True, secure=True, samesite="lax")
-        redirect_response.set_cookie(key="refresh_token", value=tokens.refresh_token, httponly=True, secure=True, samesite="lax")
+        redirect_response.set_cookie(
+            key="access_token",
+            value=tokens.access_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_policy,
+        )
+        redirect_response.set_cookie(
+            key="refresh_token",
+            value=tokens.refresh_token,
+            httponly=True,
+            secure=secure_cookie,
+            samesite=samesite_policy,
+        )
+        logger.info(
+            "GitHub callback set cookies secure=%s samesite=%s",
+            secure_cookie,
+            samesite_policy,
+        )
         
         return redirect_response
     except Exception as e:
