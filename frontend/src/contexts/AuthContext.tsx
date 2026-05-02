@@ -16,6 +16,9 @@ interface AuthContextType extends AuthState {
   resendOTP: (email: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  setAuth: (user: User | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
   loginWithGoogle: () => void;
   loginWithGitHub: () => void;
 }
@@ -196,9 +199,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendOTP,
     logout,
     clearError,
+    setAuth,
+    setLoading,
+    setError,
     loginWithGoogle,
     loginWithGitHub,
-  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError, loginWithGoogle, loginWithGitHub]);
+  }), [user, isAuthenticated, loading, error, login, register, verifyOTP, resendOTP, logout, clearError, setAuth, setLoading, setError, loginWithGoogle, loginWithGitHub]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

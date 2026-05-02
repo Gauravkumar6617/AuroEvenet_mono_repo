@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import { apiClient } from "../services/api";
+import useAuthStore from "../store/useAuthStore";
 
 export default function OAuthCallback() {
     const navigate = useNavigate();
-    const { setAuth, setLoading, setError } = useAuth();
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState('loading');
+    const setAuth = useAuthStore((state) => state.setAuth);
+    const setError = useAuthStore((state) => state.setError);
 
     useEffect(() => {
         const handleOAuthCallback = async () => {
@@ -22,8 +23,14 @@ export default function OAuthCallback() {
                 });
 
                 if (error) {
-                    console.error('OAuth error:', error);
-                    setError(error);
+                    const errorDetail = searchParams.get('error_detail');
+                    console.error('OAuth error:', {
+                        error,
+                        provider,
+                        errorDetail,
+                        href: window.location.href,
+                    });
+                    setError(errorDetail || error);
                     navigate('/login?error=oauth_failed');
                     return;
                 }
@@ -56,7 +63,13 @@ export default function OAuthCallback() {
                         };
 
                         localStorage.setItem('user', JSON.stringify(user));
+                        console.info('[OAuth] Writing auth user into store', {
+                            id: user.id,
+                            email: user.email,
+                            provider: user.oauth_provider,
+                        });
                         setAuth(user);
+                        console.info('[OAuth] Auth store updated successfully');
                         setStatus('success');
                         
                         // Redirect to dashboard or home
@@ -68,13 +81,21 @@ export default function OAuthCallback() {
                         throw new Error('Failed to get user information');
                     }
                 } catch (apiError) {
-                    console.error('Failed to get user info:', apiError);
+                    console.error('Failed to get user info:', {
+                        provider,
+                        error: apiError,
+                        href: window.location.href,
+                    });
                     throw new Error('Authentication failed - could not retrieve user information');
                 }
 
             } catch (error) {
-                console.error('OAuth callback error:', error);
-                setError(error.message || 'OAuth authentication failed');
+                console.error('OAuth callback error:', {
+                    provider: searchParams.get('provider'),
+                    error,
+                    href: window.location.href,
+                });
+                setError(error?.message || 'OAuth authentication failed');
                 setStatus('error');
                 
                 setTimeout(() => {
@@ -84,7 +105,7 @@ export default function OAuthCallback() {
         };
 
         handleOAuthCallback();
-    }, [searchParams, navigate, setAuth, setLoading, setError]);
+    }, [searchParams, navigate, setAuth, setError]);
 
     const getStatusMessage = () => {
         switch (status) {
