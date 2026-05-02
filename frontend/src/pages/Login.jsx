@@ -8,7 +8,23 @@ export default function Login() {
     const [form, setForm] = useState({ email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
 
+    // Check OAuth configuration
+    const googleClientId = import.meta.env?.VITE_GOOGLE_CLIENT_ID || '';
+    const githubClientId = import.meta.env?.VITE_GITHUB_CLIENT_ID || '';
+
+    const isGoogleConfigured = googleClientId &&
+        !googleClientId.includes('your-google-client-id') &&
+        googleClientId.length > 10;
+
+    const isGitHubConfigured = githubClientId &&
+        !githubClientId.includes('your-github-client-id') &&
+        githubClientId.length > 10;
+
     const handleGoogleLogin = () => {
+        if (!isGoogleConfigured) {
+            alert('Google OAuth is not configured. Please set a valid VITE_GOOGLE_CLIENT_ID in your .env file.');
+            return;
+        }
         try {
             loginWithGoogle();
         } catch (error) {
@@ -18,6 +34,10 @@ export default function Login() {
     };
 
     const handleGitHubLogin = () => {
+        if (!isGitHubConfigured) {
+            alert('GitHub OAuth is not configured. Please set a valid VITE_GITHUB_CLIENT_ID in your .env file.');
+            return;
+        }
         try {
             loginWithGitHub();
         } catch (error) {
