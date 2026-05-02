@@ -13,6 +13,6 @@ class CategoryRead(CategoryBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    is_deleted: bool
+    is_deleted: Optional[bool] = False
 
     model_config = ConfigDict(from_attributes=True)

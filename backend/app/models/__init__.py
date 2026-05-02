@@ -8,7 +8,7 @@ from app.models.baseModel import BaseModel
 from app.models.userModel import User
 from app.models.postModel import Post , Tag
 from app.models.category import Category
-from app.models.commentModel     import Comment
+from app.models.commentModel import Comment
 from app.models.likeModel import Like
 
 

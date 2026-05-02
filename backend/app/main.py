@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .db.session import Base, engine
 import sentry_sdk
-
+from app.core.config import settings
 app = FastAPI()
 
 # Base.metadata.create_all(engine)    
@@ -10,7 +10,7 @@ app = FastAPI()
 
 
 sentry_sdk.init(
-    dsn="https://bdf1e1f696f204b5e7bd1dd373879cff@o4510718207524864.ingest.us.sentry.io/4511304291516416",
+    dsn=settings.SENTRY_DSN,
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
@@ -23,10 +23,14 @@ from app.routers.systemRouter import router as system_router
 from app.api.v1.enpoint.auth import router as auth_router
 from app.api.v1.enpoint.postEnpoint import router as post_router
 from app.api.v1.enpoint.categoryEnpoint import router as category_router
+from app.api.v1.enpoint.commentEndpoint import router as comment_router
+from app.api.v1.enpoint.likeEndpoint import router as like_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(post_router, prefix="/api/v1")
 app.include_router(category_router, prefix="/api/v1")
+app.include_router(comment_router, prefix="/api/v1")
+app.include_router(like_router, prefix="/api/v1")
 app.include_router(system_router)
 
 origins = [
