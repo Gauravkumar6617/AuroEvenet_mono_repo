@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks ,HTTPException, Security
-from sqlalchemy.orm import Session
+
+from math import e
+from typing import List
+from unittest import async_case
+from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks ,HTTPException, Security ,Query
+from sqlalchemy.orm import Session 
 from app.db.session import get_db
 from app.repositories.postRepositories import PostRepository
 from app.schemas.postSchema import PostRead
@@ -42,6 +46,25 @@ async def fetch_all_post(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching posts: {str(e)}")
+
+###search api
+@router.get("/search", response_model=List[PostRead])
+async def search_thing(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 10,
+    q: str = Query(..., min_length=3, description="Search keyword"),
+):
+    try:
+        repo=PostRepository
+        result= repo.search_posts(db,query=q,skip=skip,limit=limit)
+        return result
+    except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error while searching the content: {str(e)}"
+            )
+
 
 @router.get("/{post_id}", response_model=PostRead)
 async def fetch_post_by_id(post_id: int, db: Session = Depends(get_db)):

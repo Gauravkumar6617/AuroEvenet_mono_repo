@@ -97,8 +97,19 @@ class PostRepository:
     
     def fetch_post_by_slug(db:Session,slug:str):
         return db.query(Post).filter(Post.slug == slug).first()
-    
 
+    def search_posts(db: Session, query: str, skip: int = 0, limit: int = 10):
+        # Match query anywhere in text and keep pagination.
+        search_query = f"%{query}%"
 
-
-    
+        return (
+            db.query(Post)
+            .filter(
+                (Post.title.ilike(search_query))
+                | (Post.content.ilike(search_query))
+                | (Post.summary.ilike(search_query))
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
