@@ -1,5 +1,10 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PostsProvider } from "./contexts/PostsContext";
 import { CategoriesProvider } from "./contexts/CategoriesContext";
@@ -50,7 +55,7 @@ function AppShell() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/features" element={<Features />} />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogDetail />} />
+            <Route path="/blogdetail" element={<BlogDetail />} />
           </Routes>
         </AnimatePresence>
       </main>

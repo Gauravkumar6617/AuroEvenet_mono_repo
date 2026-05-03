@@ -18,7 +18,7 @@ export default function Nav() {
   const navItems = [
     { label: "Home", path: "/" },
     { label: "Blog", path: "/blog" },
-    { label: "Features", path: "/features" },
+    { label: "Features", path: "/blogdetail" },
     { label: "About", path: "/about" },
   ];
 
@@ -26,7 +26,9 @@ export default function Nav() {
     <>
       <motion.nav
         animate={{
-          background: scrolled ? "rgba(250,250,248,0.92)" : "rgba(250,250,248,0)",
+          background: scrolled
+            ? "rgba(250,250,248,0.92)"
+            : "rgba(250,250,248,0)",
           backdropFilter: scrolled ? "blur(20px)" : "none",
           borderBottom: scrolled
             ? `1px solid ${T.border}`
@@ -76,7 +78,7 @@ export default function Nav() {
                   color: T.text,
                 }}
               >
-                BlogByte
+                AuraEvent
               </span>
             </div>
 
@@ -128,7 +130,10 @@ export default function Nav() {
               Sign in
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.04, boxShadow: `0 4px 20px ${T.violet}44` }}
+              whileHover={{
+                scale: 1.04,
+                boxShadow: `0 4px 20px ${T.violet}44`,
+              }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/signup")}
               style={{
@@ -222,7 +227,7 @@ export default function Nav() {
                     color: T.text,
                   }}
                 >
-                  BlogByte
+                  AuraEvent
                 </span>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -267,7 +272,14 @@ export default function Nav() {
                 </button>
               ))}
 
-              <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              <div
+                style={{
+                  marginTop: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
                 <button
                   onClick={() => {
                     setMenuOpen(false);
