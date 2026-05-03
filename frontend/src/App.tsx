@@ -33,7 +33,7 @@ const App: React.FC = () => {
           <CategoriesProvider>
             <Router>
               <div className="min-h-screen flex flex-col bg-slate-25 font-sans text-slate-900 selection:bg-brand-600 selection:text-white">
-                <Navbar />
+                {/* <Navbar /> */}
                 <ToastViewport />
                 <main className="flex-grow">
                   <AnimatePresence mode="wait">
