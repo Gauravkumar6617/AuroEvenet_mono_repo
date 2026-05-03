@@ -7,16 +7,16 @@ import Badge from "../components/ui/Badge";
 
 const groups = [
   {
-    title: "Discussion Engine",
-    items: ["Threaded answers", "Upvote/downvote", "Saved posts", "Topic tagging"],
+    title: "Event Discovery",
+    items: ["AI-powered event recommendations", "Location-based search", "Category filtering", "Trending events feed"],
   },
   {
-    title: "Publishing",
-    items: ["Question/discussion/article modes", "Draft autosave", "Rich editor support", "Profile publishing history"],
+    title: "Ticketing & Booking",
+    items: ["Secure online payments", "QR code tickets", "Waitlist management", "Refund processing"],
   },
   {
-    title: "Moderation & Admin",
-    items: ["Report queue", "User management", "Content status actions", "Analytics snapshots"],
+    title: "Host Tools",
+    items: ["Event analytics dashboard", "Attendee management", "Email notifications", "Revenue tracking"],
   },
 ];
 
@@ -26,8 +26,8 @@ export default function Features() {
       <PageContainer>
         <SectionHeader
           eyebrow="Platform Features"
-          title="Everything needed for modern, high-signal communities"
-          description="A single workspace for asking, answering, publishing, and moderating knowledge at scale."
+          title="Everything needed to discover, host, and manage events"
+          description="A complete event management platform for organizers and attendees alike."
           action={<Badge tone="brand">Free to start</Badge>}
         />
         <div className="grid gap-5 lg:grid-cols-3">

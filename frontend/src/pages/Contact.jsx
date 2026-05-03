@@ -19,8 +19,8 @@ export default function Contact() {
       <PageContainer>
         <SectionHeader
           eyebrow="Contact"
-          title="Talk to the Nexos team"
-          description="Share product feedback, support requests, partnerships, or moderation concerns."
+          title="Talk to the AuraEvents team"
+          description="Share event feedback, partnership requests, support needs, or venue inquiries."
         />
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
           <Card>

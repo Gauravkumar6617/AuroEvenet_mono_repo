@@ -168,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           localStorage.setItem("user", JSON.stringify(user));
           setAuth(user);
-          showToast("Email verified. Welcome to Nexos!", "success");
+          showToast("Email verified. Welcome to AuraEvents!", "success");
         }
       } catch (error) {
         const errorMessage =
