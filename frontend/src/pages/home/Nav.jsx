@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 import { Zap, Menu, X } from "lucide-react";
 import { T } from "./tokens";
 
@@ -7,13 +8,19 @@ export default function Nav() {
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const u = scrollY.on("change", (v) => setScrolled(v > 50));
     return u;
   }, [scrollY]);
 
-  const navItems = ["Discover", "Near You", "Host", "Pricing"];
+  const navItems = [
+    { label: "Home", path: "/" },
+    { label: "Blog", path: "/blog" },
+    { label: "Features", path: "/features" },
+    { label: "About", path: "/about" },
+  ];
 
   return (
     <>
@@ -69,31 +76,32 @@ export default function Nav() {
                   color: T.text,
                 }}
               >
-                AuraEvents
+                BlogByte
               </span>
             </div>
 
             {/* Desktop nav links */}
             <div className="nav-links" style={{ display: "flex", gap: 2 }}>
               {navItems.map((item) => (
-                <motion.button
-                  key={item}
-                  whileHover={{ color: T.violet, background: T.violetLight }}
-                  style={{
-                    padding: "7px 13px",
-                    background: "none",
-                    border: "none",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: T.text3,
-                    cursor: "pointer",
-                    borderRadius: 8,
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
-                    transition: "background 0.2s, color 0.2s",
-                  }}
-                >
-                  {item}
-                </motion.button>
+                <Link key={item.label} to={item.path}>
+                  <motion.button
+                    whileHover={{ color: T.violet, background: T.violetLight }}
+                    style={{
+                      padding: "7px 13px",
+                      background: "none",
+                      border: "none",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: T.text3,
+                      cursor: "pointer",
+                      borderRadius: 8,
+                      fontFamily: "'Cabinet Grotesk', sans-serif",
+                      transition: "background 0.2s, color 0.2s",
+                    }}
+                  >
+                    {item.label}
+                  </motion.button>
+                </Link>
               ))}
             </div>
           </div>
@@ -105,6 +113,7 @@ export default function Nav() {
           >
             <motion.button
               whileHover={{ color: T.text }}
+              onClick={() => navigate("/login")}
               style={{
                 padding: "8px 14px",
                 background: "none",
@@ -121,6 +130,7 @@ export default function Nav() {
             <motion.button
               whileHover={{ scale: 1.04, boxShadow: `0 4px 20px ${T.violet}44` }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/signup")}
               style={{
                 padding: "9px 20px",
                 borderRadius: 10,
@@ -212,7 +222,7 @@ export default function Nav() {
                     color: T.text,
                   }}
                 >
-                  AuraEvents
+                  BlogByte
                 </span>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -234,8 +244,11 @@ export default function Nav() {
 
               {navItems.map((item) => (
                 <button
-                  key={item}
-                  onClick={() => setMenuOpen(false)}
+                  key={item.label}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate(item.path);
+                  }}
                   style={{
                     width: "100%",
                     textAlign: "left",
@@ -250,12 +263,16 @@ export default function Nav() {
                     fontFamily: "'Cabinet Grotesk', sans-serif",
                   }}
                 >
-                  {item}
+                  {item.label}
                 </button>
               ))}
 
               <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
                 <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate("/login");
+                  }}
                   style={{
                     padding: "11px",
                     borderRadius: 10,
@@ -270,6 +287,10 @@ export default function Nav() {
                   Sign in
                 </button>
                 <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate("/signup");
+                  }}
                   style={{
                     padding: "11px",
                     borderRadius: 10,

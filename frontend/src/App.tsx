@@ -6,8 +6,7 @@ import { CategoriesProvider } from "./contexts/CategoriesContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { AnimatePresence } from "framer-motion";
 
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
+import HomeFooter from "./pages/home/HomeFooter";
 import ToastViewport from "./components/ui/ToastViewport";
 
 import Home from "./pages/Home";
@@ -25,19 +24,15 @@ import Contact from "./pages/Contact";
 import Features from "./pages/Features";
 import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
+import Nav from "./pages/home/Nav";
 
-/**
- * The Home page has its own Nav & Footer baked in,
- * so we hide the global shell on "/".
- */
 function AppShell() {
   const location = useLocation();
-  const isHome = location.pathname === "/";
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-25 font-sans text-slate-900 selection:bg-brand-600 selection:text-white">
       <ToastViewport />
-      {!isHome && <Navbar />}
+      <Nav />
       <main className="flex-grow">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -59,7 +54,7 @@ function AppShell() {
           </Routes>
         </AnimatePresence>
       </main>
-      {!isHome && <Footer />}
+      <HomeFooter />
     </div>
   );
 }
