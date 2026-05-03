@@ -42,7 +42,6 @@ export default function FloatingTicket({ title, date, price, color, bg, style })
         </div>
         <span
           style={{
-            fontFamily: "'Cabinet Grotesk', sans-serif",
             fontWeight: 700,
             fontSize: 13,
             color: T.text,
@@ -56,7 +55,6 @@ export default function FloatingTicket({ title, date, price, color, bg, style })
         <span style={{ fontSize: 11, color: T.text3 }}>{date}</span>
         <span
           style={{
-            fontFamily: "'Instrument Serif', serif",
             fontSize: 15,
             fontWeight: 400,
             color,

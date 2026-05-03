@@ -1,186 +1,151 @@
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import MarketingHero from "./home/MarketingHero";
 import PageContainer from "../components/layout/PageContainer";
-import Card from "../components/ui/Card";
-import Badge from "../components/ui/Badge";
-import Button from "../components/ui/Button";
 
 const STATS = [
-  { label: "Community Members", value: "50k+", icon: "👥" },
-  { label: "Events Hosted", value: "1,200+", icon: "📅" },
-  { label: "Partner Brands", value: "450+", icon: "🤝" },
-  { label: "Cities Globally", value: "120+", icon: "🌎" },
+  { label: "Community members", value: "50k+", icon: "👥" },
+  { label: "Events hosted", value: "1,200+", icon: "📅" },
+  { label: "Partner brands", value: "450+", icon: "🤝" },
+  { label: "Cities", value: "120+", icon: "🌎" },
 ];
 
 const VALUES = [
   {
-    title: "Community First",
-    desc: "We believe the best breakthroughs happen in the hallway, not just on the stage.",
-    color: "bg-purple-50",
-    text: "text-purple-600",
+    title: "Community first",
+    desc: "Breakthroughs happen in the hallway as much as on stage.",
+    grad: "from-violet-500 to-indigo-600",
+    num: "01",
   },
   {
-    title: "Radical Access",
-    desc: "Providing high-quality tech education and networking to everyone, everywhere.",
-    color: "bg-blue-50",
-    text: "text-blue-600",
+    title: "Radical access",
+    desc: "Tech education and networking for everyone — virtual, hybrid, and IRL.",
+    grad: "from-cyan-500 to-blue-600",
+    num: "02",
   },
   {
-    title: "Engineering Excellence",
-    desc: "We prioritize deep technical content over marketing fluff every single time.",
-    color: "bg-orange-50",
-    text: "text-orange-600",
+    title: "Host-grade quality",
+    desc: "Operational depth over buzzwords — tickets, payouts, and trust.",
+    grad: "from-orange-500 to-rose-500",
+    num: "03",
   },
 ];
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-[#FDFDFF] pt-28 pb-20 font-sans selection:bg-indigo-100">
-      <PageContainer>
-        {/* --- HERO SECTION --- */}
-        <section className="text-center max-w-4xl mx-auto mb-24">
-          <Badge className="bg-indigo-50 text-indigo-600 border-none px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest mb-6">
-            Our Story
-          </Badge>
-          <h1 className="text-6xl md:text-7xl font-black text-slate-900 leading-[1.05] tracking-tight mb-8">
-            Building the infrastructure for{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-              human connection.
+    <div className="min-h-screen bg-[#FAFAFA]">
+      <MarketingHero
+        eyebrow="Our story"
+        title={
+          <>
+            Infrastructure for{" "}
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              real-world gatherings.
             </span>
-          </h1>
-          <p className="text-xl text-slate-500 leading-relaxed font-medium">
-            Founded in 2024, our platform was born out of a simple frustration:
-            tech events were becoming too corporate and too disconnected. We're
-            here to bring the "Engineering" back to the Summit.
-          </p>
-        </section>
+          </>
+        }
+        subtitle="AuraEvents builds the glue between organizers, attendees, and venues — from discovery on the Events page to the night-of experience."
+      />
 
-        {/* --- STATS GRID --- */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-32">
-          {STATS.map((stat, i) => (
-            <Card
-              key={i}
-              className="p-8 rounded-[40px] border-none shadow-sm ring-1 ring-slate-100 text-center hover:shadow-xl transition-all hover:-translate-y-1"
-            >
-              <span className="text-3xl mb-4 block">{stat.icon}</span>
-              <h3 className="text-4xl font-black text-slate-900 mb-1">
-                {stat.value}
-              </h3>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                {stat.label}
-              </p>
-            </Card>
-          ))}
-        </section>
+      <PageContainer>
+        <div className="py-12 md:py-16">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STATS.map((s, idx) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05 }}
+                className="rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+              >
+                <span className="text-2xl">{s.icon}</span>
+                <p className="font-display mt-3 text-3xl font-black text-slate-900">{s.value}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  {s.label}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
-        {/* --- VALUES SECTION --- */}
-        <div className="grid lg:grid-cols-2 gap-20 items-center mb-32">
-          <div className="space-y-10">
-            <div>
-              <h2 className="text-4xl font-black text-slate-900 mb-6">
-                Why we do what we do.
-              </h2>
-              <p className="text-slate-500 text-lg leading-relaxed">
-                We aren't just a ticketing platform. We are an ecosystem
-                designed to foster real-time collaboration between AI
-                researchers, frontend wizards, and backend architects.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {VALUES.map((val, i) => (
-                <div key={i} className="flex gap-6 items-start group">
+        <div className="grid items-center gap-12 pb-16 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 className="font-display text-3xl font-black text-slate-900 md:text-4xl">
+              Why we show up every day.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-500">
+              We aren&apos;t only a ticketing form — we&apos;re trying to match the polish of our home
+              and events experience end to end for hosts and guests.
+            </p>
+            <ul className="mt-10 space-y-8">
+              {VALUES.map((v) => (
+                <li key={v.num} className="flex gap-4">
                   <div
-                    className={`h-12 w-12 shrink-0 rounded-2xl ${val.color} flex items-center justify-center font-bold ${val.text}`}
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${v.grad} font-display text-sm font-black text-white shadow-md`}
                   >
-                    0{i + 1}
+                    {v.num}
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 text-lg mb-1">
-                      {val.title}
-                    </h4>
-                    <p className="text-slate-500 leading-relaxed">{val.desc}</p>
+                    <h3 className="font-display text-lg font-bold text-slate-900">{v.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{v.desc}</p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          {/* IMAGE / VISUAL SIDE */}
           <div className="relative">
-            <div className="aspect-square rounded-[60px] bg-gradient-to-br from-indigo-100 to-purple-100 relative overflow-hidden shadow-2xl">
+            <div className="aspect-square overflow-hidden rounded-[2rem] border border-slate-100 shadow-[0_20px_60px_rgba(0,0,0,0.1)]">
               <img
                 src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1000"
-                className="w-full h-full object-cover mix-blend-overlay grayscale hover:grayscale-0 transition-all duration-700"
-                alt="Event atmosphere"
+                alt="People at a conference"
+                className="h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-violet-900/50 to-transparent" />
             </div>
-            {/* Floating Card */}
-            <div className="absolute -bottom-10 -left-10 bg-white p-8 rounded-[32px] shadow-2xl max-w-[280px] ring-1 ring-slate-100 hidden md:block">
-              <p className="text-sm font-bold text-slate-900 mb-4 italic">
-                "The community here is unlike anything else. It's high-signal,
-                zero-noise."
+            <div className="absolute -bottom-6 -left-2 right-6 max-w-xs rounded-2xl border border-slate-100 bg-white p-5 shadow-xl md:-left-6">
+              <p className="text-sm italic leading-relaxed text-slate-600">
+                &ldquo;High-signal, low-noise — finally an events product that respects engineers.&rdquo;
               </p>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-slate-200" />
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-200 to-indigo-200" />
                 <div>
-                  <p className="text-xs font-black text-slate-900">
-                    Sarah Chen
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400">
-                    Principal Engineer, OpenAI
+                  <p className="text-xs font-bold text-slate-900">Sarah Chen</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Principal engineer
                   </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* --- CTA SECTION --- */}
-        <section className="relative rounded-[64px] bg-[#020617] p-12 md:p-24 overflow-hidden shadow-2xl border border-slate-800/50">
-          {/* The Background Glows */}
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] -mr-40 -mt-40" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] -ml-40 -mb-40" />
-
-          <div className="relative z-10 text-center max-w-3xl mx-auto">
-            <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">
-              Ready to join the <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400">
-                future of engineering?
-              </span>
-            </h2>
-
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-12">
-              {/* PRIMARY: High-Contrast Purple Gradient */}
-              <Button className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(147,51,234,0.4)] border-t border-white/20">
-                Browse Events
-              </Button>
-
-              {/* SECONDARY: Deep Glassmorphism */}
-              <Button className="bg-white/5 backdrop-blur-md text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white px-12 py-5 rounded-2xl font-black text-xl transition-all duration-300">
-                Contact Our Team
-              </Button>
-            </div>
-
-            {/* Social Proof Stats */}
-            <div className="mt-16 flex flex-col items-center gap-4">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <img
-                    key={i}
-                    className="w-12 h-12 rounded-full border-4 border-[#020617] shadow-2xl object-cover"
-                    src={`https://i.pravatar.cc/150?u=techuser${i}`}
-                    alt="user"
-                  />
-                ))}
-              </div>
-              <p className="text-slate-500 text-sm font-bold tracking-[0.2em] uppercase">
-                Join <span className="text-white">2,400+</span> top-tier
-                engineers
-              </p>
-            </div>
-          </div>
-        </section>
       </PageContainer>
+
+      <section className="border-t border-slate-100 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 py-16 md:py-20">
+        <PageContainer className="text-center">
+          <h2 className="font-display mx-auto max-w-2xl text-3xl font-black text-white md:text-4xl">
+            Ready to{" "}
+            <span className="bg-gradient-to-r from-violet-300 to-cyan-200 bg-clip-text text-transparent">
+              find your next crowd?
+            </span>
+          </h2>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/event"
+              className="inline-flex rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
+            >
+              Browse events
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex rounded-xl border border-white/15 bg-white/10 px-8 py-3.5 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white/15"
+            >
+              Talk to us
+            </Link>
+          </div>
+        </PageContainer>
+      </section>
     </div>
   );
 }

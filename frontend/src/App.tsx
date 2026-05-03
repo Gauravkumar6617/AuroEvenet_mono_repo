@@ -23,13 +23,15 @@ import OAuthCallback from "./pages/OAuthCallback";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import CreatePost from "./pages/CreatePost";
+import CreateEvent from "./pages/CreateEvent";
+import Features from "./pages/Features";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Features from "./pages/Features";
-import Blog from "./pages/Blog";
-import BlogDetail from "./pages/BlogDetail";
+
 import Nav from "./pages/home/Nav";
+import EventDetail from "./pages/EventDetail";
+import Event from "./pages/Event";
+import { PersonalizationProvider } from "./contexts/PersonalizationContext";
 
 function AppShell() {
   const location = useLocation();
@@ -50,12 +52,13 @@ function AppShell() {
             <Route path="/dashboard" element={<UserDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
-            <Route path="/create-post" element={<CreatePost />} />
+            <Route path="/create-event" element={<CreateEvent />} />
+            <Route path="/create-post" element={<CreateEvent />} />
+            <Route path="/event" element={<Event />} />
+            <Route path="/features" element={<Features />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blogdetail" element={<BlogDetail />} />
+            <Route path="/events/:id" element={<EventDetail />} />
           </Routes>
         </AnimatePresence>
       </main>
@@ -71,7 +74,9 @@ const App: React.FC = () => {
         <PostsProvider>
           <CategoriesProvider>
             <Router>
-              <AppShell />
+              <PersonalizationProvider>
+                <AppShell />
+              </PersonalizationProvider>
             </Router>
           </CategoriesProvider>
         </PostsProvider>

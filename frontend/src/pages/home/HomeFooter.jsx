@@ -25,7 +25,7 @@ export default function HomeFooter() {
         >
           <Zap size={12} color="#fff" fill="#fff" />
         </div>
-        <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: 15, color: T.text }}>
+        <span style={{ fontWeight: 800, fontSize: 15, color: T.text }}>
           AuraEvents
         </span>
       </div>

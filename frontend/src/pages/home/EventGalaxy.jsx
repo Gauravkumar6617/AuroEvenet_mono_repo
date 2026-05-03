@@ -48,7 +48,6 @@ function MagneticPill({ label, active, color, bg, icon: Icon, onClick }) {
         background: active ? bg : T.surface,
         cursor: "pointer",
         whiteSpace: "nowrap",
-        fontFamily: "'Cabinet Grotesk', sans-serif",
         fontWeight: 600,
         fontSize: 13,
         color: active ? color : T.text2,

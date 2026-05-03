@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const navLinks = [
     { to: "/", label: "Home" },
-    { to: "/blog", label: "Feed" },
+    { to: "/event", label: "Events" },
     { to: "/features", label: "Features" },
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
@@ -53,7 +53,7 @@ export default function Navbar() {
 
             <div className="hidden flex-1 justify-center lg:flex">
               <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                Search topics, posts, answers...
+                Search events…
               </div>
             </div>
 
@@ -75,7 +75,7 @@ export default function Navbar() {
 
             <div className="hidden items-center gap-2 md:flex">
               <Link
-                to="/create-post"
+                to="/create-event"
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
               >
                 Create

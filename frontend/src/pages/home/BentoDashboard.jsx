@@ -135,7 +135,7 @@ export default function BentoDashboard() {
                       key={s.val}
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      style={{ fontFamily: "'Instrument Serif', serif", fontSize: 34, fontWeight: 400, lineHeight: 1, marginBottom: 4 }}
+                      style={{ fontSize: 34, fontWeight: 600, lineHeight: 1, marginBottom: 4 }}
                     >
                       {s.val}
                     </motion.p>

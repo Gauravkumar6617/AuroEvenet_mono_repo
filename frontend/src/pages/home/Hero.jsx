@@ -200,7 +200,6 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.1 }}
           style={{
-            fontFamily: "'Instrument Serif', serif",
             fontSize: "clamp(2.4rem,7.5vw,6.5rem)",
             lineHeight: 1.0,
             letterSpacing: "-0.01em",
@@ -263,7 +262,6 @@ export default function Hero() {
               outline: "none",
               fontSize: 15,
               color: T.text,
-              fontFamily: "'Cabinet Grotesk', sans-serif",
               caretColor: T.violet,
               minWidth: 0,
             }}
@@ -341,7 +339,6 @@ export default function Hero() {
                   fontWeight: 600,
                   color: T.text3,
                   cursor: "pointer",
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
                   transition: "all 0.2s",
                 }}
               >
