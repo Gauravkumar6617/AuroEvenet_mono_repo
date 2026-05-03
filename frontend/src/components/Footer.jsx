@@ -5,8 +5,8 @@ import Button from "./ui/Button";
 const footerLinks = {
   Product: [
     { label: "Features", to: "/features" },
-    { label: "Discover Events", to: "/blog" },
-    { label: "Host an Event", to: "/create-post" },
+    { label: "Discover Events", to: "/event" },
+    { label: "Host an Event", to: "/create-event" },
   ],
   Company: [
     { label: "About", to: "/about" },

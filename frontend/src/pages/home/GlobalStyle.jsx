@@ -3,17 +3,15 @@ import { T } from "./tokens";
 export default function GlobalStyle() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cabinet+Grotesk:wght@400;500;600;700;800&display=swap');
       *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
       html{scroll-behavior:smooth}
       body{
         background:${T.bg};
         color:${T.text};
-        font-family:'Cabinet Grotesk',sans-serif;
+        font-family:'Space Grotesk',system-ui,sans-serif;
         overflow-x:hidden;
         line-height:1.6;
       }
-      h1,h2,h3{font-family:'Instrument Serif',serif}
       ::-webkit-scrollbar{width:4px}
       ::-webkit-scrollbar-track{background:${T.bg}}
       ::-webkit-scrollbar-thumb{background:${T.violet};border-radius:4px}

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../services/api";
 import useAuthStore from "../store/useAuthStore";
 import Card from "../components/ui/Card";
+import Skeleton from "../components/ui/Skeleton";
 import { useToast } from "../contexts/ToastContext";
 
 export default function OAuthCallback() {
@@ -143,21 +144,33 @@ export default function OAuthCallback() {
     }
   };
 
+  const pending = status === "loading" || status === "processing";
+
   return (
     <div className="py-16">
       <div className="mx-auto max-w-lg px-4">
         <Card className="text-center">
-          <div
-            className={`mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 ${getStatusColor()}`}
-          />
-          <h2 className="font-display text-2xl font-bold text-slate-900">
-            {status === "success" ? "Success" : "Authenticating"}
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">{getStatusMessage()}</p>
-          {status === "error" && (
-            <p className="mt-3 text-xs text-rose-600">
-              Authentication failed. Redirecting to login.
-            </p>
+          {pending ? (
+            <div className="space-y-4 py-2">
+              <Skeleton className="mx-auto h-12 w-12 rounded-full" />
+              <Skeleton className="mx-auto h-6 max-w-[200px]" />
+              <Skeleton className="mx-auto h-4 max-w-[280px]" />
+            </div>
+          ) : (
+            <>
+              <div
+                className={`mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 ${getStatusColor()}`}
+              />
+              <h2 className="font-display text-2xl font-bold text-slate-900">
+                {status === "success" ? "Success" : "Authenticating"}
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">{getStatusMessage()}</p>
+              {status === "error" && (
+                <p className="mt-3 text-xs text-rose-600">
+                  Authentication failed. Redirecting to login.
+                </p>
+              )}
+            </>
           )}
         </Card>
       </div>

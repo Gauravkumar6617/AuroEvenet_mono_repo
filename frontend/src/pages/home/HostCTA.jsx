@@ -51,7 +51,6 @@ export default function HostCTA() {
             <h2
               className="section-title"
               style={{
-                fontFamily: "'Instrument Serif', serif",
                 fontSize: "clamp(1.8rem,4vw,3.2rem)",
                 color: "#fff",
                 lineHeight: 1.1,

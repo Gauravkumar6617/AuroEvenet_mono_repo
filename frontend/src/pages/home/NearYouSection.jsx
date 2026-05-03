@@ -50,7 +50,6 @@ export default function NearYouSection() {
               fontWeight: 600,
               color: T.text3,
               cursor: "pointer",
-              fontFamily: "'Cabinet Grotesk', sans-serif",
               whiteSpace: "nowrap",
             }}
           >

@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Zap, Menu, X } from "lucide-react";
+import { Zap, Menu, X, Sparkles } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { usePersonalization } from "../../contexts/PersonalizationContext";
 import { T } from "./tokens";
 
 export default function Nav() {
+  const { isAuthenticated } = useAuth();
+  const { openTuneModal } = usePersonalization();
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -17,9 +21,10 @@ export default function Nav() {
 
   const navItems = [
     { label: "Home", path: "/" },
-    { label: "Blog", path: "/blog" },
-    { label: "Features", path: "/blogdetail" },
+    { label: "Events", path: "/event" },
+    { label: "Features", path: "/features" },
     { label: "About", path: "/about" },
+    { label: "Contact", path: "/contact" },
   ];
 
   return (
@@ -72,7 +77,6 @@ export default function Nav() {
               </div>
               <span
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
                   fontWeight: 800,
                   fontSize: 17,
                   color: T.text,
@@ -97,7 +101,6 @@ export default function Nav() {
                       color: T.text3,
                       cursor: "pointer",
                       borderRadius: 8,
-                      fontFamily: "'Cabinet Grotesk', sans-serif",
                       transition: "background 0.2s, color 0.2s",
                     }}
                   >
@@ -108,48 +111,90 @@ export default function Nav() {
             </div>
           </div>
 
-          {/* Desktop auth buttons */}
+          {/* Desktop auth + tune (everyone can open tune) */}
           <div
             className="nav-desktop-auth"
             style={{ display: "flex", gap: 10, alignItems: "center" }}
           >
             <motion.button
-              whileHover={{ color: T.text }}
-              onClick={() => navigate("/login")}
+              whileHover={{ color: T.violet, background: T.violetLight }}
+              type="button"
+              onClick={() => openTuneModal()}
               style={{
-                padding: "8px 14px",
-                background: "none",
-                border: "none",
-                fontSize: 14,
-                fontWeight: 600,
-                color: T.text3,
-                cursor: "pointer",
-                fontFamily: "'Cabinet Grotesk', sans-serif",
-              }}
-            >
-              Sign in
-            </motion.button>
-            <motion.button
-              whileHover={{
-                scale: 1.04,
-                boxShadow: `0 4px 20px ${T.violet}44`,
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/signup")}
-              style={{
-                padding: "9px 20px",
-                borderRadius: 10,
-                background: T.violet,
-                border: "none",
-                fontSize: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 13px",
+                borderRadius: 8,
+                border: `1px solid ${T.border}`,
+                background: T.surfaceEl,
+                fontSize: 13,
                 fontWeight: 700,
-                color: "#fff",
+                color: T.violet,
                 cursor: "pointer",
-                fontFamily: "'Cabinet Grotesk', sans-serif",
               }}
             >
-              Get Started
+              <Sparkles size={14} />
+              Tune feed
             </motion.button>
+            {isAuthenticated ? (
+              <motion.button
+                whileHover={{ color: T.text }}
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                style={{
+                  padding: "8px 14px",
+                  background: "none",
+                  border: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: T.text3,
+                  cursor: "pointer",
+                }}
+              >
+                Dashboard
+              </motion.button>
+            ) : (
+              <>
+                <motion.button
+                  whileHover={{ color: T.text }}
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  style={{
+                    padding: "8px 14px",
+                    background: "none",
+                    border: "none",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: T.text3,
+                    cursor: "pointer",
+                  }}
+                >
+                  Sign in
+                </motion.button>
+                <motion.button
+                  whileHover={{
+                    scale: 1.04,
+                    boxShadow: `0 4px 20px ${T.violet}44`,
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={() => navigate("/signup")}
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: 10,
+                    background: T.violet,
+                    border: "none",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  Get Started
+                </motion.button>
+              </>
+            )}
           </div>
 
           {/* Mobile: Get started + hamburger */}
@@ -221,7 +266,6 @@ export default function Nav() {
               >
                 <span
                   style={{
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
                     fontWeight: 800,
                     fontSize: 16,
                     color: T.text,
@@ -265,7 +309,6 @@ export default function Nav() {
                     fontWeight: 600,
                     color: T.text2,
                     cursor: "pointer",
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
                   }}
                 >
                   {item.label}
@@ -281,41 +324,91 @@ export default function Nav() {
                 }}
               >
                 <button
+                  type="button"
                   onClick={() => {
                     setMenuOpen(false);
-                    navigate("/login");
+                    openTuneModal();
                   }}
                   style={{
                     padding: "11px",
                     borderRadius: 10,
-                    border: `1px solid ${T.border}`,
-                    background: T.surfaceEl,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: T.text2,
-                    cursor: "pointer",
-                  }}
-                >
-                  Sign in
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    navigate("/signup");
-                  }}
-                  style={{
-                    padding: "11px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: T.violet,
+                    border: `1px solid ${T.violet}`,
+                    background: T.violetLight,
                     fontSize: 14,
                     fontWeight: 700,
-                    color: "#fff",
+                    color: T.violet,
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
                   }}
                 >
-                  Get Started
+                  <Sparkles size={16} />
+                  Tune feed
                 </button>
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      navigate("/dashboard");
+                    }}
+                    style={{
+                      padding: "11px",
+                      borderRadius: 10,
+                      border: `1px solid ${T.border}`,
+                      background: T.surfaceEl,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: T.text2,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Dashboard
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/login");
+                      }}
+                      style={{
+                        padding: "11px",
+                        borderRadius: 10,
+                        border: `1px solid ${T.border}`,
+                        background: T.surfaceEl,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: T.text2,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Sign in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/signup");
+                      }}
+                      style={{
+                        padding: "11px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: T.violet,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "#fff",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Get Started
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>

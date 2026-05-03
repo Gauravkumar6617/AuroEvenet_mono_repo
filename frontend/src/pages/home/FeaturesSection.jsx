@@ -51,7 +51,7 @@ const features = [
               ))}
             </div>
           </div>
-          <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18 }}>Tech Frontier Summit</p>
+          <p style={{ fontSize: 18 }}>Tech Frontier Summit</p>
           <p style={{ fontSize: 12, color: T.text3, marginTop: 4 }}>General Admission · Jun 12</p>
         </div>
         {[
@@ -185,7 +185,7 @@ export default function FeaturesSection() {
                       <Icon size={17} color={isA ? f.color : T.text3} />
                     </div>
                     <div>
-                      <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: 16, fontWeight: 700, color: isA ? T.text : T.text3, marginBottom: isA ? 4 : 0, transition: "color 0.3s" }}>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: isA ? T.text : T.text3, marginBottom: isA ? 4 : 0, transition: "color 0.3s" }}>
                         {f.title}
                       </p>
                       {isA && (
@@ -228,7 +228,14 @@ export default function FeaturesSection() {
                 {["#ef4444", "#f59e0b", "#10b981"].map((c) => (
                   <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.7 }} />
                 ))}
-                <span style={{ marginLeft: 8, fontSize: 12, color: T.text3, fontFamily: "monospace" }}>
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 12,
+                    color: T.text3,
+                    fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                  }}
+                >
                   aura.events / {features[active].id}
                 </span>
               </div>
