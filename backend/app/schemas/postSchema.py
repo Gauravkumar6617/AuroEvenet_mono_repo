@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
+from app.schemas.post_tag import PostTagResponse
+
 class PostBase(BaseModel):
     title: str = Field(..., max_length=255)
     content: str
@@ -9,14 +11,7 @@ class PostBase(BaseModel):
 
 class PostCreate(PostBase):
     # Users send names: ["python", "fastapi"]
-    tags: List[str] = [] 
-
-class TagRead(BaseModel):
-    id: int
-    name: str
-    slug: str
-    
-    model_config = ConfigDict(from_attributes=True)
+    tags: List[str] = []
 
 class PostRead(PostBase):
     id: int
@@ -30,8 +25,8 @@ class PostRead(PostBase):
     share_count: int
     author_id: int
     created_at: datetime
- 
-    tags: List[TagRead] = []
+
+    post_tags: List[PostTagResponse] = []
 
     # Updated for Pydantic v2
     model_config = ConfigDict(from_attributes=True)
