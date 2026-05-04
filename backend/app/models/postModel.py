@@ -2,15 +2,10 @@ from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text,Table
 from sqlalchemy.orm import relationship ,Mapped , mapped_column
 from app.models.baseModel import BaseModel
 from typing import Optional
-
+from app.models.admin.createTagsModel import CreateTags
 ####tags used to related contents 
 
-post_tags = Table(
-    "post_tags",
-    BaseModel.metadata,
-    Column("post_id", Integer, ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
-)
+
 
 ####tag class
 class Tag(BaseModel):
@@ -20,7 +15,7 @@ class Tag(BaseModel):
     slug = Column(String(50), unique=True, nullable=False, index=True)
 
     # Relationship back to posts using the bridge
-    posts = relationship("Post", secondary=post_tags, back_populates="tags")
+    posts = relationship("Post", secondary=CreateTags, back_populates="tags")
 
 
 class Post(BaseModel):
@@ -61,4 +56,7 @@ class Post(BaseModel):
 
 
     #tags 
-    tags = relationship("Tag", secondary=post_tags, back_populates="posts")
+    tags = relationship("Tag", secondary="create_tags", back_populates="posts")
+
+    # Free-form user tags (new social system)
+    post_tags = relationship("PostTag", back_populates="post", cascade="all, delete-orphan")

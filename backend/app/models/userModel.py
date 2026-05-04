@@ -23,6 +23,7 @@ class User(BaseModel):
     posts=relationship("Post", back_populates="author" ,cascade="all,delete-orphan")
     comments=relationship("Comment", back_populates="author",cascade="all , delete-orphan")
     likes=relationship("Like", back_populates="author", cascade="all , delete-orphan")
+    preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
 
 
 
