@@ -1,313 +1,262 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import GlobalStyle from "./home/GlobalStyle";
-import { T } from "./home/tokens";
+import PageContainer from "../components/layout/PageContainer";
+import Card from "../components/ui/Card";
+import Tabs from "../components/ui/Tabs";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import { Link } from "react-router-dom";
 
-/* ── mock data ── */
 const kpis = [
-  { label: "Events attended", value: "14", delta: "+2 this month", icon: "🎫", accent: T.violet, bg: T.violetLight },
-  { label: "Saved events", value: "27", delta: "3 new", icon: "🔖", accent: T.amber, bg: T.amberLight },
-  { label: "Active tickets", value: "3", delta: "Next: Jun 12", icon: "✉️", accent: T.cyan, bg: T.cyanLight },
-  { label: "Hosts you follow", value: "12", delta: "+4 this quarter", icon: "👥", accent: T.emerald, bg: T.emeraldLight },
+  { label: "Total views", value: "12.4K", icon: "👁️", change: "+18%", up: true },
+  { label: "Answers posted", value: "84", icon: "💬", change: "+5 this week", up: true },
+  { label: "Saved posts", value: "27", icon: "🔖", change: "", up: true },
+  { label: "Followers", value: "139", icon: "👥", change: "+12", up: true },
 ];
 
-const SAVED = [
-  { id: 1, title: "AI Research Forum 2026", organizer: "Nexos Labs", cat: "Virtual · May 09" },
-  { id: 2, title: "Indie Maker Meetup Lucknow", organizer: "BuildLU", cat: "In-person · Jun 03" },
-  { id: 3, title: "Platform Engineering Salon", organizer: "Cloud Guild", cat: "Hybrid · Jul 18" },
-];
-
-const REGISTERED_EVENTS = [
-  { id: 5, title: "Morning Yoga in the Park", date: "May 10", loc: "Lucknow, IN", status: "Upcoming", color: T.emerald, bg: T.emeraldLight },
-  { id: 1, title: "Tech Frontier Summit", date: "Jun 12–14", loc: "San Francisco, CA", status: "Registered", color: T.violet, bg: T.violetLight },
-  { id: 8, title: "AI Research Forum 2026", date: "Oct 15", loc: "Online", status: "Registered", color: T.cyan, bg: T.cyanLight },
+const MY_POSTS = [
+  { id: 1, title: "How to structure FastAPI for scale", type: "article", votes: 82, answers: 19, status: "published", time: "2d ago" },
+  { id: 2, title: "Is TypeScript worth it for small teams?", type: "discussion", votes: 44, answers: 12, status: "published", time: "5d ago" },
+  { id: 3, title: "Best auth strategy for multi-tenant SaaS", type: "question", votes: 0, answers: 0, status: "draft", time: "1w ago" },
 ];
 
 const ACTIVITY = [
-  { text: "You registered for Morning Yoga in the Park", time: "2h ago", icon: "🎫" },
-  { text: "Reminder: Tech Frontier Summit starts in 48h", time: "5h ago", icon: "⏰" },
-  { text: "BuildLU published a new workshop near you", time: "Yesterday", icon: "📣" },
-  { text: "You saved Platform Engineering Salon", time: "2 days ago", icon: "🔖" },
-  { text: "Your RSVP for Indie Maker Meetup was confirmed", time: "3 days ago", icon: "✓" },
+  { icon: "▲", text: "Your post 'FastAPI architecture' got 12 new upvotes", time: "2h ago" },
+  { icon: "💬", text: "priya_arch replied to your answer", time: "5h ago" },
+  { icon: "👥", text: "alex_ops started following you", time: "1d ago" },
+  { icon: "✅", text: "Your answer was marked as accepted", time: "2d ago" },
 ];
 
-const NAV = [
-  { key: "overview", label: "Overview", icon: "🏠" },
-  { key: "myevents", label: "My Events", icon: "🎫" },
-  { key: "saved", label: "Saved", icon: "🔖" },
-  { key: "settings", label: "Settings", icon: "⚙️" },
-];
-
-/* ── shared components ── */
-function Sidebar({ active, onChange, user }) {
-  return (
-    <aside style={{ background: T.surface, borderRadius: 24, border: `1px solid ${T.border}`, boxShadow: T.shadow, padding: "24px 16px", position: "sticky", top: 96 }}>
-      {/* avatar */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px 24px", borderBottom: `1px solid ${T.border}`, marginBottom: 12 }}>
-        <div style={{ width: 60, height: 60, borderRadius: "50%", background: `linear-gradient(135deg, ${T.violet}, ${T.cyan})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#fff", fontWeight: 800, marginBottom: 10 }}>
-          {(user?.username || "U")[0].toUpperCase()}
-        </div>
-        <div style={{ fontWeight: 800, fontSize: 15, color: T.text }}>{user?.username || "User"}</div>
-        <div style={{ fontSize: 11, color: T.text4, marginTop: 2 }}>{user?.email || "user@example.com"}</div>
-        <div style={{ marginTop: 8, background: T.emeraldLight, color: T.emerald, borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>Member</div>
-      </div>
-      {/* nav */}
-      <div style={{ fontSize: 13, color: T.text4, padding: "4px 12px 8px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Workspace</div>
-      {NAV.map(n => (
-        <button key={n.key} onClick={() => onChange(n.key)} style={{
-          display: "flex", alignItems: "center", gap: 10, width: "100%",
-          padding: "11px 14px", borderRadius: 14, border: "none", cursor: "pointer",
-          background: active === n.key ? T.violetLight : "transparent",
-          color: active === n.key ? T.violet : T.text2,
-          fontWeight: active === n.key ? 800 : 500, fontSize: 14, transition: "all 0.15s", textAlign: "left",
-        }}>
-          <span style={{ fontSize: 16 }}>{n.icon}</span>{n.label}
-        </button>
-      ))}
-    </aside>
-  );
-}
-
-function Card({ children, style }) {
-  return <div style={{ background: T.surface, borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: T.shadow, padding: "28px 32px", ...style }}>{children}</div>;
-}
-
-function SectionLabel({ children }) {
-  return <div style={{ fontSize: 11, fontWeight: 800, color: T.text4, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>{children}</div>;
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    Published: [T.emerald, T.emeraldLight],
-    Draft: [T.amber, T.amberLight],
-    Upcoming: [T.violet, T.violetLight],
-    Registered: [T.cyan, T.cyanLight],
-  };
-  const [color, bg] = map[status] || [T.text3, T.surfaceEl];
-  return <span style={{ background: bg, color, borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800 }}>{status}</span>;
-}
-
-/* ── page ── */
 export default function UserDashboard() {
   const { user, logout } = useAuth();
   const [section, setSection] = useState("overview");
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [postTab, setPostTab] = useState("Published");
+  const [editingBio, setEditingBio] = useState(false);
+  const [bio, setBio] = useState("Backend engineer & open source enthusiast. Love clean architecture and distributed systems.");
+  const [notifPrefs, setNotifPrefs] = useState({ email: true, answers: true, upvotes: false, follows: true });
+
+  const navItems = [
+    { key: "overview", label: "Overview", icon: "⚡" },
+    { key: "posts", label: "My Posts", icon: "📝" },
+    { key: "saved", label: "Saved", icon: "🔖" },
+    { key: "activity", label: "Activity", icon: "📊" },
+    { key: "settings", label: "Settings", icon: "⚙️" },
+  ];
 
   return (
-    <>
-      <GlobalStyle />
-      <div style={{ background: T.bg, minHeight: "100vh", paddingTop: 80 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 80px" }}>
+    <div className="py-8">
+      <PageContainer>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">Dashboard</p>
+            <h1 className="font-display text-3xl font-bold text-[#1a1814]">
+              Welcome back, <span className="gradient-text">{user?.username || "User"}</span> 👋
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/create-post"><Button size="sm">+ New Post</Button></Link>
+            <Button variant="ghost" size="sm" onClick={logout}>Sign out</Button>
+          </div>
+        </div>
 
-          {/* ── TOP BAR ── */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 40 }}>
-            <div>
-              <div style={{ display: "inline-flex", background: T.violetLight, color: T.violet, borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Dashboard</div>
-              <h1 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)", color: T.text, lineHeight: 1.1 }}>
-                Welcome back, <em style={{ fontStyle: "italic", color: T.violet }}>{user?.username || "User"}</em>
-              </h1>
+        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+          {/* Sidebar */}
+          <aside className="space-y-3">
+            <div className="surface rounded-2xl p-4 text-center">
+              <div className="avatar h-16 w-16 text-xl mx-auto mb-3">{(user?.username || "U")[0].toUpperCase()}</div>
+              <p className="font-display text-base font-bold text-[#1a1814]">@{user?.username || "user"}</p>
+              <p className="text-xs text-[#a09880]">{user?.email}</p>
+              <div className="mt-3 flex justify-center gap-4 text-xs text-[#6b6358]">
+                <div className="text-center"><p className="font-bold text-[#1a1814] text-sm">84</p><p>Posts</p></div>
+                <div className="text-center"><p className="font-bold text-[#1a1814] text-sm">139</p><p>Followers</p></div>
+                <div className="text-center"><p className="font-bold text-[#1a1814] text-sm">42</p><p>Following</p></div>
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* notif bell */}
-              <div style={{ position: "relative" }}>
-                <button onClick={() => setNotifOpen(v => !v)} style={{ width: 42, height: 42, borderRadius: 12, background: T.surface, border: `1px solid ${T.border}`, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>🔔</button>
-                <span style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: "50%", background: T.rose, border: `2px solid ${T.bg}`, fontSize: 8, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>3</span>
-                {notifOpen && (
-                  <div style={{ position: "absolute", right: 0, top: 52, width: 280, background: T.surface, borderRadius: 18, border: `1px solid ${T.border}`, boxShadow: T.shadowHover, zIndex: 50, overflow: "hidden" }}>
-                    <div style={{ padding: "16px 18px 10px", fontWeight: 800, fontSize: 13, color: T.text, borderBottom: `1px solid ${T.border}` }}>Notifications</div>
-                    {ACTIVITY.slice(0,3).map((a, i) => (
-                      <div key={i} style={{ padding: "12px 18px", display: "flex", gap: 12, alignItems: "flex-start", borderBottom: i < 2 ? `1px solid ${T.border}` : "none" }}>
-                        <span style={{ fontSize: 18 }}>{a.icon}</span>
-                        <div>
-                          <div style={{ fontSize: 12, color: T.text2, lineHeight: 1.5 }}>{a.text}</div>
-                          <div style={{ fontSize: 10, color: T.text4, marginTop: 2 }}>{a.time}</div>
+            <div className="surface rounded-2xl p-3">
+              {navItems.map((item) => (
+                <button key={item.key} onClick={() => setSection(item.key)}
+                  className={`sidebar-item ${section === item.key ? "active" : ""}`}>
+                  <span>{item.icon}</span><span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {/* Main */}
+          <div className="space-y-4 min-w-0">
+            {section === "overview" && (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {kpis.map((kpi) => (
+                    <Card key={kpi.label} className="rounded-2xl">
+                      <div className="flex items-start justify-between">
+                        <span className="text-2xl">{kpi.icon}</span>
+                        {kpi.change && <Badge tone={kpi.up ? "success" : "danger"} dot>{kpi.change}</Badge>}
+                      </div>
+                      <p className="mt-2 font-display text-3xl font-bold text-[#1a1814]">{kpi.value}</p>
+                      <p className="text-xs text-[#a09880] mt-0.5">{kpi.label}</p>
+                    </Card>
+                  ))}
+                </div>
+                <Card className="rounded-2xl">
+                  <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Profile completion</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: "Basic info", done: true },
+                      { label: "Profile photo", done: false },
+                      { label: "Bio added", done: true },
+                      { label: "First post published", done: true },
+                      { label: "5 answers given", done: false },
+                    ].map((step) => (
+                      <div key={step.label} className="flex items-center gap-3">
+                        <div className={`h-5 w-5 rounded-full flex items-center justify-center text-xs ${step.done ? "bg-[#e85d26] text-white" : "border-2 border-[rgba(90,80,60,0.2)] text-[#a09880]"}`}>
+                          {step.done ? "✓" : ""}
+                        </div>
+                        <span className={`text-sm ${step.done ? "text-[#1a1814]" : "text-[#a09880]"}`}>{step.label}</span>
+                        {!step.done && <Badge tone="warning">Incomplete</Badge>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs text-[#6b6358] mb-1"><span>Profile strength</span><span>60%</span></div>
+                    <div className="progress-bar"><div className="progress-fill" style={{ width: "60%" }} /></div>
+                  </div>
+                </Card>
+                <Card className="rounded-2xl">
+                  <h3 className="font-display text-lg font-bold text-[#1a1814] mb-3">Recent activity</h3>
+                  <div className="space-y-3">
+                    {ACTIVITY.map((a, i) => (
+                      <div key={i} className="flex items-start gap-3 text-sm">
+                        <span className="text-base mt-0.5">{a.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-[#3a3530]">{a.text}</p>
+                          <p className="text-xs text-[#a09880] mt-0.5">{a.time}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-              <button onClick={logout} style={{ background: T.surfaceEl, color: T.text2, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                Logout
-              </button>
-            </div>
-          </div>
+                </Card>
+              </>
+            )}
 
-          {/* ── LAYOUT ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 28 }}>
-            <Sidebar active={section} onChange={setSection} user={user} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-              {/* ════ OVERVIEW ════ */}
-              {section === "overview" && (<>
-                {/* KPI row */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-                  {kpis.map((k) => (
-                    <div key={k.label} style={{ background: k.bg, borderRadius: 20, padding: "22px 20px" }}>
-                      <div style={{ fontSize: 22, marginBottom: 10 }}>{k.icon}</div>
-                      <div style={{ fontSize: 32, color: k.accent, lineHeight: 1 }}>{k.value}</div>
-                      <div style={{ fontSize: 11, color: k.accent, fontWeight: 700, marginTop: 6, opacity: 0.75 }}>{k.label}</div>
-                      <div style={{ fontSize: 11, color: k.accent, fontWeight: 600, marginTop: 4, opacity: 0.55 }}>{k.delta}</div>
+            {section === "posts" && (
+              <Card className="rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-xl font-bold">My Posts</h3>
+                  <Tabs items={["Published", "Drafts", "Top"]} active={postTab} onChange={setPostTab} />
+                </div>
+                <div className="space-y-3">
+                  {MY_POSTS.filter(p => postTab === "Top" || (postTab === "Published" ? p.status === "published" : p.status === "draft")).map((post) => (
+                    <div key={post.id} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-3 hover:border-[#e85d26] hover:bg-[#fdf0ea] transition-all">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge tone={post.status === "published" ? "success" : "warning"}>{post.status}</Badge>
+                          <Badge tone="neutral">{post.type}</Badge>
+                        </div>
+                        <p className="text-sm font-semibold text-[#1a1814] truncate">{post.title}</p>
+                        <p className="text-xs text-[#a09880] mt-0.5">{post.votes} votes · {post.answers} answers · {post.time}</p>
+                      </div>
+                      <div className="flex gap-2 ml-3 shrink-0">
+                        <Button variant="ghost" size="sm">Edit</Button>
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50">Delete</Button>
+                      </div>
                     </div>
                   ))}
                 </div>
+              </Card>
+            )}
 
-                {/* two-col: activity + upcoming */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <Card>
-                    <SectionLabel>Recent Activity</SectionLabel>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      {ACTIVITY.map((a, i) => (
-                        <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 12, background: T.surfaceEl, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{a.icon}</div>
-                          <div>
-                            <div style={{ fontSize: 13, color: T.text2, lineHeight: 1.5 }}>{a.text}</div>
-                            <div style={{ fontSize: 11, color: T.text4, marginTop: 2 }}>{a.time}</div>
-                          </div>
-                        </div>
-                      ))}
+            {section === "saved" && (
+              <Card className="rounded-2xl">
+                <h3 className="font-display text-xl font-bold mb-4">Saved Posts</h3>
+                <div className="space-y-3">
+                  {["Scaling React with micro-frontends", "PostgreSQL indexing deep dive", "The staff engineer's playbook"].map((title, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-3">
+                      <p className="text-sm font-medium text-[#1a1814]">{title}</p>
+                      <Button variant="ghost" size="sm" className="text-red-500">Unsave</Button>
                     </div>
-                  </Card>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                    <Card>
-                      <SectionLabel>Profile Completion</SectionLabel>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>72% complete</span>
-                        <span style={{ fontSize: 12, color: T.text4 }}>3 tasks left</span>
-                      </div>
-                      <div style={{ height: 8, background: T.surfaceEl, borderRadius: 999 }}>
-                        <div style={{ width: "72%", height: "100%", background: `linear-gradient(90deg, ${T.violet}, ${T.cyan})`, borderRadius: 999 }} />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
-                        {[["Add profile photo", false], ["Verify email", true], ["Write bio", false]].map(([task, done]) => (
-                          <div key={task} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: done ? T.text4 : T.text2 }}>
-                            <span style={{ width: 18, height: 18, borderRadius: 6, background: done ? T.emeraldLight : T.surfaceEl, color: done ? T.emerald : T.text4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{done ? "✓" : "○"}</span>
-                            <span style={{ textDecoration: done ? "line-through" : "none" }}>{task}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-
-                    <Card style={{ background: T.text }}>
-                      <div style={{ fontSize: 20, color: "#fff", marginBottom: 8 }}>Discover events</div>
-                      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6, marginBottom: 20 }}>3 new happenings near you this week.</p>
-                      <Link to="/event" style={{ display: "block", textAlign: "center", background: T.violet, color: "#fff", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>Browse events →</Link>
-                    </Card>
-                  </div>
+                  ))}
                 </div>
-              </>)}
+              </Card>
+            )}
 
-              {/* ════ MY EVENTS ════ */}
-              {section === "myevents" && (<>
-                <Card>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                    <h2 style={{ fontSize: 24, color: T.text }}>My Registered Events</h2>
-                    <Link to="/event" style={{ background: T.violet, color: "#fff", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer", textDecoration: "none", display: "inline-block" }}>+ Find events</Link>
+            {section === "activity" && (
+              <Card className="rounded-2xl">
+                <h3 className="font-display text-xl font-bold mb-4">Activity Feed</h3>
+                <div className="space-y-3">
+                  {[...ACTIVITY, ...ACTIVITY].map((a, i) => (
+                    <div key={i} className="flex items-start gap-3 border-b border-[rgba(90,80,60,0.06)] pb-3 last:border-0">
+                      <span className="text-lg mt-0.5">{a.icon}</span>
+                      <div><p className="text-sm text-[#3a3530]">{a.text}</p><p className="text-xs text-[#a09880] mt-0.5">{a.time}</p></div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {section === "settings" && (
+              <div className="space-y-4">
+                <Card className="rounded-2xl">
+                  <h3 className="font-display text-xl font-bold mb-4">Profile Settings</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="avatar h-14 w-14 text-lg shrink-0">{(user?.username || "U")[0].toUpperCase()}</div>
+                      <div>
+                        <Button variant="secondary" size="sm">Upload photo</Button>
+                        <p className="text-xs text-[#a09880] mt-1">JPG, PNG up to 5MB</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Full name</label>
+                        <input className="input-field" defaultValue={user?.username || ""} />
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Username</label>
+                        <input className="input-field" defaultValue={user?.username || ""} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-sm font-semibold text-[#1a1814]">Bio</label>
+                        <button className="text-xs text-[#e85d26] font-medium" onClick={() => setEditingBio(!editingBio)}>{editingBio ? "Save" : "Edit"}</button>
+                      </div>
+                      {editingBio ? (
+                        <textarea className="input-field resize-none" rows={3} value={bio} onChange={e => setBio(e.target.value)} />
+                      ) : (
+                        <p className="text-sm text-[#6b6358] rounded-xl border border-[rgba(90,80,60,0.1)] p-3">{bio}</p>
+                      )}
+                    </div>
+                    <Button>Save profile</Button>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {REGISTERED_EVENTS.map(ev => (
-                      <div key={ev.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: ev.bg, borderRadius: 18, padding: "18px 22px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 16, background: ev.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🎫</div>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: 15, color: T.text }}>{ev.title}</div>
-                            <div style={{ fontSize: 12, color: T.text3, marginTop: 3 }}>📅 {ev.date} · 📍 {ev.loc}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <StatusBadge status={ev.status} />
-                          <button style={{ background: "white", color: T.text2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>View Ticket</button>
-                        </div>
+                </Card>
+                <Card className="rounded-2xl">
+                  <h3 className="font-display text-xl font-bold mb-4">Notification Preferences</h3>
+                  <div className="space-y-3">
+                    {Object.entries({ email: "Email digests", answers: "New answers to my posts", upvotes: "Upvote milestones", follows: "New followers" }).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-3">
+                        <span className="text-sm text-[#1a1814]">{label}</span>
+                        <button onClick={() => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))}
+                          className={`relative h-5 w-9 rounded-full transition-all ${notifPrefs[key] ? "bg-[#e85d26]" : "bg-[rgba(90,80,60,0.15)]"}`}>
+                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${notifPrefs[key] ? "left-4" : "left-0.5"}`} />
+                        </button>
                       </div>
                     ))}
                   </div>
                 </Card>
-
-                {/* past events */}
-                <Card>
-                  <SectionLabel>Past Events</SectionLabel>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {[["Street Photography Walk", "Apr 12", "Lucknow, IN"], ["Indie Food Festival", "Mar 18", "Lucknow, IN"]].map(([title, date, loc]) => (
-                      <div key={title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.surfaceEl, borderRadius: 14, padding: "14px 18px" }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: T.text2 }}>{title}</div>
-                          <div style={{ fontSize: 12, color: T.text4 }}>📅 {date} · 📍 {loc}</div>
-                        </div>
-                        <button style={{ background: T.surface, color: T.text3, border: `1px solid ${T.border}`, borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Leave Review</button>
-                      </div>
-                    ))}
+                <Card className="rounded-2xl border border-red-200">
+                  <h3 className="font-display text-lg font-bold text-red-700 mb-3">Danger Zone</h3>
+                  <p className="text-sm text-[#6b6358] mb-3">These actions are irreversible. Please be careful.</p>
+                  <div className="flex gap-3">
+                    <Button variant="danger" size="sm">Delete account</Button>
+                    <Button variant="secondary" size="sm">Export data</Button>
                   </div>
                 </Card>
-              </>)}
-
-              {/* ════ POSTS ════ */}
-              {/* ════ SAVED ════ */}
-              {section === "saved" && (
-                <Card>
-                  <h2 style={{ fontSize: 24, color: T.text, marginBottom: 24 }}>Saved events</h2>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {SAVED.map(s => (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.surfaceEl, borderRadius: 16, padding: "16px 20px" }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{s.title}</div>
-                          <div style={{ fontSize: 12, color: T.text4, marginTop: 3 }}>{s.organizer} · {s.cat}</div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <Link to="/event" style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: T.text2, textDecoration: "none" }}>View</Link>
-                          <button style={{ background: T.roseLight, border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", color: T.rose }}>Unsave</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* ════ SETTINGS ════ */}
-              {section === "settings" && (<>
-                <Card>
-                  <h2 style={{ fontSize: 24, color: T.text, marginBottom: 24 }}>Profile Settings</h2>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                    {[["Username", user?.username || "gaurav_k"], ["Email", user?.email || "gaurav@example.com"], ["Location", "Lucknow, IN"], ["Bio", ""]].map(([label, val]) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: T.text4, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>{label}</div>
-                        <input defaultValue={val} placeholder={`Enter ${label}`} style={{ width: "100%", background: T.surfaceEl, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 16px", fontSize: 14, color: T.text, outline: "none", boxSizing: "border-box" }} />
-                      </div>
-                    ))}
-                  </div>
-                  <button style={{ marginTop: 24, background: T.violet, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>Save Changes</button>
-                </Card>
-
-                <Card>
-                  <h2 style={{ fontSize: 20, color: T.text, marginBottom: 20 }}>Notification Preferences</h2>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {[["Email updates on new events near you", true], ["Event reminders 24h before", true], ["New followers", false], ["Weekly digest", true]].map(([label, on]) => (
-                      <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surfaceEl, borderRadius: 14, padding: "14px 18px" }}>
-                        <span style={{ fontSize: 14, color: T.text2, fontWeight: 600 }}>{label}</span>
-                        <div style={{ width: 40, height: 22, borderRadius: 999, background: on ? T.violet : T.border, position: "relative", cursor: "pointer" }}>
-                          <div style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card style={{ border: `1px solid ${T.roseLight}` }}>
-                  <h2 style={{ fontSize: 20, color: T.rose, marginBottom: 12 }}>Danger Zone</h2>
-                  <p style={{ fontSize: 14, color: T.text3, lineHeight: 1.7, marginBottom: 16 }}>These actions are permanent and cannot be undone.</p>
-                  <div style={{ display: "flex", gap: 12 }}>
-                    <button style={{ background: T.surfaceEl, color: T.text2, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Export My Data</button>
-                    <button style={{ background: T.rose, color: "#fff", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Delete Account</button>
-                  </div>
-                </Card>
-              </>)}
-
-            </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </>
+      </PageContainer>
+    </div>
   );
 }

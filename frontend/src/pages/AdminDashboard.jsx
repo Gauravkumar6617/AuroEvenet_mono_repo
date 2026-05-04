@@ -1,122 +1,181 @@
 import { useState } from "react";
-import GlobalStyle from "./home/GlobalStyle";
-import { T } from "./home/tokens";
+import PageContainer from "../components/layout/PageContainer";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import Tabs from "../components/ui/Tabs";
 
-const reports = [
-  { id: 1, title: "Spam event listing", count: 8 },
-  { id: 2, title: "Misleading venue / capacity info", count: 3 },
+const REPORTS = [
+  { id: 1, title: "Spam promotion thread in #engineering", type: "spam", count: 8, user: "anon_user", time: "30m ago", severity: "high" },
+  { id: 2, title: "Off-topic personal attack in discussion", type: "harassment", count: 3, user: "dev_xyz", time: "2h ago", severity: "medium" },
+  { id: 3, title: "Misinformation about database performance", type: "misinformation", count: 5, user: "ghost_99", time: "4h ago", severity: "medium" },
+];
+const USERS = [
+  { id: 1, name: "gaurav_dev", email: "gaurav@ex.com", role: "user", status: "active", posts: 34, joined: "Mar 2025" },
+  { id: 2, name: "priya_arch", email: "priya@ex.com", role: "moderator", status: "active", posts: 91, joined: "Jan 2025" },
+  { id: 3, name: "spam_bot_99", email: "spam@junk.com", role: "user", status: "suspended", posts: 2, joined: "Apr 2026" },
+  { id: 4, name: "alex_ops", email: "alex@ops.io", role: "user", status: "active", posts: 58, joined: "Feb 2025" },
 ];
 
-const NAV = [
-  { key: "moderation", label: "Moderation", icon: "🛡️", badge: reports.length },
-  { key: "users", label: "Users", icon: "👥" },
-  { key: "analytics", label: "Analytics", icon: "📊" },
+const STATS = [
+  { label: "Total users", value: "4,821", icon: "👥", change: "+12% this week" },
+  { label: "Posts today", value: "342", icon: "📝", change: "+5%" },
+  { label: "Open reports", value: "3", icon: "🚨", change: "Needs attention", danger: true },
+  { label: "Answer rate", value: "82%", icon: "✅", change: "+2% vs last month" },
 ];
-
-function Sidebar({ active, onChange }) {
-  return (
-    <aside style={{ background: T.surface, borderRadius: 24, border: `1px solid ${T.border}`, boxShadow: T.shadow, padding: "24px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-      <div style={{ padding: "8px 12px 20px", fontSize: 18, color: T.text }}>Admin Panel</div>
-      {NAV.map((n) => (
-        <button key={n.key} onClick={() => onChange(n.key)} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", borderRadius: 14, border: "none", cursor: "pointer",
-          background: active === n.key ? T.violetLight : "transparent",
-          color: active === n.key ? T.violet : T.text2,
-          fontWeight: active === n.key ? 800 : 500, fontSize: 14,
-          transition: "all 0.15s",
-        }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span>{n.icon}</span>{n.label}
-          </span>
-          {n.badge ? (
-            <span style={{ background: T.rose, color: "#fff", borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 800 }}>{n.badge}</span>
-          ) : null}
-        </button>
-      ))}
-    </aside>
-  );
-}
-
-function Card({ children, style }) {
-  return <div style={{ background: T.surface, borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: T.shadow, padding: "24px 28px", ...style }}>{children}</div>;
-}
 
 export default function AdminDashboard() {
-  const [section, setSection] = useState("moderation");
+  const [section, setSection] = useState("overview");
+  const [tab, setTab] = useState("All");
+
+  const navItems = [
+    { key: "overview", label: "Overview", icon: "📊" },
+    { key: "moderation", label: "Moderation", icon: "🛡️", count: REPORTS.length },
+    { key: "users", label: "Users", icon: "👥" },
+    { key: "content", label: "Content", icon: "📝" },
+    { key: "analytics", label: "Analytics", icon: "📈" },
+  ];
 
   return (
-    <>
-      <GlobalStyle />
-      <div style={{ background: T.bg, minHeight: "100vh", paddingTop: 80 }}>
-        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "48px 24px 80px" }}>
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: "inline-flex", background: T.roseLight, color: T.rose, borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Admin</div>
-            <h1 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", color: T.text }}>Admin Panel</h1>
+    <div className="py-8">
+      <PageContainer>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Badge tone="danger" dot>Admin Panel</Badge>
+            <h1 className="font-display text-3xl font-bold text-[#1a1814] mt-1">Admin Dashboard</h1>
           </div>
+          <Button variant="secondary" size="sm">⬇️ Export report</Button>
+        </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
-            <Sidebar active={section} onChange={setSection} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {section === "moderation" && (
-                <Card>
-                  <h2 style={{ fontSize: 22, color: T.text, marginBottom: 20 }}>Report Queue</h2>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {reports.map((r) => (
-                      <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.surfaceEl, borderRadius: 16, padding: "14px 18px" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{r.title}</div>
-                          <div style={{ fontSize: 12, color: T.text4, marginTop: 2 }}>{r.count} reports</div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button style={{ background: T.surface, color: T.text2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Review</button>
-                          <button style={{ background: T.rose, color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Remove</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {section === "users" && (
-                <Card>
-                  <h2 style={{ fontSize: 22, color: T.text, marginBottom: 20 }}>User Management</h2>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {["gaurav", "priya", "alex"].map((name) => (
-                      <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: T.surfaceEl, borderRadius: 16, padding: "14px 18px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: T.violetLight, color: T.violet, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>{name[0].toUpperCase()}</div>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>@{name}</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ background: T.emeraldLight, color: T.emerald, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 800 }}>Active</span>
-                          <button style={{ background: T.surface, color: T.text2, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Suspend</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {section === "analytics" && (
-                <Card>
-                  <h2 style={{ fontSize: 22, color: T.text, marginBottom: 12 }}>Analytics</h2>
-                  <p style={{ fontSize: 15, color: T.text3, lineHeight: 1.7 }}>Add charts for DAU, report volume, and trending events.</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginTop: 24 }}>
-                    {[["Daily Active Users", "—", T.violet, T.violetLight], ["Moderation Volume", "—", T.rose, T.roseLight], ["Event Trends", "—", T.amber, T.amberLight]].map(([label, val, color, bg]) => (
-                      <div key={label} style={{ background: bg, borderRadius: 16, padding: "20px" }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>{label}</div>
-                        <div style={{ fontSize: 28, color }}>{val}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+          <aside className="space-y-2">
+            <div className="surface rounded-2xl p-3">
+              {navItems.map((item) => (
+                <button key={item.key} onClick={() => setSection(item.key)}
+                  className={`sidebar-item ${section === item.key ? "active" : ""}`}>
+                  <span>{item.icon}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.count !== undefined && (
+                    <span className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${item.count > 0 ? "bg-red-500 text-white" : "bg-[rgba(90,80,60,0.1)] text-[#6b6358]"}`}>
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
+          </aside>
+
+          <div className="space-y-4 min-w-0">
+            {section === "overview" && (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {STATS.map((s) => (
+                    <Card key={s.label} className="rounded-2xl">
+                      <span className="text-2xl">{s.icon}</span>
+                      <p className="mt-2 font-display text-3xl font-bold text-[#1a1814]">{s.value}</p>
+                      <p className="text-xs text-[#a09880]">{s.label}</p>
+                      <p className={`text-xs font-medium mt-1 ${s.danger ? "text-red-600" : "text-green-600"}`}>{s.change}</p>
+                    </Card>
+                  ))}
+                </div>
+                <Card className="rounded-2xl">
+                  <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Platform activity (last 7 days)</h3>
+                  <div className="flex items-end gap-1 h-28">
+                    {[42, 58, 35, 71, 89, 64, 53].map((val, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full rounded-t-lg bg-gradient-to-t from-[#e85d26] to-[#f59e6b]" style={{ height: `${(val / 90) * 100}%` }} />
+                        <span className="text-xs text-[#a09880]">{["M","T","W","T","F","S","S"][i]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </>
+            )}
+
+            {section === "moderation" && (
+              <Card className="rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-xl font-bold text-[#1a1814]">Report Queue</h3>
+                  <Badge tone="danger" dot>{REPORTS.length} open</Badge>
+                </div>
+                <div className="space-y-3">
+                  {REPORTS.map((r) => (
+                    <div key={r.id} className={`rounded-xl border p-4 ${r.severity === "high" ? "border-red-200 bg-red-50/50" : "border-[rgba(90,80,60,0.1)]"}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <Badge tone={r.severity === "high" ? "danger" : "warning"}>{r.severity}</Badge>
+                            <Badge tone="neutral">{r.type}</Badge>
+                          </div>
+                          <p className="text-sm font-semibold text-[#1a1814]">{r.title}</p>
+                          <p className="text-xs text-[#a09880] mt-1">Reported by {r.count} users · @{r.user} · {r.time}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button variant="secondary" size="sm">Review</Button>
+                          <Button variant="danger" size="sm">Remove</Button>
+                          <Button variant="ghost" size="sm">Dismiss</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {section === "users" && (
+              <Card className="rounded-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-xl font-bold">User Management</h3>
+                  <div className="flex gap-2">
+                    <input className="input-field w-48 text-sm" placeholder="Search users..." />
+                    <Tabs items={["All", "Active", "Suspended"]} active={tab} onChange={setTab} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {USERS.filter(u => tab === "All" || (tab === "Active" ? u.status === "active" : u.status === "suspended")).map((u) => (
+                    <div key={u.id} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-3 hover:bg-[rgba(90,80,60,0.02)]">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="avatar h-8 w-8 text-sm shrink-0">{u.name[0].toUpperCase()}</div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#1a1814]">@{u.name}</p>
+                          <p className="text-xs text-[#a09880] truncate">{u.email} · {u.posts} posts · joined {u.joined}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3 shrink-0">
+                        <Badge tone={u.status === "active" ? "success" : "danger"}>{u.status}</Badge>
+                        <Badge tone={u.role === "moderator" ? "brand" : "neutral"}>{u.role}</Badge>
+                        <Button variant="secondary" size="sm">{u.status === "active" ? "Suspend" : "Restore"}</Button>
+                        <Button variant="ghost" size="sm">Promote</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {section === "analytics" && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {[
+                  { title: "Top categories", items: [["Engineering", "34%"], ["Product", "22%"], ["DevOps", "18%"], ["AI/ML", "15%"]] },
+                  { title: "Content types", items: [["Questions", "48%"], ["Discussions", "31%"], ["Articles", "21%"]] },
+                ].map((block) => (
+                  <Card key={block.title} className="rounded-2xl">
+                    <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">{block.title}</h3>
+                    <div className="space-y-3">
+                      {block.items.map(([label, pct]) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-xs text-[#6b6358] mb-1"><span>{label}</span><span className="font-semibold">{pct}</span></div>
+                          <div className="progress-bar"><div className="progress-fill" style={{ width: pct }} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </>
+      </PageContainer>
+    </div>
   );
 }
