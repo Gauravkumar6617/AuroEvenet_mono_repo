@@ -5,7 +5,6 @@ import traceback
 import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-
 from app.models.userModel import User
 from app.repositories.UserRespositories import UserRepository
 from app.core.security import hashed_password, verify_password, create_access_token
@@ -13,7 +12,9 @@ from app.schemas.userSchema import UserCreate, LoginRequest, TokenResponse
 from app.models.models_enum import AuthProvider
 from app.core.config import settings
 from app.service.EmailService import EmailService
+import logging
 
+logger = logging.getLogger(__name__)
 # Initialize Redis
 r = redis.from_url(
     settings.Redis_URL(), 
@@ -232,3 +233,45 @@ class AuthService:
             logger.exception("github_auth failed: %s", str(e))
             traceback.print_exc()
             raise
+        
+
+    @staticmethod
+    def process_forgot_password(db, email, redis_client, otp_service):
+        user_repo = UserRepository()
+        user = user_repo.get_by_email(email, db)
+        
+        if user:
+            otp = otp_service.generate_otp()
+        
+        # --- ADD THIS DEBUG PRINT ---
+        print("\n" + "*"*30)
+        print(f"DEBUG OTP FOR {email}: {otp}")
+        print("*"*30 + "\n")
+        # ----------------------------
+
+        # Store in Redis
+        redis_client.setex(f"reset_otp:{email}", 600, otp)
+        
+        # Send Email
+        otp_service.send_password_reset_email(email, otp)
+        
+        return True
+    @staticmethod
+    def process_reset_password(db, email, otp, new_password, redis_client):
+        cache_key = f"reset_otp:{email}"
+        stored_otp = redis_client.get(cache_key)
+        
+        if not stored_otp or stored_otp != otp:
+            logger.warning(f"RESET_PASSWORD: Invalid OTP attempt for {email}")
+            return False
+
+        # Use the custom hashed_password function that handles 72-byte limit
+        hashed_pwd = hashed_password(new_password)
+        
+        user_repo = UserRepository()
+        if user_repo.update_password(email, hashed_pwd, db):
+            logger.info(f"RESET_PASSWORD: Success for {email}")
+            redis_client.delete(cache_key)
+            return True
+            
+        return False

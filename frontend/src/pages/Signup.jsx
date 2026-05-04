@@ -36,6 +36,7 @@ export default function Signup() {
   const { register, loading, error } = useAuth();
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [agreed, setAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -93,8 +94,28 @@ export default function Signup() {
             <Input label="Email address" type="email" placeholder="jane@company.com" icon="✉️"
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             <div>
-              <Input label="Password" type="password" placeholder="Create a strong password"
-                value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-semibold text-[#1a1814]">Password</span>
+              </div>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"}
+                  className="input-field pr-10" placeholder="Create a strong password"
+                  value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a09880] hover:text-[#6b6358]">
+                  {showPassword ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
               <PasswordStrength password={form.password} />
             </div>
             <label className="flex items-start gap-3 cursor-pointer">

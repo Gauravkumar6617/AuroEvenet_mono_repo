@@ -69,3 +69,27 @@ class OTPService:
         except Exception as e:
             logger.error(f"Failed to get user ID by OTP: {str(e)}")
             return None
+    
+    # Inside app/service/OTPService.py
+    def send_password_reset_email(self, email: str, otp: str):
+        """This method now correctly receives 'otp' as an argument"""
+        
+        subject = "Reset Your Password"
+        
+        # The HTML must be defined inside this function
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; text-align: center;">
+                <div style="padding: 20px; border: 1px solid #ddd;">
+                    <h2>Password Reset Request</h2>
+                    <p>Use the code below to reset your password. It expires in 10 minutes.</p>
+                    <h1 style="color: #4A90E2; font-size: 40px; letter-spacing: 5px;">{otp}</h1>
+                    <p>If you didn't request this, you can safely ignore this email.</p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        # Replace this with your actual email sending logic (SMTP, SendGrid, etc.)
+        print(f"DEBUG: Sending email to {email} with body length {len(body)}")
+        return True
