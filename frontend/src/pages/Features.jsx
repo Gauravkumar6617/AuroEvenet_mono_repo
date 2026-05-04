@@ -1,187 +1,85 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import MarketingHero from "./home/MarketingHero";
+import { useState } from "react";
 import PageContainer from "../components/layout/PageContainer";
+import SectionHeader from "../components/layout/SectionHeader";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
 
-const CORE_SYSTEMS = [
-  {
-    title: "Dynamic ticket tiers",
-    desc: "Early bird, VIP, and member-only inventory with locks and timed price steps.",
-    icon: "🎫",
-    tag: "Revenue",
-    grad: "from-violet-500 to-purple-600",
-    pill: "bg-violet-100 text-violet-800",
-  },
-  {
-    title: "Attendee CRM",
-    desc: "Registration fields, segments, exports for check-in and on-site logistics.",
-    icon: "👥",
-    tag: "Data",
-    grad: "from-cyan-500 to-blue-600",
-    pill: "bg-cyan-100 text-cyan-800",
-  },
-  {
-    title: "Payout-ready payments",
-    desc: "Stripe-style flows, invoices, and multi-currency for global summits.",
-    icon: "💳",
-    tag: "Payouts",
-    grad: "from-emerald-500 to-teal-600",
-    pill: "bg-emerald-100 text-emerald-800",
-  },
-  {
-    title: "Instant entry",
-    desc: "Browser QR scanning for staff—no extra app—included in organizer mode.",
-    icon: "✨",
-    tag: "On-site",
-    grad: "from-orange-500 to-rose-600",
-    pill: "bg-orange-100 text-orange-800",
-  },
+const features = [
+  { icon: "🗳️", title: "Reddit-style voting", desc: "Community-driven signal. Posts and answers ranked by upvotes, not algorithm. Best content always floats.", tag: "Discovery" },
+  { icon: "🧵", title: "Threaded answers", desc: "Nested reply threads so complex topics get the depth they deserve. Quora-style knowledge tree structure.", tag: "Discussion" },
+  { icon: "📝", title: "3 post types", desc: "Ask questions, start discussions, or publish full articles — each with its own editor and formatting tools.", tag: "Publishing" },
+  { icon: "🏆", title: "Reputation system", desc: "Earn points for accepted answers, upvotes, and quality posts. Reputation unlocks moderation privileges.", tag: "Gamification" },
+  { icon: "🔖", title: "Save & organize", desc: "Bookmark posts into personal collections. Build your own knowledge library across any topic.", tag: "Productivity" },
+  { icon: "🔔", title: "Smart notifications", desc: "Get notified on answers, mentions, and upvote milestones — with full control over what and when.", tag: "Engagement" },
+  { icon: "🛡️", title: "Community moderation", desc: "Transparent report queue, content flags, and tiered admin roles. Keep quality high at scale.", tag: "Safety" },
+  { icon: "📊", title: "Analytics dashboard", desc: "Track your post views, engagement rate, follower growth, and content performance over time.", tag: "Insights" },
+  { icon: "🔍", title: "Powerful search", desc: "Full-text search across all posts, answers, tags, and user profiles with real-time results.", tag: "Discovery" },
 ];
 
-const LOGS = [
-  { time: "14:02", user: "Alex R.", amt: "+$49.00", amtStyle: true },
-  { time: "13:58", user: "Sarah K.", amt: "+$149.00", amtStyle: true },
-  { time: "13:45", user: "Mike T.", amt: "VALID", amtStyle: false },
+const PLANS = [
+  { name: "Free", price: "$0", period: "forever", features: ["Full feed access", "Post questions & discussions", "Vote and comment", "Save up to 50 posts", "Basic profile"], cta: "Get started", highlight: false },
+  { name: "Pro", price: "$8", period: "per month", features: ["Everything in Free", "Publish long-form articles", "Unlimited saves", "Analytics dashboard", "Verified badge", "Priority support"], cta: "Start free trial", highlight: true },
+  { name: "Team", price: "$24", period: "per month", features: ["Everything in Pro", "Private community spaces", "Team moderation tools", "Custom branding", "API access", "Dedicated support"], cta: "Contact us", highlight: false },
 ];
 
 export default function Features() {
+  const [activePlan, setActivePlan] = useState("Pro");
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <MarketingHero
-        eyebrow="Platform"
-        title={
-          <>
-            Everything hosts need{" "}
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              from first RSVP to payout.
-            </span>
-          </>
-        }
-        subtitle="Tickets, attendee data, payouts, and check-in — one calm operations layer instead of brittle spreadsheets."
-      />
-
+    <div className="py-8 pb-20">
       <PageContainer>
-        <div className="py-12 md:py-16">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {CORE_SYSTEMS.map((sys, idx) => (
-              <motion.div
-                key={sys.title}
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.06, duration: 0.35 }}
-                className="group rounded-3xl border border-slate-100 bg-white p-8 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]"
-              >
-                <div className="mb-6 flex items-start justify-between gap-4">
-                  <span className="text-3xl">{sys.icon}</span>
-                  <span
-                    className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${sys.pill}`}
-                  >
-                    {sys.tag}
-                  </span>
-                </div>
-                <div
-                  className={`mb-4 h-1 w-12 rounded-full bg-gradient-to-r ${sys.grad}`}
-                  aria-hidden
-                />
-                <h3 className="font-display text-xl font-bold text-slate-900">{sys.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">{sys.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+        <SectionHeader eyebrow="Platform Features" align="center"
+          title="Everything for high-signal knowledge sharing"
+          description="A single workspace for asking, answering, publishing, and moderating knowledge at scale."
+          action={<Badge tone="success" dot>Free to start</Badge>} />
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-20">
+          {features.map((f, i) => (
+            <Card key={i} hover className="rounded-2xl">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fdf0ea] text-2xl">{f.icon}</div>
+                <Badge tone="neutral">{f.tag}</Badge>
+              </div>
+              <h3 className="font-display text-lg font-bold text-[#1a1814] mb-1.5">{f.title}</h3>
+              <p className="text-sm text-[#6b6358] leading-relaxed">{f.desc}</p>
+            </Card>
+          ))}
         </div>
-      </PageContainer>
 
-      <section className="border-y border-slate-100 bg-slate-900 py-14 md:py-20">
-        <PageContainer>
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="font-display text-3xl font-black text-white md:text-4xl md:leading-tight">
-                Live sales &amp;{" "}
-                <span className="bg-gradient-to-r from-violet-300 to-indigo-300 bg-clip-text text-transparent">
-                  check-in velocity
-                </span>
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                See payout readiness, scan progress, and last sales in one dashboard — same energy as the Event explorer, tuned for hosts.
-              </p>
-              <div className="mt-8 space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Payout status
-                  </p>
-                  <div className="mt-2 flex items-end justify-between gap-4">
-                    <span className="font-display text-3xl font-bold text-white">$42,850</span>
-                    <span className="text-xs font-bold text-emerald-400">Ready</span>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Check-in
-                  </p>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" />
-                  </div>
-                  <p className="mt-2 text-xs text-slate-400">
-                    <span className="font-semibold text-white">780</span> scanned · 1,000 total
-                  </p>
-                </div>
+        <SectionHeader eyebrow="Pricing" align="center" title="Simple, honest pricing" description="Start free. Upgrade when you need more power." />
+        <div className="grid gap-5 md:grid-cols-3 mb-16">
+          {PLANS.map((plan) => (
+            <div key={plan.name}
+              className={`rounded-3xl p-6 border-[1.5px] transition-all ${plan.highlight ? "border-[#e85d26] bg-[#1a1814] text-white shadow-[0_8px_32px_rgba(232,93,38,0.2)]" : "border-[rgba(90,80,60,0.12)] bg-white"}`}>
+              {plan.highlight && <Badge tone="brand" dot>Most popular</Badge>}
+              <div className={`mt-3 font-display text-xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.name}</div>
+              <div className="flex items-baseline gap-1 mt-1 mb-4">
+                <span className={`font-display text-4xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.price}</span>
+                <span className={`text-sm ${plan.highlight ? "text-[#a09880]" : "text-[#6b6358]"}`}>/{plan.period}</span>
               </div>
-              <Link
-                to="/dashboard"
-                className="mt-8 inline-flex rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition hover:opacity-90"
-              >
-                Open dashboard
-              </Link>
-            </div>
-
-            <div className="relative rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-                </div>
-                <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-400">
-                  LIVE_FEED
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {LOGS.map((log) => (
-                  <div
-                    key={log.time + log.user}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-black/30 px-3 py-2.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-slate-500">{log.time}</span>
-                      <span className="text-xs font-bold text-white">{log.user}</span>
-                    </div>
-                    <span
-                      className={`text-xs font-extrabold ${log.amtStyle ? "text-violet-300" : "text-emerald-400"}`}
-                    >
-                      {log.amt}
-                    </span>
+              <div className="space-y-2 mb-6">
+                {plan.features.map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm">
+                    <span className={`text-xs font-bold ${plan.highlight ? "text-[#e85d26]" : "text-green-600"}`}>✓</span>
+                    <span className={plan.highlight ? "text-[#d0c8be]" : "text-[#6b6358]"}>{f}</span>
                   </div>
                 ))}
               </div>
-              <div className="absolute -bottom-3 -left-3 rotate-[-3deg] rounded-2xl bg-emerald-500 px-4 py-3 text-white shadow-xl">
-                <p className="text-[9px] font-bold uppercase opacity-90">Conversion</p>
-                <p className="font-display text-2xl font-black">12.4%</p>
-              </div>
+              <Button className={`w-full ${plan.highlight ? "bg-[#e85d26] hover:bg-[#c44718]" : ""}`}
+                variant={plan.highlight ? "primary" : "secondary"} size="lg">
+                {plan.cta}
+              </Button>
             </div>
-          </div>
-        </PageContainer>
-      </section>
+          ))}
+        </div>
 
-      <PageContainer>
-        <div className="py-14 text-center">
-          <p className="text-sm text-slate-500">Ready to browse what&apos;s live?</p>
-          <Link
-            to="/event"
-            className="mt-4 inline-flex rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-800 shadow-sm transition hover:border-violet-200 hover:text-violet-700"
-          >
-            Explore events →
-          </Link>
+        <div className="rounded-3xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.2)] p-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-3">Questions?</p>
+          <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Need help choosing a plan?</h2>
+          <p className="text-sm text-[#6b6358] mb-5">Talk to us and we'll find the right fit for your team or community.</p>
+          <Link to="/contact"><Button variant="outline">Get in touch →</Button></Link>
         </div>
       </PageContainer>
     </div>

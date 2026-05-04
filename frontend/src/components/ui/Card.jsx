@@ -1,3 +1,10 @@
-export default function Card({ children, className = "" }) {
-  return <div className={`surface p-5 ${className}`}>{children}</div>;
+export default function Card({ children, className = "", hover = false, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`surface p-5 ${hover ? "post-card cursor-pointer" : ""} ${className}`}
+    >
+      {children}
+    </div>
+  );
 }

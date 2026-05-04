@@ -29,3 +29,16 @@ class UserRepository:
     
     def get_by_id(self, user_id: int, db: Session) -> Optional[User]:
         return db.query(User).filter(User.id == user_id).first()
+
+    def get_by_username(self,username:str ,db:Session) -> Optional[User]:
+        """Returns a User object if found, otherwise None."""
+        return db.query(User).filter(User.username == username).first()
+    
+    def update_password(self, email: str, hashed_password: str, db: Session) -> bool:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return False
+        
+        user.password_hash = hashed_password
+        db.commit()
+        return True

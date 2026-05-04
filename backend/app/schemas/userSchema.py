@@ -44,3 +44,12 @@ class RegisterResponse(BaseModel):
     user: UserResponse
     verification_token: Optional[str] = None
     message: str = "Registration successful"
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+

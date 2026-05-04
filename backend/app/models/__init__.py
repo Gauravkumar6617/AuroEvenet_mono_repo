@@ -10,6 +10,8 @@ from app.models.postModel import Post , Tag
 from app.models.category import Category
 from app.models.commentModel import Comment
 from app.models.likeModel import Like
+from app.models.userIntrestModel import UserIntrest
+
 
 
 
@@ -18,4 +20,4 @@ from app.models.likeModel import Like
 from app.models.models_enum import UserRole, AuthProvider
 
 # This makes importing cleaner in other files
-__all__ = ["Base", "User", "BaseModel", "UserRole", "AuthProvider" ,"Post","Tag","Category","Like","Comment"]
+__all__ = ["Base", "User", "BaseModel", "UserRole", "AuthProvider" ,"Post","Tag","Category","Like","Comment","UserIntrest"]

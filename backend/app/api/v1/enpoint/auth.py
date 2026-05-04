@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status ,Response ,Request
+from fastapi import APIRouter, Depends, HTTPException, status ,Response ,Request ,Query
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.service.AuthService import AuthService 
-from app.schemas.userSchema import UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse
+from app.schemas.userSchema import UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse ,ForgotPasswordRequest ,ResetPasswordRequest
 from app.repositories.UserRespositories import UserRepository
 from app.service.OTPService import OTPService
 from pydantic import BaseModel
@@ -114,6 +114,76 @@ def logout(response: Response):
 
 
 ####to identify myself
+
+
+@router.get("/check-username")
+def check_username(username:str=Query(... , min_length=3, max_length=50), db: Session = Depends(get_db)):
+    """Check if username exists"""
+
+    #clean the inputt
+    username = username.strip().lower()
+    cache_key = f"username:{username}"
+    is_available = False
+
+    #now get username from cache
+    try:
+        cache_value = redis_client.get(cache_key)
+        if cache_value is not None:
+            return {
+                "available": cache_value =="true",
+                "source": "cache"
+            }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check username availability"
+        )
+
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_username(username)
+    is_available = user is None
+    
+    # 4. Update Cache (Store for 5 minutes)
+    try:
+        redis_client.setex(cache_key, 300, str(is_available).lower())
+    except Exception as e:
+        logging.error(f"Redis Save Error: {e}")
+
+    return {
+        "available": is_available,
+        "source": "database"
+    }
+
+##### tofor reset password
+@router.post("/forgot-password")
+def forgot_password(
+    data: ForgotPasswordRequest, 
+    db: Session = Depends(get_db)
+):
+    """Step 1: User submits email to get an OTP"""
+    otp_service = OTPService()
+    AuthService.process_forgot_password(db, data.email, redis_client, otp_service)
+    
+    return {"message": "If an account exists with this email, an OTP has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(
+    data: ResetPasswordRequest, 
+    db: Session = Depends(get_db)
+):
+    """Step 2: User submits OTP and new password"""
+    success = AuthService.process_reset_password(
+        db, data.email, data.otp, data.new_password, redis_client
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+        
+    return {"message": "Password reset successful. You can now login with your new password."}
 @router.get("/me", response_model=UserResponse)
 def get_me(request: Request, db: Session = Depends(get_db)):
     """Get current user info from cookie"""
@@ -292,3 +362,7 @@ async def github_callback(
                 "Location": f"{settings.FRONTEND_URL}/oauth/callback?error=oauth_failed&provider=github&error_detail={detail}"
             },
         )
+
+
+
+
