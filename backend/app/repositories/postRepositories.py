@@ -1,4 +1,5 @@
-from app.models.postModel import Post, Tag
+from app.models.postModel import Post
+from app.models.postTagModel import PostTag
 from app.models.userModel import User
 import cloudinary
 import cloudinary.uploader
@@ -50,23 +51,17 @@ class PostRepository:
             author_id=author_id,
             category_id=category_id,
             thumbnail_url=image_url
-        )   
-        
-        # 4. Handle Tags (Optimized)
-        clean_tag_names = [t.lower().strip() for t in tags]
-        existing_tags = db.query(Tag).filter(Tag.name.in_(clean_tag_names)).all()
-        existing_tag_map = {t.name: t for t in existing_tags}
-
-        for name in clean_tag_names:
-            if name in existing_tag_map:
-                new_post.tags.append(existing_tag_map[name])
-            else:
-                new_tag = Tag(name=name, slug=slugify(name))
-                db.add(new_tag)
-                new_post.tags.append(new_tag)
-
+        )
         db.add(new_post)
-        db.commit() # Commit ONCE after everything is added
+        db.flush()  # get new_post.id before adding tags
+
+        # 4. Handle Tags (free-form PostTag)
+        clean_tag_names = [t.lower().strip() for t in tags if t.strip()]
+        for name in clean_tag_names:
+            post_tag = PostTag(post_id=new_post.id, tag=name)
+            db.add(post_tag)
+
+        db.commit()
         db.refresh(new_post)
 
         # 5. Trigger AI Summary in Background
