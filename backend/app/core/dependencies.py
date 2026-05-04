@@ -6,6 +6,7 @@ from app.models.userModel import User
 from app.repositories.UserRespositories import UserRepository
 from app.core.security import verify_token
 from app.core.config import settings
+from app.models.models_enum import UserRole
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -69,4 +70,20 @@ def get_current_user(
             detail="Inactive user",
         )
 
+    return user
+
+def require_admin(user: User = Depends(get_current_user)):
+    if user.role not in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]:
+        raise HTTPException(    
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+
+def require_super_admin(user: User = Depends(get_current_user)):
+    if user.role != UserRole.SUPER_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required",
+        )
     return user
