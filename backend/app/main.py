@@ -22,7 +22,6 @@ sentry_sdk.init(
 from app.routers.systemRouter import router as system_router
 from app.api.v1.enpoint.auth import router as auth_router
 from app.api.v1.enpoint.postEnpoint import router as post_router
-from app.api.v1.enpoint.categoryEnpoint import router as category_router
 from app.api.v1.enpoint.commentEndpoint import router as comment_router
 from app.api.v1.enpoint.likeEndpoint import router as like_router
 
@@ -41,7 +40,6 @@ from app.api.v1.enpoint.socialPostEndpoint import router as social_post_router
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(post_router, prefix="/api/v1")
-app.include_router(category_router, prefix="/api/v1")
 app.include_router(comment_router, prefix="/api/v1")
 app.include_router(like_router, prefix="/api/v1")
 app.include_router(create_tag_router, prefix="/api/v1")
