@@ -6,80 +6,149 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 
-const features = [
-  { icon: "🗳️", title: "Reddit-style voting", desc: "Community-driven signal. Posts and answers ranked by upvotes, not algorithm. Best content always floats.", tag: "Discovery" },
-  { icon: "🧵", title: "Threaded answers", desc: "Nested reply threads so complex topics get the depth they deserve. Quora-style knowledge tree structure.", tag: "Discussion" },
-  { icon: "📝", title: "3 post types", desc: "Ask questions, start discussions, or publish full articles — each with its own editor and formatting tools.", tag: "Publishing" },
-  { icon: "🏆", title: "Reputation system", desc: "Earn points for accepted answers, upvotes, and quality posts. Reputation unlocks moderation privileges.", tag: "Gamification" },
-  { icon: "🔖", title: "Save & organize", desc: "Bookmark posts into personal collections. Build your own knowledge library across any topic.", tag: "Productivity" },
-  { icon: "🔔", title: "Smart notifications", desc: "Get notified on answers, mentions, and upvote milestones — with full control over what and when.", tag: "Engagement" },
-  { icon: "🛡️", title: "Community moderation", desc: "Transparent report queue, content flags, and tiered admin roles. Keep quality high at scale.", tag: "Safety" },
-  { icon: "📊", title: "Analytics dashboard", desc: "Track your post views, engagement rate, follower growth, and content performance over time.", tag: "Insights" },
-  { icon: "🔍", title: "Powerful search", desc: "Full-text search across all posts, answers, tags, and user profiles with real-time results.", tag: "Discovery" },
-];
-
-const PLANS = [
-  { name: "Free", price: "$0", period: "forever", features: ["Full feed access", "Post questions & discussions", "Vote and comment", "Save up to 50 posts", "Basic profile"], cta: "Get started", highlight: false },
-  { name: "Pro", price: "$8", period: "per month", features: ["Everything in Free", "Publish long-form articles", "Unlimited saves", "Analytics dashboard", "Verified badge", "Priority support"], cta: "Start free trial", highlight: true },
-  { name: "Team", price: "$24", period: "per month", features: ["Everything in Pro", "Private community spaces", "Team moderation tools", "Custom branding", "API access", "Dedicated support"], cta: "Contact us", highlight: false },
-];
+const TABS = ["User Features", "Admin Panel", "Super Admin"];
+const FEATURES = {
+  "User Features": {
+    meta: "47 features — the full public-facing platform",
+    sections: [
+      { title: "Auth & Registration", icon: "🔐", items: [
+        { name: "Register form", desc: "Email, username, password with confirm" },
+        { name: "Password strength meter", desc: "Live bar: weak / fair / strong / very strong" },
+        { name: "Show/hide password", desc: "Eye icon toggle on all password inputs" },
+        { name: "Username availability", desc: "Debounced API check with live feedback" },
+        { name: "Google & GitHub OAuth", desc: "One-click sign in via OAuth providers" },
+        { name: "Forgot password flow", desc: "Email reset link with token validation" },
+        { name: "Email verification", desc: "Banner / modal nudging unverified users" },
+        { name: "Subscribe popup", desc: "Shown to guests after 2 posts — smooth slide-up" },
+      ]},
+      { title: "AI Personalisation", icon: "🤖", items: [
+        { name: "Interest onboarding", desc: "Pick 3–5 topics on first login to seed feed" },
+        { name: "Personalised home feed", desc: "AI scores posts based on liked topics & history" },
+        { name: "Reading history tracking", desc: "Posts viewed >10s logged to tune feed silently" },
+        { name: "'Because you liked' row", desc: "Horizontal scroll row of similar recent posts" },
+        { name: "AI answer summary", desc: "TL;DR of top comments on post detail page" },
+        { name: "Post enhance button", desc: "AI rewrites draft question for clarity" },
+        { name: "Auto-tag suggestions", desc: "Suggests relevant tags as title is typed" },
+        { name: "'People also asked'", desc: "3 related AI-generated questions per post" },
+      ]},
+      { title: "Notifications", icon: "🔔", items: [
+        { name: "Like & comment alerts", desc: "In-app bell count for all interactions" },
+        { name: "Reply & mention alerts", desc: "Notifications for thread replies and @mentions" },
+        { name: "Notification centre", desc: "Full-page list, mark all read, filter by type" },
+        { name: "Notification preferences", desc: "Toggle per type — likes, comments, follows, etc." },
+        { name: "Email digest setting", desc: "Daily / weekly / never digest toggle" },
+        { name: "Follow users & communities", desc: "Followed posts appear in personalised feed" },
+      ]},
+      { title: "Posts & Interaction", icon: "💬", items: [
+        { name: "Home feed (Hot/New/Top)", desc: "Sorted, infinite scroll, AI-personalised" },
+        { name: "Post detail with threads", desc: "Nested comments, votes, AI panel, share" },
+        { name: "Create post (3 modes)", desc: "Question, Discussion, Article — with polls" },
+        { name: "Edit & delete own posts", desc: "Edit within 15 min, 'edited' label shown" },
+        { name: "Vote + bookmark + share", desc: "Optimistic UI, save to personal list" },
+        { name: "Report content", desc: "Flag post or comment with reason selector" },
+        { name: "Search page", desc: "Posts + users + communities, tag filter, date range" },
+      ]},
+    ]
+  },
+  "Admin Panel": {
+    meta: "22 features — moderator panel at /admin (role-guarded route)",
+    sections: [
+      { title: "Content Moderation", icon: "🚩", items: [
+        { name: "Reports queue", desc: "All flagged posts/comments sorted by count" },
+        { name: "Approve / dismiss / remove", desc: "Full action set on each reported item" },
+        { name: "Pin / unpin post", desc: "Sticky posts to top of community feed" },
+        { name: "Lock thread", desc: "Disable new comments on any post" },
+        { name: "AI toxicity scanner", desc: "Auto-flags high-risk content before publishing" },
+        { name: "AI spam detector", desc: "Flags repeated low-quality posts from same user" },
+      ]},
+      { title: "Community Management", icon: "⚙️", items: [
+        { name: "Community settings", desc: "Name, description, avatar, banner, rules" },
+        { name: "Member list + ban", desc: "All members, post count, temporary / permanent ban" },
+        { name: "Assign co-moderator", desc: "Promote members to moderator role" },
+        { name: "Manage custom flairs", desc: "Create / edit / delete post flair tags" },
+        { name: "Toggle post approval", desc: "Require mod approval before posts go live" },
+        { name: "Post approval queue", desc: "Pending posts — approve or reject with note" },
+      ]},
+      { title: "Analytics & Audit", icon: "📊", items: [
+        { name: "Community analytics", desc: "Member growth, top posts, daily post count" },
+        { name: "Mod action log", desc: "Every mod action timestamped" },
+        { name: "Send warning to user", desc: "DM-style warning notification to user inbox" },
+        { name: "Manage categories", desc: "Create, rename, delete topic categories" },
+      ]},
+    ]
+  },
+  "Super Admin": {
+    meta: "28 features — platform-wide control at /superadmin",
+    sections: [
+      { title: "Platform Dashboard", icon: "📊", items: [
+        { name: "Stats overview", desc: "Users, DAU, posts today, reports, AI calls" },
+        { name: "Live activity feed", desc: "Real-time log of signups, posts, bans, reports" },
+        { name: "AI usage monitor", desc: "Token count, daily limit gauge, estimated cost" },
+        { name: "AI prompt config editor", desc: "Edit system prompts for each AI feature live" },
+        { name: "Growth analytics", desc: "Charts: signups/day, posts/day, top communities" },
+      ]},
+      { title: "User Management", icon: "👥", items: [
+        { name: "All users table", desc: "Search, filter by role/status, paginate all users" },
+        { name: "Global ban / unban", desc: "Platform-wide ban with reason and email notification" },
+        { name: "Assign / change role", desc: "Member → Admin → Super admin promotion" },
+        { name: "Impersonate user", desc: "View site as any user for support/debugging" },
+        { name: "Hard delete account", desc: "Full removal with cascade, confirm by typing username" },
+        { name: "Force password reset", desc: "Invalidate session and email reset link" },
+      ]},
+      { title: "Platform Config", icon: "⚙️", items: [
+        { name: "Site settings", desc: "Name, logo, meta description, favicon" },
+        { name: "Maintenance mode", desc: "Show maintenance page to all non-admin users" },
+        { name: "Feature flags", desc: "Toggle AI features, pages, experiments live" },
+        { name: "Announcement banner", desc: "Push sitewide banner with custom message + colour" },
+        { name: "Rate limit config", desc: "Set post/comment/AI call limits per user tier" },
+      ]},
+      { title: "Security & Audit", icon: "🔐", items: [
+        { name: "Full audit log", desc: "Every admin action, exportable as CSV" },
+        { name: "API health monitor", desc: "Endpoint status, avg response time, error rate" },
+        { name: "Active sessions viewer", desc: "All logged-in sessions, force logout any" },
+      ]},
+    ]
+  }
+};
 
 export default function Features() {
-  const [activePlan, setActivePlan] = useState("Pro");
-
+  const [tab, setTab] = useState("User Features");
+  const data = FEATURES[tab];
   return (
-    <div className="py-8 pb-20">
+    <div className="py-10">
       <PageContainer>
-        <SectionHeader eyebrow="Platform Features" align="center"
-          title="Everything for high-signal knowledge sharing"
-          description="A single workspace for asking, answering, publishing, and moderating knowledge at scale."
-          action={<Badge tone="success" dot>Free to start</Badge>} />
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-20">
-          {features.map((f, i) => (
-            <Card key={i} hover className="rounded-2xl">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fdf0ea] text-2xl">{f.icon}</div>
-                <Badge tone="neutral">{f.tag}</Badge>
-              </div>
-              <h3 className="font-display text-lg font-bold text-[#1a1814] mb-1.5">{f.title}</h3>
-              <p className="text-sm text-[#6b6358] leading-relaxed">{f.desc}</p>
-            </Card>
-          ))}
+        <SectionHeader eyebrow="Platform Features" title="Everything your community needs" description="A complete knowledge platform combining Reddit's energy with Quora's depth — with AI built in." align="center" />
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex rounded-xl border border-[rgba(90,80,60,0.12)] bg-white p-1 gap-1">
+            {TABS.map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${tab === t ? "bg-[#e85d26] text-white shadow-sm" : "text-[#6b6358] hover:bg-[rgba(90,80,60,0.05)]"}`}>
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
-
-        <SectionHeader eyebrow="Pricing" align="center" title="Simple, honest pricing" description="Start free. Upgrade when you need more power." />
-        <div className="grid gap-5 md:grid-cols-3 mb-16">
-          {PLANS.map((plan) => (
-            <div key={plan.name}
-              className={`rounded-3xl p-6 border-[1.5px] transition-all ${plan.highlight ? "border-[#e85d26] bg-[#1a1814] text-white shadow-[0_8px_32px_rgba(232,93,38,0.2)]" : "border-[rgba(90,80,60,0.12)] bg-white"}`}>
-              {plan.highlight && <Badge tone="brand" dot>Most popular</Badge>}
-              <div className={`mt-3 font-display text-xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.name}</div>
-              <div className="flex items-baseline gap-1 mt-1 mb-4">
-                <span className={`font-display text-4xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.price}</span>
-                <span className={`text-sm ${plan.highlight ? "text-[#a09880]" : "text-[#6b6358]"}`}>/{plan.period}</span>
-              </div>
-              <div className="space-y-2 mb-6">
-                {plan.features.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-sm">
-                    <span className={`text-xs font-bold ${plan.highlight ? "text-[#e85d26]" : "text-green-600"}`}>✓</span>
-                    <span className={plan.highlight ? "text-[#d0c8be]" : "text-[#6b6358]"}>{f}</span>
+        <p className="text-center text-xs text-[#a09880] mb-8 font-medium">{data.meta}</p>
+        <div className="space-y-8">
+          {data.sections.map((section) => (
+            <div key={section.title}>
+              <h3 className="flex items-center gap-2 font-display text-xl font-bold text-[#1a1814] mb-4">
+                <span>{section.icon}</span>{section.title}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {section.items.map((item) => (
+                  <div key={item.name} className="surface rounded-xl p-4 post-card">
+                    <p className="font-semibold text-sm text-[#1a1814] mb-1">{item.name}</p>
+                    <p className="text-xs text-[#6b6358] leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
               </div>
-              <Button className={`w-full ${plan.highlight ? "bg-[#e85d26] hover:bg-[#c44718]" : ""}`}
-                variant={plan.highlight ? "primary" : "secondary"} size="lg">
-                {plan.cta}
-              </Button>
             </div>
           ))}
         </div>
-
-        <div className="rounded-3xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.2)] p-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-3">Questions?</p>
-          <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Need help choosing a plan?</h2>
-          <p className="text-sm text-[#6b6358] mb-5">Talk to us and we'll find the right fit for your team or community.</p>
-          <Link to="/contact"><Button variant="outline">Get in touch →</Button></Link>
+        <div className="mt-12 flex flex-wrap gap-3 justify-center">
+          <Link to="/signup"><Button size="lg">Get started free →</Button></Link>
+          <Link to="/contact"><Button variant="secondary" size="lg">Talk to us</Button></Link>
         </div>
       </PageContainer>
     </div>
