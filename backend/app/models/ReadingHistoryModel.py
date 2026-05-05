@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime
+
+from sqlalchemy import Column, Integer, ForeignKey, DateTime ,Boolean ,Index
 from sqlalchemy.sql import func
-from app.models.BaseModel import BaseModel
+from app.models.baseModel import BaseModel
 from datetime import datetime
+from sqlalchemy.orm import relationship
 
 class ReadingHistory(BaseModel):
     __tablename__ = "reading_history"
