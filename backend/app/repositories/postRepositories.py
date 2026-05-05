@@ -1,3 +1,6 @@
+import datetime
+from time import timezone
+from backend.app.models.ReadingHistoryModel import ReadingHistory
 import cloudinary
 import cloudinary.uploader
 from typing import List, Optional
@@ -163,43 +166,73 @@ class PostRepository:
     # ------------------------------------------------------------------ #
     #  PERSONALIZED FEED                                                   #
     # ------------------------------------------------------------------ #
-    @staticmethod
-    def fetch_feed_for_user(
-        db: Session,
-        user_id: int,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> List[Post]:
-        """
-        Returns posts ranked by the user's tag interest scores.
-        Posts whose tags the user has interacted with most appear first.
-        Falls back to recency for posts with no matching tags.
-        """
-        # Sum of the user's interest scores across each post's tags.
-        # PostTag stores tag names as strings; join through Tag.name to get Tag.id
-        # for matching UserInterest.tag_id.
-        interest_score = (
-            db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
-            .outerjoin(PostTag, PostTag.post_id == Post.id)
-            .outerjoin(Tag, Tag.name == PostTag.tag)
-            .outerjoin(
-                UserInterest,
-                (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
-            )
-            .filter(Post.is_active == True)
-            .group_by(Post.id)
-            .subquery()
-        )
 
-        posts = (
-            db.query(Post)
-            .join(interest_score, interest_score.c.id == Post.id)
-            .order_by(interest_score.c.score.desc(), Post.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
+# ─── replace fetch_feed_for_user ───────────────────────────────────────────────
+@staticmethod
+def fetch_feed_for_user(
+    db: Session,
+    user_id: int,
+    skip: int = 0,
+    limit: int = 20,
+) -> List[Post]:
+    cutoff = datetime.utcnow() - datetime.timedelta(hours=24)  # ✅ Python timedelta, no SQL interval bug
+
+    interest_score = (
+        db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
+        .outerjoin(PostTag, PostTag.post_id == Post.id)
+        .outerjoin(Tag, Tag.name == PostTag.tag)
+        .outerjoin(
+            UserInterest,
+            (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
         )
-        return posts
+        .filter(Post.is_active == True)
+        .group_by(Post.id)
+        .subquery()
+    )
+
+    recently_read = (
+        db.query(ReadingHistory.post_id)
+        .filter(
+            ReadingHistory.user_id == user_id,
+            ReadingHistory.created_at > cutoff,  # ✅ plain Python datetime
+        )
+        .subquery()
+    )
+
+    posts = (
+        db.query(Post)
+        .outerjoin(interest_score, interest_score.c.id == Post.id)
+        .outerjoin(recently_read, recently_read.c.post_id == Post.id)
+        .filter(Post.is_active == True)
+        .order_by(
+            func.coalesce(interest_score.c.score, 0).desc(),
+            case(
+                (recently_read.c.post_id != None, 0),  # ✅ SQLAlchemy 2.x case() syntax
+                else_=1,
+            ).desc(),
+            Post.created_at.desc(),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return posts
+
+# ─── add below existing record_like / record_view ──────────────────────────────
+@staticmethod
+def increment_trending_score(db: Session, post: Post, delta: float) -> None:
+    """Time-decayed trending score — half-life 24h so old posts fall off naturally."""
+    now = datetime.now(timezone.utc)
+    created = post.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+
+    age_hours = (now - created).total_seconds() / 3600
+    decay = 0.5 ** (age_hours / 24)
+    post.trending_score = (post.trending_score or 0.0) + delta * decay
+    # caller must db.commit()
+    
+    
 
     # ------------------------------------------------------------------ #
     #  DELETE                                                              #
