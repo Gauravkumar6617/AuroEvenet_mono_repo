@@ -1,15 +1,15 @@
-"""Pydantic schemas for post tags."""
-
-from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
 
 
 class PostTagCreate(BaseModel):
-    tag: str = Field(..., min_length=1, max_length=255)
+    tag: str  # from the request body
 
 
 class PostTagResponse(BaseModel):
     id: int
-    post_id: int
     tag: str
+    created_at: Optional[datetime] = None
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)

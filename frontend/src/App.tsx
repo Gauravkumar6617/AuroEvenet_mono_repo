@@ -19,9 +19,9 @@ import Blog from "./pages/Blog";
 import BlogDetail from "./pages/BlogDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
 import { AnimatePresence } from "framer-motion";
 import ToastViewport from "./components/ui/ToastViewport";
-import ForgotPassword from "./pages/ForgotPassword";
 import { ToastProvider } from "./contexts/ToastContext";
 
 const App: React.FC = () => {
@@ -31,7 +31,7 @@ const App: React.FC = () => {
         <PostsProvider>
           <CategoriesProvider>
             <Router>
-              <div className="min-h-screen flex flex-col text-[#1a1814] selection:bg-[#e85d26] selection:text-white">
+              <div className="min-h-screen flex flex-col" style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: "#f5f4f0" }}>
                 <Navbar />
                 <ToastViewport />
                 <main className="flex-grow">
