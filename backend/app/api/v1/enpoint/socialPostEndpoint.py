@@ -1,5 +1,5 @@
 """
-Social Post routes — create, list, get, delete posts with free-form tags.
+Social Post routes — create, list, get, delete posts with normalized tags.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,11 +10,10 @@ from app.core.dependencies import get_current_user
 from app.models.userModel import User
 from app.models.postModel import Post
 from app.models.postTagModel import PostTag
+from app.models.tagModel import Tag
+from app.models.userInterestModel import UserInterest
 
-from app.schemas.social_post import (
-    SocialPostCreate,
-    SocialPostResponse,
-)
+from app.schemas.social_post import SocialPostCreate, SocialPostResponse
 
 router = APIRouter(
     prefix="/posts",
@@ -22,31 +21,93 @@ router = APIRouter(
 )
 
 
+# ─────────────────────── Helpers ───────────────────────
+
+def _upsert_tags(db: Session, raw_tags: list) -> list[Tag]:
+    """
+    Accept list of PostTagCreate objects, upsert each into the Tag table,
+    and return the Tag ORM objects.
+    """
+    from slugify import slugify
+    tags = []
+    for tag_data in raw_tags:
+        name = tag_data.tag.lower().strip()
+        if not name:
+            continue
+        slug = slugify(name)
+        tag = db.query(Tag).filter(Tag.slug == slug).first()
+        if not tag:
+            tag = Tag(name=name, slug=slug)
+            db.add(tag)
+            db.flush()
+        tags.append(tag)
+    return tags
+
+
+def _bump_user_interests(db: Session, user_id: int, tags: list[Tag], increment: float = 1.0):
+    for tag in tags:
+        interest = (
+            db.query(UserInterest)
+            .filter(UserInterest.user_id == user_id, UserInterest.tag_id == tag.id)
+            .first()
+        )
+        if interest:
+            interest.score += increment
+        else:
+            db.add(UserInterest(user_id=user_id, tag_id=tag.id, score=increment))
+
+
+def _generate_slug(title: str, user_id: int) -> str:
+    import re
+    from datetime import datetime, timezone
+    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    ts = int(datetime.now(timezone.utc).timestamp())
+    return f"{base}-{user_id}-{ts}"
+
+
+def _default_category_id(db: Session) -> int:
+    from app.models.category import Category
+    cat = (
+        db.query(Category)
+        .filter(Category.is_deleted == False, Category.is_active == True)
+        .first()
+    )
+    if not cat:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active categories exist. Ask a superadmin to create one first.",
+        )
+    return cat.id
+
+
+# ─────────────────────── Routes ────────────────────────
+
 @router.post("", response_model=SocialPostResponse, status_code=status.HTTP_201_CREATED)
 def create_social_post(
     payload: SocialPostCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Create a post with optional free-form tags."""
+    """Create a post with optional tags. Tags are normalized and stored in the Tag table."""
     post = Post(
         title=payload.title,
         content=payload.content,
         author_id=user.id,
-        # Required fields from existing model — sensible defaults
         slug=_generate_slug(payload.title, user.id),
         category_id=_default_category_id(db),
     )
     db.add(post)
-    db.flush()  # get post.id before adding tags
+    db.flush()
 
-    for tag_data in payload.tags:
-        post_tag = PostTag(post_id=post.id, tag=tag_data.tag)
-        db.add(post_tag)
+    # Upsert tags and link to post
+    tag_objects = _upsert_tags(db, payload.tags)
+    for tag in tag_objects:
+        db.add(PostTag(post_id=post.id, tag_id=tag.id))
+        tag.post_count = (tag.post_count or 0) + 1
 
     db.commit()
     db.refresh(post)
-    return _to_social_response(post)
+    return post
 
 
 @router.get("", response_model=list[SocialPostResponse])
@@ -56,34 +117,39 @@ def list_social_posts(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    """List posts (newest first) with their tags."""
-    posts = (
+    """List posts newest-first with their tags."""
+    return (
         db.query(Post)
         .filter(Post.is_deleted == False)
-        .options(joinedload(Post.post_tags))
+        .options(joinedload(Post.post_tags).joinedload(PostTag.tag))
         .order_by(Post.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-    return [_to_social_response(p) for p in posts]
 
 
 @router.get("/{post_id}", response_model=SocialPostResponse)
 def get_social_post(
     post_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
     post = (
         db.query(Post)
         .filter(Post.id == post_id, Post.is_deleted == False)
-        .options(joinedload(Post.post_tags))
+        .options(joinedload(Post.post_tags).joinedload(PostTag.tag))
         .first()
     )
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    return _to_social_response(post)
+
+    # Record view → bump tag interests slightly
+    _bump_user_interests(db, user.id, [pt.tag for pt in post.post_tags if pt.tag], increment=0.5)
+    post.view_count = (post.view_count or 0) + 1
+    db.commit()
+
+    return post
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -103,56 +169,11 @@ def delete_social_post(
     if post.author_id != user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your post")
 
+    # Decrement tag post counts
+    for pt in post.post_tags:
+        if pt.tag and pt.tag.post_count > 0:
+            pt.tag.post_count -= 1
+
     post.is_deleted = True
     db.commit()
     return None
-
-
-# ──────────────────── Helpers ────────────────────
-
-
-def _generate_slug(title: str, user_id: int) -> str:
-    """Create a URL-safe slug from the title + user_id to avoid collisions."""
-    import re
-    from datetime import datetime, timezone
-
-    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
-    ts = int(datetime.now(timezone.utc).timestamp())
-    return f"{base}-{user_id}-{ts}"
-
-
-def _default_category_id(db: Session) -> int:
-    """
-    The existing Post model requires a category_id (non-nullable FK).
-    Return the first active category as a sensible default.
-    Falls back gracefully if none exist.
-    """
-    from app.models.category import Category
-
-    cat = (
-        db.query(Category)
-        .filter(Category.is_deleted == False, Category.is_active == True)
-        .first()
-    )
-    if not cat:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No active categories exist. Ask a superadmin to create one first.",
-        )
-    return cat.id
-
-
-def _to_social_response(post: Post) -> SocialPostResponse:
-    """Map the full Post ORM object to the slimmer social response."""
-    return SocialPostResponse(
-        id=post.id,
-        user_id=post.author_id,
-        title=post.title,
-        content=post.content,
-        created_at=post.created_at,
-        post_tags=[
-            {"id": t.id, "post_id": t.post_id, "tag": t.tag}
-            for t in (post.post_tags or [])
-            if not t.is_deleted
-        ],
-    )
