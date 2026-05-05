@@ -73,19 +73,21 @@ class PostRepository:
         author_id: int,
         category_id: int,
         tags: List[str],
-        image: UploadFile,
+        image: Optional[UploadFile],
         bg_tasks: BackgroundTasks,
     ) -> Post:
-        # 1. Upload thumbnail to Cloudinary
-        try:
-            upload_result = cloudinary.uploader.upload(
-                image.file,
-                folder="blogbyte/posts",
-                transformation={"width": 800, "height": 450, "crop": "fill"},
-            )
-            image_url = upload_result.get("secure_url")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+        # 1. Upload thumbnail to Cloudinary (optional)
+        image_url = None
+        if image is not None:
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    image.file,
+                    folder="blogbyte/posts",
+                    transformation={"width": 800, "height": 450, "crop": "fill"},
+                )
+                image_url = upload_result.get("secure_url")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
         # 2. Generate a unique slug
         base_slug = slugify(title)
@@ -173,13 +175,16 @@ class PostRepository:
         Posts whose tags the user has interacted with most appear first.
         Falls back to recency for posts with no matching tags.
         """
-        # Sum of the user's interest scores across each post's tags
+        # Sum of the user's interest scores across each post's tags.
+        # PostTag stores tag names as strings; join through Tag.name to get Tag.id
+        # for matching UserInterest.tag_id.
         interest_score = (
             db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
             .outerjoin(PostTag, PostTag.post_id == Post.id)
+            .outerjoin(Tag, Tag.name == PostTag.tag)
             .outerjoin(
                 UserInterest,
-                (UserInterest.tag_id == PostTag.tag_id) & (UserInterest.user_id == user_id),
+                (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
             )
             .filter(Post.is_active == True)
             .group_by(Post.id)

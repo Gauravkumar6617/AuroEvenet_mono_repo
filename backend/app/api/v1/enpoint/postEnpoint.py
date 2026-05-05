@@ -19,7 +19,7 @@ async def create_post(
     content: str = Form(...),
     category_id: int = Form(...),
     tags: str = Form(""),   # comma-separated: "ai, python, fastapi"
-    thumbnail: UploadFile = File(...),
+    thumbnail: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Security(get_current_user),
 ):

@@ -23,3 +23,7 @@ class User(BaseModel):
     likes = relationship("Like", back_populates="author", cascade="all, delete-orphan")
     preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
     interests = relationship("UserInterest", back_populates="user", cascade="all, delete-orphan")
+    # reading_history = relationship("ReadingHistory", back_populates="user", cascade="all, delete-orphan")/
+    reading_history = relationship("ReadingHistory", back_populates="user", cascade="all, delete-orphan")
+    community_members = relationship("CommunityMember", back_populates="user", cascade="all, delete-orphan")
+

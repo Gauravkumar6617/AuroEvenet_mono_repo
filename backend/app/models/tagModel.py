@@ -11,5 +11,4 @@ class Tag(BaseModel):
     post_count = Column(Integer, default=0)
 
     # Relationships
-    post_tags = relationship("PostTag", back_populates="tag", cascade="all, delete-orphan")
     user_interests = relationship("UserInterest", back_populates="tag", cascade="all, delete-orphan")

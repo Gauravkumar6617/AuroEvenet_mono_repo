@@ -43,3 +43,12 @@ class Post(BaseModel):
 
     # Free-form user tags
     post_tags = relationship("PostTag", back_populates="post", cascade="all, delete-orphan")
+
+
+    ###Reading History
+    reading_history = relationship("ReadingHistory", back_populates="post", cascade="all, delete-orphan")
+
+
+    # Community
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=True)
+    community = relationship("Community", back_populates="posts")
