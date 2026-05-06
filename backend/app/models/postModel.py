@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text, Float
 from sqlalchemy.orm import relationship ,Mapped , mapped_column
 from app.models.baseModel import BaseModel
 from typing import Optional
@@ -26,6 +26,7 @@ class Post(BaseModel):
     like_count = Column(Integer, default=0)
     comment_count = Column(Integer, default=0)
     share_count = Column(Integer, default=0)
+    trending_score = Column(Float, default=0.0)
 
     # RELATIONSHIPS
     author_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
