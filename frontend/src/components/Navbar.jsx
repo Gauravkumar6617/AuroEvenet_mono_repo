@@ -24,11 +24,12 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => n.unread).length;
+  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
 
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/blog", label: "Feed" },
+    { to: "/communities", label: "Communities" },
     { to: "/features", label: "Features" },
     { to: "/about", label: "About" },
   ];
@@ -50,6 +51,13 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
+  // Close search on ESC
+  useEffect(() => {
+    const fn = (e) => { if (e.key === "Escape") setSearchOpen(false); if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setSearchOpen(true); } };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, []);
+
   const avatarInitials = user?.username ? user.username[0].toUpperCase() : "U";
 
   return (
@@ -63,20 +71,14 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm shadow-sm">
-                N
-              </div>
-              <span className="font-display text-lg font-bold text-[#1a1814]">
-                Nex<span className="gradient-text">os</span>
-              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm shadow-sm">N</div>
+              <span className="font-display text-lg font-bold text-[#1a1814]">Nex<span className="gradient-text">os</span></span>
             </Link>
 
             {/* Search bar (desktop) */}
             <div className="mx-4 hidden flex-1 lg:block max-w-sm">
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="w-full flex items-center gap-2 rounded-xl border border-[rgba(90,80,60,0.15)] bg-[rgba(90,80,60,0.04)] px-3 py-2 text-sm text-[#a09880] hover:bg-white hover:border-[#e85d26] transition-all"
-              >
+              <button onClick={() => setSearchOpen(true)}
+                className="w-full flex items-center gap-2 rounded-xl border border-[rgba(90,80,60,0.15)] bg-[rgba(90,80,60,0.04)] px-3 py-2 text-sm text-[#a09880] hover:bg-white hover:border-[#e85d26] transition-all">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 Search topics, posts, people...
                 <span className="ml-auto text-xs font-mono bg-[rgba(90,80,60,0.08)] px-1.5 py-0.5 rounded">⌘K</span>
@@ -87,7 +89,7 @@ export default function Navbar() {
             <div className="hidden items-center gap-0.5 md:flex ml-auto">
               {navLinks.map((item) => (
                 <Link key={item.to} to={item.to}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${location.pathname === item.to ? "bg-[#fdf0ea] text-[#e85d26]" : "text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] hover:text-[#1a1814]"}`}>
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${location.pathname === item.to || location.pathname.startsWith(item.to + "/") && item.to !== "/" ? "bg-[#fdf0ea] text-[#e85d26]" : "text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] hover:text-[#1a1814]"}`}>
                   {item.label}
                 </Link>
               ))}
@@ -95,14 +97,11 @@ export default function Navbar() {
 
             {/* Right actions */}
             <div className="hidden items-center gap-2 md:flex ml-2">
-              {/* Search icon (mobile) */}
-              <button onClick={() => setSearchOpen(true)}
-                className="rounded-xl p-2 text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] lg:hidden">
+              <button onClick={() => setSearchOpen(true)} className="rounded-xl p-2 text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] lg:hidden">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               </button>
 
-              <Link to="/create-post"
-                className="flex items-center gap-1.5 rounded-xl border border-[rgba(90,80,60,0.15)] bg-white px-3 py-2 text-sm font-semibold text-[#1a1814] hover:bg-[#fdf0ea] hover:border-[#e85d26] hover:text-[#e85d26] transition-all">
+              <Link to="/create-post" className="flex items-center gap-1.5 rounded-xl border border-[rgba(90,80,60,0.15)] bg-white px-3 py-2 text-sm font-semibold text-[#1a1814] hover:bg-[#fdf0ea] hover:border-[#e85d26] hover:text-[#e85d26] transition-all">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
                 Create
               </Link>
@@ -136,7 +135,7 @@ export default function Navbar() {
                             ))}
                           </div>
                           <div className="px-4 py-2.5 text-center border-t border-[rgba(90,80,60,0.08)]">
-                            <button className="text-xs text-[#e85d26] font-semibold hover:underline">View all notifications</button>
+                            <Link to="/dashboard" onClick={() => setNotifOpen(false)} className="text-xs text-[#e85d26] font-semibold hover:underline">View all notifications</Link>
                           </div>
                         </motion.div>
                       )}
@@ -159,10 +158,12 @@ export default function Navbar() {
                             <p className="text-xs text-[#a09880] truncate">{user?.email || ""}</p>
                           </div>
                           {[
+                            { label: "Public profile", to: `/u/${user?.username || "user"}`, icon: "👤" },
                             { label: "Dashboard", to: "/dashboard", icon: "⚡" },
                             { label: "My Posts", to: "/dashboard", icon: "📝" },
-                            { label: "Saved", to: "/dashboard", icon: "🔖" },
-                            { label: "Settings", to: "/dashboard", icon: "⚙️" },
+                            { label: "Communities", to: "/communities", icon: "🌐" },
+                            { label: "Topic preferences", to: "/settings/topics", icon: "🎯" },
+                            { label: "Privacy", to: "/privacy", icon: "🔒" },
                           ].map((item) => (
                             <Link key={item.label} to={item.to} onClick={() => setProfileOpen(false)}
                               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.04)] hover:text-[#1a1814] transition-all">
@@ -182,9 +183,7 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-[#6b6358] hover:text-[#1a1814] hover:bg-[rgba(90,80,60,0.06)] transition-all">
-                    Sign in
-                  </Link>
+                  <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-[#6b6358] hover:text-[#1a1814] hover:bg-[rgba(90,80,60,0.06)] transition-all">Sign in</Link>
                   <Link to="/signup" className="btn-primary text-sm px-4 py-2 rounded-xl font-semibold inline-flex items-center gap-1.5">
                     Get started
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -209,7 +208,9 @@ export default function Navbar() {
                 <Link to="/create-post" className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#e85d26]">+ Create Post</Link>
                 {user ? (
                   <>
+                    <Link to={`/u/${user?.username}`} className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">My Profile</Link>
                     <Link to="/dashboard" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Dashboard</Link>
+                    <Link to="/settings/topics" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Topic Preferences</Link>
                     <button onClick={logout} className="block w-full text-left rounded-lg px-3 py-2.5 text-sm text-red-600 hover:bg-red-50">Sign out</button>
                   </>
                 ) : (
@@ -230,6 +231,7 @@ export default function Navbar() {
               <div className="flex items-center gap-3 p-4 border-b border-[rgba(90,80,60,0.08)]">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 <input autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && searchQuery) { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); } }}
                   className="flex-1 text-sm outline-none bg-transparent text-[#1a1814] placeholder:text-[#a09880]"
                   placeholder="Search topics, posts, questions, people..." />
                 <button onClick={() => setSearchOpen(false)} className="text-xs text-[#a09880] border border-[rgba(90,80,60,0.15)] rounded px-1.5 py-0.5 font-mono">ESC</button>
@@ -237,13 +239,16 @@ export default function Navbar() {
               <div className="p-3">
                 {searchQuery.length === 0 ? (
                   <div>
-                    <p className="px-2 py-1.5 text-xs font-bold uppercase tracking-widest text-[#a09880]">Recent searches</p>
-                    {["React performance patterns", "FastAPI authentication", "System design 2026"].map((q) => (
-                      <button key={q} onClick={() => { setSearchQuery(q); }}
+                    <p className="px-2 py-1.5 text-xs font-bold uppercase tracking-widest text-[#a09880]">Quick links</p>
+                    {[
+                      { label: "Browse communities", to: "/communities", icon: "🌐" },
+                      { label: "Topic preferences", to: "/settings/topics", icon: "🎯" },
+                      { label: "My profile", to: `/u/${user?.username || ""}`, icon: "👤" },
+                    ].map(({ label, to, icon }) => (
+                      <Link key={label} to={to} onClick={() => setSearchOpen(false)}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.05)] hover:text-[#1a1814]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
-                        {q}
-                      </button>
+                        <span>{icon}</span>{label}
+                      </Link>
                     ))}
                     <p className="mt-2 px-2 py-1.5 text-xs font-bold uppercase tracking-widest text-[#a09880]">Trending topics</p>
                     <div className="flex flex-wrap gap-2 px-2 pt-1">
@@ -254,14 +259,14 @@ export default function Navbar() {
                   </div>
                 ) : (
                   <div>
-                    {["How to structure FastAPI for scale", "React Query patterns 2026", "System design: message queues"].filter(r => r.toLowerCase().includes(searchQuery.toLowerCase())).map((result) => (
+                    {["How to structure FastAPI for scale", "React Query patterns 2026", "System design: message queues"].filter((r) => r.toLowerCase().includes(searchQuery.toLowerCase())).map((result) => (
                       <button key={result} onClick={() => { navigate("/blog"); setSearchOpen(false); }}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#1a1814] hover:bg-[rgba(90,80,60,0.05)]">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                         {result}
                       </button>
                     ))}
-                    <button onClick={() => { navigate("/blog"); setSearchOpen(false); }}
+                    <button onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#e85d26] font-semibold hover:bg-[#fdf0ea]">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                       Search all results for "{searchQuery}"
