@@ -15,6 +15,7 @@ class PostBase(BaseModel):
     title: str = Field(..., max_length=255)
     content: str
     category_id: int
+    community_id: Optional[int] = None
 
 
 class PostCreate(PostBase):
@@ -34,6 +35,10 @@ class PostRead(PostBase):
     comment_count: int
     share_count: int
     author_id: int
+    author_name: Optional[str] = None
+    category_id: int
+    category_name: Optional[str] = None
+    community_id: Optional[int] = None
     created_at: datetime
     tags: List[str] = []
 
@@ -72,6 +77,10 @@ class PostRead(PostBase):
                 "comment_count": data.comment_count,
                 "share_count": data.share_count,
                 "author_id": data.author_id,
+                "author_name": data.author.username if data.author else None,
+                "category_id": data.category_id,
+                "category_name": data.category.name if data.category else None,
+                "community_id": getattr(data, "community_id", None),
                 "created_at": data.created_at,
                 "tags": [pt.tag for pt in data.post_tags if pt.tag]
             }

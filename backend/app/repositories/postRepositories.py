@@ -78,6 +78,7 @@ class PostRepository:
         tags: List[str],
         image: Optional[UploadFile],
         bg_tasks: BackgroundTasks,
+        community_id: Optional[int] = None,
     ) -> Post:
         # 1. Upload thumbnail to Cloudinary (optional)
         image_url = None
@@ -107,6 +108,7 @@ class PostRepository:
             slug=slug,
             author_id=author_id,
             category_id=category_id,
+            community_id=community_id,
             thumbnail_url=image_url,
         )
         db.add(new_post)
