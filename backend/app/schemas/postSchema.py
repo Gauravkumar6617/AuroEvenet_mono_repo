@@ -35,7 +35,7 @@ class PostRead(PostBase):
     share_count: int
     author_id: int
     created_at: datetime
-    tags: List[TagInfo] = []
+    tags: List[str] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,8 +44,36 @@ class PostRead(PostBase):
     def extract_tags(cls, data):
         """
         The ORM Post has `post_tags` (list of PostTag objects, each with a .tag).
-        We flatten that into `tags` (list of Tag objects) so the schema works cleanly.
+        Flatten that into a list of plain tag strings for the response.
         """
+        if isinstance(data, dict):
+            if "post_tags" in data and "tags" not in data:
+                data["tags"] = [pt.tag for pt in data["post_tags"] if pt.tag]
+            return data
+            
         if hasattr(data, "post_tags"):
-            data.__dict__["tags"] = [pt.tag for pt in data.post_tags if pt.tag]
+            # If it's an ORM object, we create a dict to ensure Pydantic 
+            # picks up our custom 'tags' list instead of trying to 
+            # find a 'tags' attribute on the ORM object which doesn't exist.
+            
+            # Use getattr to safely get all fields from the object
+            obj_dict = {
+                "id": data.id,
+                "title": data.title,
+                "content": data.content,
+                "category_id": data.category_id,
+                "slug": data.slug,
+                "thumbnail_url": data.thumbnail_url,
+                "summary": data.summary,
+                "is_active": data.is_active,
+                "is_featured": data.is_featured,
+                "view_count": data.view_count,
+                "like_count": data.like_count,
+                "comment_count": data.comment_count,
+                "share_count": data.share_count,
+                "author_id": data.author_id,
+                "created_at": data.created_at,
+                "tags": [pt.tag for pt in data.post_tags if pt.tag]
+            }
+            return obj_dict
         return data
