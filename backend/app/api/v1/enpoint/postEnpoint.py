@@ -18,6 +18,7 @@ async def create_post(
     title: str = Form(...),
     content: str = Form(...),
     category_id: int = Form(...),
+    community_id: Optional[int] = Form(None),
     tags: str = Form(""),   # comma-separated: "ai, python, fastapi"
     thumbnail: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
@@ -30,6 +31,7 @@ async def create_post(
         content=content,
         author_id=current_user.id,
         category_id=category_id,
+        community_id=community_id,
         tags=tag_list,
         image=thumbnail,
         bg_tasks=bg_tasks,
