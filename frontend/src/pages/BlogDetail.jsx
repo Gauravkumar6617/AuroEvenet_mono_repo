@@ -5,26 +5,9 @@ import PageContainer from "../components/layout/PageContainer";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
+import { usePosts } from "../contexts/PostsContext";
+import { useEffect } from "react";
 
-const POST = {
-  id: "1",
-  type: "question",
-  title: "What is the best backend folder structure in 2026?",
-  body: `<p>I'm architecting a new FastAPI backend for a B2B SaaS and the team is growing from 4 to 12 engineers. We currently have a flat folder structure that's becoming hard to navigate.</p>
-<p>Looking for patterns that scale with larger teams, clear domain boundaries, and maintain testability across service layers.</p>
-<h2>Current structure (problematic)</h2>
-<pre><code>src/
-  routes/
-  models/
-  services/
-  utils/</code></pre>
-<p>This works fine for small apps but as we add features, the services directory becomes a 40-file monolith with unclear ownership. Any recommendations?</p>
-<blockquote>Ideally something that lets different team squads own different vertical slices.</blockquote>`,
-  author: "gaurav_dev", avatar: "G",
-  category: "Backend", tags: ["fastapi", "architecture", "python", "backend"],
-  votes: 82, saves: 31, views: 1240, time: "2 hours ago",
-  answered: true
-};
 
 const ANSWERS = [
   {
@@ -76,7 +59,7 @@ function Answer({ answer, depth = 0 }) {
       <div className={`rounded-2xl border-[1.5px] p-4 ${answer.accepted ? "border-green-300 bg-green-50/50" : "border-[rgba(90,80,60,0.1)] bg-white"}`}>
         {answer.accepted && (
           <div className="flex items-center gap-1.5 mb-3 text-green-700 text-xs font-bold">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
             Accepted Answer
           </div>
         )}
@@ -114,12 +97,22 @@ function Answer({ answer, depth = 0 }) {
 
 export default function BlogDetail() {
   const { slug } = useParams();
+  const { currentPost, fetchPostBySlug, loading, error } = usePosts();
   const [reply, setReply] = useState("");
   const [postVote, setPostVote] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [sortAnswers, setSortAnswers] = useState("Top");
 
-  const postVotes = POST.votes + (postVote === "up" ? 1 : postVote === "down" ? -1 : 0);
+  useEffect(() => {
+    if (slug) fetchPostBySlug(slug);
+  }, [slug, fetchPostBySlug]);
+
+  if (loading) return <div className="py-20 text-center text-[#6b6358]">Loading post...</div>;
+  if (error) return <div className="py-20 text-center text-red-500">Error: {error}</div>;
+  if (!currentPost) return <div className="py-20 text-center text-[#a09880]">Post not found.</div>;
+
+  const POST = currentPost;
+  const postVotes = (POST.likes || POST.like_count || 0) + (postVote === "up" ? 1 : postVote === "down" ? -1 : 0);
 
   return (
     <div className="py-8">
@@ -145,29 +138,28 @@ export default function BlogDetail() {
                   <button onClick={() => setPostVote(v => v === "down" ? null : "down")}
                     className={`vote-btn ${postVote === "down" ? "active-down" : ""}`}>▼</button>
                   <button onClick={() => setIsSaved(!isSaved)} className={`mt-1 vote-btn ${isSaved ? "active-up" : ""}`} title="Save">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
                   </button>
                 </div>
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <Badge tone="info">{POST.type}</Badge>
-                    <Badge tone="brand">{POST.category}</Badge>
+                    <Badge tone="brand">{POST.category_name || "General"}</Badge>
                     {POST.tags.map(t => <span key={t} className="tag-pill">#{t}</span>)}
                   </div>
                   <h1 className="font-display text-2xl font-bold text-[#1a1814] leading-snug md:text-3xl">{POST.title}</h1>
                   <div className="flex items-center gap-3 mt-3 text-xs text-[#a09880]">
                     <div className="flex items-center gap-1.5">
-                      <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>{POST.avatar}</div>
-                      <Link to={`/u/${POST.author}`} className="font-medium text-[#6b6358] hover:text-[#e85d26] transition-colors">@{POST.author}</Link>
+                      <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>{POST.author_name?.[0] || "?"}</div>
+                      <Link to={`/u/${POST.author_name}`} className="font-medium text-[#6b6358] hover:text-[#e85d26] transition-colors">@{POST.author_name}</Link>
                     </div>
-                    <span>{POST.time}</span>
-                    <span>{POST.views.toLocaleString()} views</span>
+                    <span>{new Date(POST.created_at).toLocaleDateString()}</span>
+                    <span>{(POST.view_count || 0).toLocaleString()} views</span>
                   </div>
-                  <div className="mt-5 prose-content text-sm text-[#3a3530] leading-relaxed" dangerouslySetInnerHTML={{ __html: POST.body }} />
+                  <div className="mt-5 prose-content text-sm text-[#3a3530] leading-relaxed" dangerouslySetInnerHTML={{ __html: POST.content }} />
                   <div className="mt-4 flex gap-2 flex-wrap">
                     <Button variant="secondary" size="sm">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
                       Share
                     </Button>
                     <Button variant="ghost" size="sm">Report</Button>

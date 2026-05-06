@@ -19,8 +19,10 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
+  const createRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -46,6 +48,7 @@ export default function Navbar() {
     const fn = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+      if (createRef.current && !createRef.current.contains(e.target)) setCreateOpen(false);
     };
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
@@ -79,7 +82,7 @@ export default function Navbar() {
             <div className="mx-4 hidden flex-1 lg:block max-w-sm">
               <button onClick={() => setSearchOpen(true)}
                 className="w-full flex items-center gap-2 rounded-xl border border-[rgba(90,80,60,0.15)] bg-[rgba(90,80,60,0.04)] px-3 py-2 text-sm text-[#a09880] hover:bg-white hover:border-[#e85d26] transition-all">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                 Search topics, posts, people...
                 <span className="ml-auto text-xs font-mono bg-[rgba(90,80,60,0.08)] px-1.5 py-0.5 rounded">⌘K</span>
               </button>
@@ -98,13 +101,33 @@ export default function Navbar() {
             {/* Right actions */}
             <div className="hidden items-center gap-2 md:flex ml-2">
               <button onClick={() => setSearchOpen(true)} className="rounded-xl p-2 text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] lg:hidden">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
               </button>
 
-              <Link to="/create-post" className="flex items-center gap-1.5 rounded-xl border border-[rgba(90,80,60,0.15)] bg-white px-3 py-2 text-sm font-semibold text-[#1a1814] hover:bg-[#fdf0ea] hover:border-[#e85d26] hover:text-[#e85d26] transition-all">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Create
-              </Link>
+              <div className="relative" ref={createRef}>
+                <button
+                  onClick={() => setCreateOpen(!createOpen)}
+                  className="flex items-center gap-1.5 rounded-xl border border-[rgba(90,80,60,0.15)] bg-white px-3 py-2 text-sm font-semibold text-[#1a1814] hover:bg-[#fdf0ea] hover:border-[#e85d26] hover:text-[#e85d26] transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                  Create
+                </button>
+                <AnimatePresence>
+                  {createOpen && (
+                    <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }} transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-48 surface overflow-hidden z-50">
+                      <Link to="/create-post" onClick={() => setCreateOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.04)] hover:text-[#1a1814] transition-all border-b border-[rgba(90,80,60,0.05)]">
+                        <span>📝</span> Create Post
+                      </Link>
+                      <Link to="/communities?create=true" onClick={() => setCreateOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-3 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.04)] hover:text-[#1a1814] transition-all">
+                        <span>🌐</span> New Community
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {user ? (
                 <>
@@ -112,7 +135,7 @@ export default function Navbar() {
                   <div className="relative" ref={notifRef}>
                     <button onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
                       className="relative rounded-xl p-2 text-[#6b6358] hover:bg-[rgba(90,80,60,0.06)] transition-all">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                       {unreadCount > 0 && <span className="notif-dot" />}
                     </button>
                     <AnimatePresence>
@@ -147,7 +170,7 @@ export default function Navbar() {
                     <button onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
                       className="flex items-center gap-2 rounded-xl p-1 pr-2 hover:bg-[rgba(90,80,60,0.06)] transition-all">
                       <div className="avatar h-7 w-7 text-xs">{avatarInitials}</div>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg>
                     </button>
                     <AnimatePresence>
                       {profileOpen && (
@@ -186,14 +209,14 @@ export default function Navbar() {
                   <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-[#6b6358] hover:text-[#1a1814] hover:bg-[rgba(90,80,60,0.06)] transition-all">Sign in</Link>
                   <Link to="/signup" className="btn-primary text-sm px-4 py-2 rounded-xl font-semibold inline-flex items-center gap-1.5">
                     Get started
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                   </Link>
                 </>
               )}
             </div>
 
             <button onClick={() => setMobileOpen(!mobileOpen)} className="ml-auto rounded-xl border border-[rgba(90,80,60,0.15)] p-2 md:hidden">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18" /></svg>
             </button>
           </div>
 
@@ -229,7 +252,7 @@ export default function Navbar() {
             <motion.div initial={{ scale: 0.95, y: -20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: -20 }}
               className="w-full max-w-xl surface overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-3 p-4 border-b border-[rgba(90,80,60,0.08)]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                 <input autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && searchQuery) { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); } }}
                   className="flex-1 text-sm outline-none bg-transparent text-[#1a1814] placeholder:text-[#a09880]"
@@ -262,13 +285,13 @@ export default function Navbar() {
                     {["How to structure FastAPI for scale", "React Query patterns 2026", "System design: message queues"].filter((r) => r.toLowerCase().includes(searchQuery.toLowerCase())).map((result) => (
                       <button key={result} onClick={() => { navigate("/blog"); setSearchOpen(false); }}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#1a1814] hover:bg-[rgba(90,80,60,0.05)]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>
                         {result}
                       </button>
                     ))}
                     <button onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#e85d26] font-semibold hover:bg-[#fdf0ea]">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                       Search all results for "{searchQuery}"
                     </button>
                   </div>

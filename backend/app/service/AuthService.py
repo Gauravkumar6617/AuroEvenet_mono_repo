@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 # Initialize Redis
 r = redis.from_url(
-    settings.Redis_URL(), 
+    settings.Redis_URL, 
     decode_responses=True
 )
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ from urllib.parse import urlencode, quote_plus
 from app.core.config import settings
 # Initialize Redis client
 redis_client = redis.from_url(
-    settings.Redis_URL(), 
+    settings.Redis_URL, 
     decode_responses=True  # This automatically converts Redis bytes to strings
 )
 

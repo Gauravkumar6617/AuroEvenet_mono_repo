@@ -6,6 +6,7 @@ export const postsApi = {
     title: string;
     content: string;
     category_id: number;
+    community_id?: number;
     tags?: string;
     thumbnail: File;
   }) {
@@ -13,6 +14,7 @@ export const postsApi = {
     formData.append("title", postData.title);
     formData.append("content", postData.content);
     formData.append("category_id", postData.category_id.toString());
+    if (postData.community_id) formData.append("community_id", postData.community_id.toString());
     if (postData.tags) formData.append("tags", postData.tags);
     formData.append("thumbnail", postData.thumbnail, postData.thumbnail.name);
 
@@ -26,11 +28,11 @@ export const postsApi = {
   getAllPosts(params?: Record<string, string | number | boolean>) {
     const queryParams = params
       ? `?${new URLSearchParams(
-          Object.entries(params).reduce<Record<string, string>>((acc, [k, v]) => {
-            acc[k] = String(v);
-            return acc;
-          }, {}),
-        ).toString()}`
+        Object.entries(params).reduce<Record<string, string>>((acc, [k, v]) => {
+          acc[k] = String(v);
+          return acc;
+        }, {}),
+      ).toString()}`
       : "";
 
     return apiClientCore.request<Post[]>(`/api/v1/posts/${queryParams}`, {

@@ -1,18 +1,31 @@
-from fastapi import FastAPI, HTTPException
-import os
+from fastapi import APIRouter, HTTPException
 import threading
 from app.tasks.decay_trending import decay_all_scores
 from app.core.config import settings
-app = FastAPI()
+import redis
 
-SECRET_TOKEN = settings.CRON_SECRET
+router = APIRouter(prefix="/tasks", tags=["Cron Tasks"])
 
-@app.post("/tasks/decay")
+r = redis.from_url(settings.Redis_URL)
+
+@router.post("/decay")
 def run_decay(token: str):
-    if token != SECRET_TOKEN:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    """
+    Run decay task manually.
+    Usage: POST /tasks/decay?token=your_secret
+    """
+    if token != settings.CRON_SECRET:
+        raise HTTPException(status_code=403)
 
-    # run in background (important for cron timeout)
-    threading.Thread(target=decay_all_scores).start()
+    # acquire lock
+    if not r.set("decay_lock", "1", nx=True, ex=3600):
+        return {"status": "already running"}
 
+    def task():
+        try:
+            decay_all_scores()
+        finally:
+            r.delete("decay_lock")
+
+    threading.Thread(target=task).start()
     return {"status": "started"}

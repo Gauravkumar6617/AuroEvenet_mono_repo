@@ -11,8 +11,12 @@ export class ApiClient {
     };
   }
 
-  private getHeaders(includeApiKey: boolean = false): Record<string, string> {
+  private getHeaders(options: RequestInit, includeApiKey: boolean = false): Record<string, string> {
     const headers = { ...this.defaultHeaders };
+
+    if (options.body instanceof FormData) {
+      delete headers["Content-Type"];
+    }
 
     if (includeApiKey) {
       headers["x-internal-api-key"] =
@@ -30,7 +34,7 @@ export class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
-      headers: this.getHeaders(includeApiKey),
+      headers: this.getHeaders(options, includeApiKey),
       credentials: "include",
       ...options,
     };

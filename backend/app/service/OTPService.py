@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class OTPService:
     def __init__(self):
         self.redis_client = redis.from_url(
-            settings.Redis_URL(), 
+            settings.Redis_URL, 
             decode_responses=True
         )
     

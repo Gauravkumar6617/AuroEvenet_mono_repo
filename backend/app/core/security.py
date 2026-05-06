@@ -12,7 +12,7 @@ from app.core.config import settings
 # 1. INITIALIZE REDIS (This fixes the 'r is not defined' error)
 # We use settings.Redis_URL() which you defined in my Pydantic class
 r = redis.from_url(
-    settings.Redis_URL(), 
+    settings.Redis_URL, 
     decode_responses=True  # This automatically converts Redis bytes to strings
 )
 
