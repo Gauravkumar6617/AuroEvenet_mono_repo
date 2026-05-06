@@ -56,6 +56,10 @@ class Settings(BaseSettings):
 
     SENTRY_DSN: str
 
+
+    ####cronapi key
+    CRON_SECRET: str
+
     FRONTEND_URL: str = "https://blog-byte-mono-repo.vercel.app"
 
     model_config = SettingsConfigDict(
