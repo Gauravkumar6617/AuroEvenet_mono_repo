@@ -5,7 +5,7 @@ from app.core.dependencies import get_current_user, get_optional_user
 from app.models.userModel import User
 from typing import List, Optional
 from app.models.communityModel import Community
-from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse, CommunityCreate
+from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse, CommunityCreate, CommunityMembersListResponse
 from app.service.communityService import CommunityService
 from app.repositories.postRepositories import PostRepository
 
@@ -50,9 +50,10 @@ def list_communities(
 
 
 #to get members by slug
-@router.get("/{slug}/members",response_model=CommunityMemberResponse)
-def get_community_members(slug:str,db:Session = Depends(get_db),user:User = Depends(get_current_user)):
-    return CommunityService.get_community_members(db, slug)
+@router.get("/{slug}/members", response_model=CommunityMembersListResponse)
+def get_community_members(slug:str, db:Session = Depends(get_db), user:Optional[User] = Depends(get_optional_user)):
+    members = CommunityService.get_community_members(db, slug)
+    return {"members": members}
 
 ####to join community
 @router.post("/{slug}/join")

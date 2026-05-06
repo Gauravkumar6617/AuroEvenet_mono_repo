@@ -34,3 +34,6 @@ class CommunityMemberResponse(BaseModel):
     joined_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class CommunityMembersListResponse(BaseModel):
+    members: List[CommunityMemberResponse]

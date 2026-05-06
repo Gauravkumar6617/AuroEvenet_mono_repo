@@ -6,6 +6,7 @@ import cloudinary.uploader
 from app.core.config import settings
 from fastapi import UploadFile, HTTPException
 from app.models.communityModel import Community , CommunityMember
+from app.models.userModel import User
 from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
 from typing import Optional
 from typing import List
@@ -86,14 +87,31 @@ class CommunityRepositories:
     
     ###get all members of a community (optionally filter by user_id)
     @staticmethod
-    def get_members(db: Session, community_id: int, user_id: Optional[int] = None) -> List[CommunityMember]:
+    def get_members(db: Session, community_id: int, user_id: Optional[int] = None) -> List[dict]:
         try:
-            query = db.query(CommunityMember).filter(CommunityMember.community_id == community_id)
+            query = db.query(
+                CommunityMember.community_id,
+                CommunityMember.user_id,
+                CommunityMember.role,
+                CommunityMember.joined_at,
+                User.username
+            ).join(User, User.id == CommunityMember.user_id).filter(CommunityMember.community_id == community_id)
+            
             if user_id is not None:
                 query = query.filter(CommunityMember.user_id == user_id)
-            return query.all()
+            
+            results = query.all()
+            return [
+                {
+                    "community_id": r.community_id,
+                    "user_id": r.user_id,
+                    "role": r.role,
+                    "joined_at": r.joined_at,
+                    "username": r.username
+                } for r in results
+            ]
         except Exception as e:
-            print(f"Error getting community member: {e}")
+            print(f"Error getting community members: {e}")
             return []
     ###to add memeber consurrently
     @staticmethod
