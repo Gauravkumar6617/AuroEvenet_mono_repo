@@ -13,6 +13,7 @@ class Community(BaseModel):
     is_active = Column(Boolean, nullable=False, default=True) #active
     icon_url = Column(String(255), nullable=True) #icon
     rules = Column(Text, nullable=True) #rules
+    tags = Column(String(255), nullable=True) #tags (comma-separated)
 
     #user
     members_count = Column(Integer, default=0)

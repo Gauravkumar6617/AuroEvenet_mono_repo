@@ -1,3 +1,4 @@
+from typing import Optional, List
 from fastapi import Depends, Header, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -71,6 +72,16 @@ def get_current_user(
         )
 
     return user
+
+def get_optional_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+) -> Optional[User]:
+    try:
+        return get_current_user(request, db, credentials)
+    except HTTPException:
+        return None
 
 def require_admin(user: User = Depends(get_current_user)):
     if user.role not in [UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value]:

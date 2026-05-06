@@ -1,6 +1,10 @@
 import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+import cloudinary
+import cloudinary.uploader
+from app.core.config import settings
+from fastapi import UploadFile, HTTPException
 from app.models.communityModel import Community , CommunityMember
 from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
 from typing import Optional
@@ -34,11 +38,32 @@ class CommunityRepositories:
             print(f"Error checking if slug exists: {e}")
             return False
 
-     ####to create community       
     @staticmethod
-    def create_community(db: Session, name:str,description:str,slug:str,rules:str,created_by_id:int):
+    def _init_cloudinary():
+        cloudinary.config(
+            cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+            api_key=settings.CLOUDINARY_API_KEY,
+            api_secret=settings.CLOUDINARY_API_SECRET,
+        )
+
+    @staticmethod
+    def create_community(db: Session, name:str,description:str,slug:str,rules:str,created_by_id:int, icon_image:UploadFile = None, tags:str = None):
+        CommunityRepositories._init_cloudinary()
+        icon_url = None
+        if icon_image:
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    icon_image.file,
+                    folder="blogbyte/communities",
+                    transformation={"width": 128, "height": 128, "crop": "fill"},
+                )
+                icon_url = upload_result.get("secure_url")
+            except Exception as e:
+                print(f"Icon upload failed: {e}")
+                # Optional: continue with icon_url = None, or raise
+
         try:
-            db_community = Community(name=name,description=description,slug=slug,rules=rules,created_by_id=created_by_id,members_count=1)
+            db_community = Community(name=name,description=description,slug=slug,rules=rules,created_by_id=created_by_id,members_count=1, icon_url=icon_url, tags=tags)
             db.add(db_community)
             db.flush()  # Get the ID without committing
             db.add(CommunityMember(community_id=db_community.id, user_id=created_by_id, role="admin"))
