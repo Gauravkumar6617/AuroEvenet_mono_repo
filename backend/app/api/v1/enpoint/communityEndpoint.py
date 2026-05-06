@@ -5,15 +5,15 @@ from app.core.dependencies import get_current_user
 from app.models.userModel import User
 from typing import List
 from app.models.communityModel import Community
-from app.schemas.communitySchema import CommunityResponse,CommunityMemberResponse
+from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse, CommunityCreate
 from app.service.communityService import CommunityService
 from app.repositories.postRepositories import PostRepository
 router = APIRouter(prefix="/community", tags=["Communities"])
 
 #### to cretae community
-@router.post("",status_code=status.HTTP_201_CREATED)
-def create_community(payload:CommunityResponse ,db:Session = Depends(get_db),user:User = Depends(get_current_user)):
-    community = CommunityService.create(payload,db,user.id)
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_community(payload: CommunityCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    community = CommunityService.create(db, payload, user.id)
     return {"id": community.id,"slug": community.slug}
 
 

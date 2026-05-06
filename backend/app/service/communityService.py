@@ -4,7 +4,7 @@ from typing import List
 from slugify import slugify
 from app.repositories.communityRepositories import CommunityRepositories as CommunityRepository 
 from app.models.communityModel import Community
-from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
+from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse, CommunityCreate
 from fastapi import HTTPException ,status
 
 class CommunityService:
@@ -12,12 +12,12 @@ class CommunityService:
 
 ###to create commnurity 
     @staticmethod
-    def create(db: Session,  payload: CommunityResponse , user_id: int,) -> Community:
+    def create(db: Session, payload: CommunityCreate, user_id: int) -> Community:
         slug = slugify(payload.name)
         if CommunityRepository.check_slug_exists(db, slug):
             raise HTTPException(status_code=400, detail="Community with this name already exists")
         
-        return CommunityRepository.create(
+        return CommunityRepository.create_community(
             db=db,
             name=payload.name,
             slug=slug,

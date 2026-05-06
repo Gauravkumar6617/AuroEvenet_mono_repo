@@ -1,3 +1,5 @@
+import sqlalchemy as sa
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.communityModel import Community , CommunityMember
 from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
@@ -44,8 +46,9 @@ class CommunityRepositories:
             db.refresh(db_community)
             return db_community
         except Exception as e:
+            db.rollback()
             print(f"Error creating community: {e}")
-            return None
+            raise e
 
     ####get only active communities
     @staticmethod
@@ -94,7 +97,7 @@ class CommunityRepositories:
         if deleted:
             # ✅ Atomic decrement, floor at 0
             db.query(Community).filter(Community.id == community_id).update(
-                {Community.member_count: func.greatest(Community.member_count - 1, 0)},
+                {Community.members_count: func.greatest(Community.members_count - 1, 0)},
                 synchronize_session="fetch",
             )
             db.commit()

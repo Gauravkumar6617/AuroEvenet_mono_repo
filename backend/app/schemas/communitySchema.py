@@ -1,27 +1,26 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, List
 from datetime import datetime
 
-class CreateCommunityBase(BaseModel):
+class CommunityCreate(BaseModel):
     name: str
     description: Optional[str] = None
     rules: Optional[str] = None
 
-class CommunityResponse(CreateCommunityBase):
+class CommunityResponse(BaseModel):
     id: int
     name: str
     slug: str
-    description: Optional[str]
-    icon_url: Optional[str]
-    rules: Optional[str]
+    description: Optional[str] = None
+    icon_url: Optional[str] = None
+    rules: Optional[str] = None
     is_active: bool
-    member_count: int
-    post_count: int
+    members_count: int
+    posts_count: int
     created_by_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CommunityMemberResponse(BaseModel):
     community_id: int
@@ -29,5 +28,4 @@ class CommunityMemberResponse(BaseModel):
     role: str
     joined_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
