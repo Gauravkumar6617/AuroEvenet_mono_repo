@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from app.models.communityModels import Community , CommunityMember
-from app.schemas.communitySchema import CommunityCreate, CommunityMemberCreate
+from app.models.communityModel import Community , CommunityMember
+from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
 from typing import Optional
+from typing import List
 class CommunityRepositories:
 
     ##get by slug
@@ -55,14 +56,17 @@ class CommunityRepositories:
         print(f"Error getting active communities: {e}")
         return None
     
-    ###get all members of a community
+    ###get all members of a community (optionally filter by user_id)
     @staticmethod
-    def get_members(db:Session,community_id:int,user_id:int)->List[CommunityMember]:
+    def get_members(db: Session, community_id: int, user_id: Optional[int] = None) -> List[CommunityMember]:
         try:
-            return db.query(CommunityMember).filter(CommunityMember.community_id == community_id,CommunityMember.user_id == user_id).all()
+            query = db.query(CommunityMember).filter(CommunityMember.community_id == community_id)
+            if user_id is not None:
+                query = query.filter(CommunityMember.user_id == user_id)
+            return query.all()
         except Exception as e:
             print(f"Error getting community member: {e}")
-            return None
+            return []
     ###to add memeber consurrently
     @staticmethod
     def add_member(db:Session,community_id:int,user_id:int)->None:

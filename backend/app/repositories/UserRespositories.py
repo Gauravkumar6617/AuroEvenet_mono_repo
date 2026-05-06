@@ -30,7 +30,7 @@ class UserRepository:
     def get_by_id(self, user_id: int, db: Session) -> Optional[User]:
         return db.query(User).filter(User.id == user_id).first()
 
-    def get_by_username(self,username:str ,db:Session) -> Optional[User]:
+    def get_by_username(self, username: str, db: Session) -> Optional[User]:
         """Returns a User object if found, otherwise None."""
         return db.query(User).filter(User.username == username).first()
     

@@ -90,7 +90,7 @@ function Answer({ answer, depth = 0 }) {
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <div className="avatar h-7 w-7 text-xs">{answer.avatar}</div>
-                <span className="text-sm font-semibold text-[#1a1814]">@{answer.author}</span>
+                <Link to={`/u/${answer.author}`} className="text-sm font-semibold text-[#1a1814] hover:text-[#e85d26] transition-colors">@{answer.author}</Link>
                 <span className="text-xs text-[#a09880]">{answer.time}</span>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function BlogDetail() {
                   <div className="flex items-center gap-3 mt-3 text-xs text-[#a09880]">
                     <div className="flex items-center gap-1.5">
                       <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>{POST.avatar}</div>
-                      <span className="font-medium text-[#6b6358]">@{POST.author}</span>
+                      <Link to={`/u/${POST.author}`} className="font-medium text-[#6b6358] hover:text-[#e85d26] transition-colors">@{POST.author}</Link>
                     </div>
                     <span>{POST.time}</span>
                     <span>{POST.views.toLocaleString()} views</span>
@@ -232,7 +232,7 @@ export default function BlogDetail() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="avatar h-10 w-10 text-sm">{POST.avatar}</div>
                 <div>
-                  <p className="text-sm font-semibold text-[#1a1814]">@{POST.author}</p>
+                  <Link to={`/u/${POST.author}`} className="text-sm font-semibold text-[#1a1814] hover:text-[#e85d26] transition-colors">@{POST.author}</Link>
                   <p className="text-xs text-[#a09880]">Backend Engineer · 240 posts</p>
                 </div>
               </div>

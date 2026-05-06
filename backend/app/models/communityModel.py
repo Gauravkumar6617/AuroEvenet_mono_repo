@@ -25,7 +25,8 @@ class Community(BaseModel):
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False) #creator
     
     #relations
-    post=relationship("Post", back_populates="community")
+    posts=relationship("Post", back_populates="community")
+
     members=relationship("CommunityMember", back_populates="community",cascade="all, delete-orphan")
 
 

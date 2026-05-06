@@ -35,36 +35,51 @@ const NOTIFS = [
 
 const TOPICS = ["Engineering", "AI & ML", "Product Design", "DevOps", "Open Source", "Career", "Startup", "Data Science", "Frontend", "Backend"];
 
+const MY_COMMUNITIES = [
+  { name: "Engineering", slug: "engineering", icon: "🛠️", members: 4200, role: "member" },
+  { name: "Frontend", slug: "frontend", icon: "🖥️", members: 3900, role: "member" },
+  { name: "FastAPI", slug: "fastapi", icon: "⚡", members: 1800, role: "admin" },
+];
+
+const READING_HISTORY = [
+  { id: 1, title: "How to handle distributed tracing in microservices?", author: "alex_swe", time: "2h ago", duration: "4 min read" },
+  { id: 2, title: "Scaling React applications with micro-frontends", author: "dev_patel", time: "1d ago", duration: "7 min read" },
+  { id: 3, title: "PostgreSQL indexing deep dive", author: "ravi_db", time: "3d ago", duration: "12 min read" },
+];
+
 export default function UserDashboard() {
   const { user, logout } = useAuth();
   const [section, setSection] = useState("overview");
-  const [postTab, setPostTab] = useState("Recent");
   const [notifFilter, setNotifFilter] = useState("All");
   const [notifPrefs, setNotifPrefs] = useState({ likes: true, comments: true, replies: true, mentions: true, follows: true, emailDigest: "weekly" });
   const [selectedTopics, setSelectedTopics] = useState(["Engineering", "Frontend", "AI & ML"]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [profileForm, setProfileForm] = useState({ full_name: user?.full_name || "", bio: "", location: "", website: "" });
 
-  const toggleTopic = (t) => setSelectedTopics(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  const toggleTopic = (t) => setSelectedTopics((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
   const sidebarItems = [
     { key: "overview", label: "Overview", icon: "⚡" },
     { key: "posts", label: "My Posts", icon: "📝" },
     { key: "saved", label: "Saved Posts", icon: "🔖" },
-    { key: "notifications", label: "Notifications", icon: "🔔", count: NOTIFS.filter(n => n.unread).length },
+    { key: "history", label: "Reading History", icon: "📚" },
+    { key: "communities", label: "My Communities", icon: "🌐" },
+    { key: "notifications", label: "Notifications", icon: "🔔", count: NOTIFS.filter((n) => n.unread).length },
     { key: "interests", label: "Topic Interests", icon: "🎯" },
+    { key: "profile", label: "Edit Profile", icon: "👤" },
     { key: "settings", label: "Account Settings", icon: "⚙️" },
     { key: "privacy", label: "Privacy", icon: "🔒" },
   ];
+
+  const fadeProps = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 }, transition: { duration: 0.2 } };
 
   return (
     <div className="py-8">
       <PageContainer>
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-[#1a1814]">
-              Hey, {user?.username || "there"} 👋
-            </h1>
+            <h1 className="font-display text-3xl font-bold text-[#1a1814]">Hey, {user?.username || "there"} 👋</h1>
             <p className="text-sm text-[#6b6358] mt-1">Manage your profile, content, and preferences</p>
           </div>
           <div className="flex items-center gap-3">
@@ -83,14 +98,15 @@ export default function UserDashboard() {
                 <p className="text-xs text-[#a09880] truncate">{user?.email || ""}</p>
               </div>
             </div>
+            <Link to={`/u/${user?.username || "user"}`} className="sidebar-item mb-1 text-[#e85d26] bg-[#fdf0ea] hover:bg-[#fdf0ea]">
+              <span>🔗</span><span className="flex-1">View public profile</span>
+            </Link>
             {sidebarItems.map((item) => (
               <button key={item.key} onClick={() => setSection(item.key)}
                 className={`sidebar-item ${section === item.key ? "active" : ""}`}>
                 <span>{item.icon}</span>
                 <span className="flex-1">{item.label}</span>
-                {item.count > 0 && (
-                  <span className="rounded-full bg-[#e85d26] text-white text-xs px-1.5 py-0.5 font-bold">{item.count}</span>
-                )}
+                {item.count > 0 && <span className="rounded-full bg-[#e85d26] text-white text-xs px-1.5 py-0.5 font-bold">{item.count}</span>}
               </button>
             ))}
           </aside>
@@ -98,289 +114,315 @@ export default function UserDashboard() {
           {/* Content */}
           <div className="space-y-5 min-w-0">
             <AnimatePresence mode="wait">
-              <motion.div key={section} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
 
-                {/* OVERVIEW */}
-                {section === "overview" && (
-                  <div className="space-y-5">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      {KPIS.map((kpi) => (
-                        <div key={kpi.label} className="surface rounded-2xl p-4">
-                          <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-lg ${kpi.color} mb-3`}>{kpi.icon}</div>
-                          <p className="font-display text-2xl font-bold text-[#1a1814]">{kpi.value}</p>
-                          <p className="text-xs text-[#6b6358] mt-0.5">{kpi.label}</p>
-                          <p className="text-xs text-emerald-600 font-semibold mt-1">{kpi.trend} this week</p>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Activity chart placeholder */}
-                    <div className="surface rounded-2xl p-5">
-                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Activity (last 30 days)</h3>
-                      <div className="flex items-end gap-1.5 h-24">
-                        {Array.from({ length: 30 }, (_, i) => {
-                          const h = Math.random() * 80 + 5;
-                          return <div key={i} style={{ height: `${h}%` }} className="flex-1 rounded-sm bg-[#e85d26] opacity-60 hover:opacity-100 transition-opacity" title={`Day ${i + 1}`} />;
-                        })}
-                      </div>
-                      <div className="flex justify-between mt-2 text-xs text-[#a09880]">
-                        <span>30 days ago</span><span>Today</span>
-                      </div>
-                    </div>
-                    {/* Recent activity */}
-                    <div className="surface rounded-2xl p-5">
-                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Recent notifications</h3>
-                      <div className="space-y-3">
-                        {NOTIFS.slice(0, 3).map((n) => (
-                          <div key={n.id} className={`flex items-start gap-3 rounded-xl p-3 ${n.unread ? "bg-[rgba(232,93,38,0.04)] border border-[rgba(232,93,38,0.1)]" : "bg-[rgba(90,80,60,0.03)]"}`}>
-                            <span className="text-lg">{n.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-[#1a1814]">{n.text}</p>
-                              {n.sub && <p className="text-xs text-[#a09880] truncate mt-0.5">"{n.sub}"</p>}
-                            </div>
-                            <span className="text-xs text-[#a09880] shrink-0">{n.time}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={() => setSection("notifications")} className="mt-3 text-sm text-[#e85d26] font-semibold hover:underline">View all →</button>
-                    </div>
+              {/* ── Overview ── */}
+              {section === "overview" && (
+                <motion.div key="overview" {...fadeProps} className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    {KPIS.map((k) => (
+                      <Card key={k.label}>
+                        <div className={`mb-2 inline-flex rounded-lg p-2 ${k.color}`}>{k.icon}</div>
+                        <p className="text-2xl font-bold text-[#1a1814] font-display">{k.value}</p>
+                        <p className="text-xs text-[#a09880]">{k.label}</p>
+                        <p className="mt-1 text-xs font-semibold text-emerald-600">{k.trend}</p>
+                      </Card>
+                    ))}
                   </div>
-                )}
-
-                {/* MY POSTS */}
-                {section === "posts" && (
-                  <div className="surface rounded-2xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-display text-xl font-bold text-[#1a1814]">My Posts</h2>
-                      <Link to="/create-post"><Button size="sm">+ Write new</Button></Link>
-                    </div>
-                    <Tabs items={["Recent", "Top", "Drafts"]} active={postTab} onChange={setPostTab} />
-                    <div className="mt-4 space-y-3">
-                      {MY_POSTS.filter(p => postTab === "Drafts" ? p.status === "draft" : p.status === "published").map((post) => (
-                        <div key={post.id} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-4 hover:border-[rgba(232,93,38,0.2)] transition-all">
-                          <div className="flex-1 min-w-0 mr-4">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge tone={post.status === "draft" ? "warning" : "success"}>{post.status}</Badge>
-                              <Badge tone="neutral">{post.type}</Badge>
-                            </div>
-                            <p className="font-semibold text-sm text-[#1a1814] line-clamp-1">{post.title}</p>
-                            {post.status === "published" && (
-                              <p className="text-xs text-[#a09880] mt-1">{post.votes} votes · {post.comments} comments · {post.views} views · {post.time}</p>
-                            )}
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <Button variant="secondary" size="sm">Edit</Button>
-                            <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50">Delete</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* SAVED */}
-                {section === "saved" && (
-                  <div className="surface rounded-2xl p-5">
-                    <h2 className="font-display text-xl font-bold text-[#1a1814] mb-4">Saved Posts</h2>
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">Recent posts</p>
                     <div className="space-y-3">
-                      {SAVED_POSTS.map((post) => (
-                        <div key={post.id} className="flex items-center justify-between rounded-xl border border-[rgba(90,80,60,0.1)] p-4">
-                          <div>
-                            <Link to={`/blog/${post.id}`} className="font-semibold text-sm text-[#1a1814] hover:text-[#e85d26] transition-colors">{post.title}</Link>
-                            <p className="text-xs text-[#a09880] mt-1">@{post.author} · {post.votes} votes · {post.time}</p>
+                      {MY_POSTS.slice(0, 2).map((p) => (
+                        <div key={p.id} className="flex items-center gap-3 py-2 border-b border-[rgba(90,80,60,0.07)] last:border-0">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#1a1814] truncate">{p.title}</p>
+                            <p className="text-xs text-[#a09880] mt-0.5">▲ {p.votes} · 💬 {p.comments} · {p.time}</p>
                           </div>
-                          <button className="text-xs text-[#a09880] hover:text-red-500 transition-colors ml-4">Remove</button>
+                          <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${p.status === "published" ? "bg-emerald-50 text-emerald-700" : "bg-[rgba(90,80,60,0.07)] text-[#a09880]"}`}>{p.status}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  </Card>
+                </motion.div>
+              )}
 
-                {/* NOTIFICATIONS */}
-                {section === "notifications" && (
-                  <div className="space-y-4">
-                    <div className="surface rounded-2xl p-5">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="font-display text-xl font-bold text-[#1a1814]">Notifications</h2>
-                        <button className="text-sm text-[#e85d26] font-semibold hover:underline">Mark all read</button>
-                      </div>
-                      <div className="flex gap-2 mb-4 flex-wrap">
-                        {["All", "Likes", "Comments", "Follows", "Mentions"].map((f) => (
-                          <button key={f} onClick={() => setNotifFilter(f)} className={`tag-pill ${notifFilter === f ? "active" : ""}`}>{f}</button>
-                        ))}
-                      </div>
-                      <div className="space-y-2">
-                        {NOTIFS.map((n) => (
-                          <div key={n.id} className={`flex items-start gap-3 rounded-xl p-3 border transition-all cursor-pointer hover:border-[rgba(232,93,38,0.2)] ${n.unread ? "bg-[rgba(232,93,38,0.03)] border-[rgba(232,93,38,0.12)]" : "border-[rgba(90,80,60,0.08)] bg-white"}`}>
-                            <span className="text-xl">{n.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-[#1a1814]">{n.text}</p>
-                              {n.sub && <p className="text-xs text-[#a09880] mt-0.5 truncate">"{n.sub}"</p>}
-                              <p className="text-xs text-[#a09880] mt-1">{n.time}</p>
+              {/* ── My Posts ── */}
+              {section === "posts" && (
+                <motion.div key="posts" {...fadeProps}>
+                  <Card>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">My Posts</p>
+                      <Link to="/create-post" className="btn-primary text-xs px-3 py-1.5 rounded-lg">+ New</Link>
+                    </div>
+                    <div className="space-y-3">
+                      {MY_POSTS.map((p) => (
+                        <div key={p.id} className="flex items-start gap-3 p-3 rounded-xl border border-[rgba(90,80,60,0.08)] hover:border-[rgba(232,93,38,0.2)] transition-all">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#1a1814] leading-snug">{p.title}</p>
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-[#a09880]">
+                              <span>▲ {p.votes}</span><span>💬 {p.comments}</span><span>👁️ {p.views}</span><span>{p.time}</span>
                             </div>
-                            {n.unread && <div className="h-2 w-2 rounded-full bg-[#e85d26] mt-1 shrink-0" />}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Notification preferences */}
-                    <div className="surface rounded-2xl p-5">
-                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Notification Preferences</h3>
-                      <div className="space-y-3">
-                        {Object.entries({ likes: "Likes on my posts", comments: "Comments on my posts", replies: "Replies to my comments", mentions: "@Mentions", follows: "New followers" }).map(([key, label]) => (
-                          <div key={key} className="flex items-center justify-between py-2 border-b border-[rgba(90,80,60,0.06)] last:border-0">
-                            <span className="text-sm text-[#1a1814]">{label}</span>
-                            <button onClick={() => setNotifPrefs(p => ({ ...p, [key]: !p[key] }))}
-                              className={`relative h-5 w-9 rounded-full transition-colors ${notifPrefs[key] ? "bg-[#e85d26]" : "bg-[rgba(90,80,60,0.15)]"}`}>
-                              <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${notifPrefs[key] ? "translate-x-4" : "translate-x-0.5"}`} />
-                            </button>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between py-2">
-                          <span className="text-sm text-[#1a1814]">Email digest</span>
-                          <select className="input-field w-32 text-xs" value={notifPrefs.emailDigest} onChange={e => setNotifPrefs(p => ({ ...p, emailDigest: e.target.value }))}>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="never">Never</option>
-                          </select>
+                          <span className={`shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${p.status === "published" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{p.status}</span>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* INTERESTS */}
-                {section === "interests" && (
-                  <div className="surface rounded-2xl p-5">
-                    <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Topic Interests</h2>
-                    <p className="text-sm text-[#6b6358] mb-5">Your selected topics tune the AI-personalized feed. Select at least 2.</p>
-                    <div className="flex flex-wrap gap-2.5 mb-6">
-                      {TOPICS.map((t) => (
-                        <button key={t} onClick={() => toggleTopic(t)} className={`tag-pill text-sm py-1.5 px-4 ${selectedTopics.includes(t) ? "active" : ""}`}>
-                          {selectedTopics.includes(t) && "✓ "}{t}
-                        </button>
                       ))}
                     </div>
-                    <div className="rounded-xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.15)] p-4 mb-4">
-                      <p className="text-sm font-semibold text-[#e85d26]">Your current interests ({selectedTopics.length})</p>
-                      <p className="text-xs text-[#6b6358] mt-1">{selectedTopics.join(", ") || "None selected"}</p>
-                    </div>
-                    <Button>Save preferences</Button>
-                  </div>
-                )}
+                  </Card>
+                </motion.div>
+              )}
 
-                {/* SETTINGS */}
-                {section === "settings" && (
-                  <div className="space-y-4">
-                    <div className="surface rounded-2xl p-5">
-                      <h2 className="font-display text-xl font-bold text-[#1a1814] mb-5">Edit Profile</h2>
-                      <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[rgba(90,80,60,0.08)]">
-                        <div className="relative">
-                          <div className="avatar h-16 w-16 text-xl">{(user?.username || "U")[0].toUpperCase()}</div>
-                          <button className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-[#e85d26] text-white flex items-center justify-center text-xs hover:bg-[#c44718] transition-colors">✏️</button>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-[#1a1814]">Profile photo</p>
-                          <p className="text-xs text-[#a09880]">JPG, PNG or GIF. Max 2MB. Crop + zoom available after upload.</p>
-                        </div>
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Full name</label>
-                          <input className="input-field" defaultValue={user?.full_name || ""} placeholder="Jane Doe" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Username</label>
-                          <div className="relative">
-                            <input className="input-field pr-8" defaultValue={user?.username || ""} placeholder="janedoe" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-sm">✓</span>
+              {/* ── Saved ── */}
+              {section === "saved" && (
+                <motion.div key="saved" {...fadeProps}>
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Saved Posts</p>
+                    <div className="space-y-3">
+                      {SAVED_POSTS.map((p) => (
+                        <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(90,80,60,0.08)]">
+                          <div className="flex-1 min-w-0">
+                            <Link to={`/blog/${p.id}`} className="text-sm font-bold text-[#1a1814] hover:text-[#e85d26] transition-colors line-clamp-1">{p.title}</Link>
+                            <p className="text-xs text-[#a09880] mt-0.5">by @{p.author} · ▲ {p.votes} · {p.time}</p>
                           </div>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Bio</label>
-                          <textarea className="input-field min-h-20 resize-none" placeholder="Tell the community about yourself..." />
-                        </div>
-                        <div>
-                          <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Website</label>
-                          <input className="input-field" placeholder="https://yoursite.com" type="url" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Twitter/X</label>
-                          <input className="input-field" placeholder="@handle" />
-                        </div>
-                      </div>
-                      <Button className="mt-5">Save profile</Button>
-                    </div>
-
-                    <div className="surface rounded-2xl p-5">
-                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Change Password</h3>
-                      <div className="space-y-3">
-                        <div><label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Current password</label><input type="password" className="input-field" placeholder="••••••••" /></div>
-                        <div><label className="text-sm font-semibold text-[#1a1814] block mb-1.5">New password</label><input type="password" className="input-field" placeholder="••••••••" /></div>
-                        <div><label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Confirm new password</label><input type="password" className="input-field" placeholder="••••••••" /></div>
-                      </div>
-                      <Button variant="secondary" className="mt-4">Update password</Button>
-                    </div>
-
-                    <div className="surface rounded-2xl border-2 border-red-100 p-5">
-                      <h3 className="font-display text-lg font-bold text-red-700 mb-2">Danger Zone</h3>
-                      <p className="text-sm text-[#6b6358] mb-4">Once you delete your account, all your data will be permanently removed. This action cannot be undone.</p>
-                      <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)}>Delete my account</Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* PRIVACY */}
-                {section === "privacy" && (
-                  <div className="surface rounded-2xl p-5">
-                    <h2 className="font-display text-xl font-bold text-[#1a1814] mb-5">Privacy Settings</h2>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Show activity status", desc: "Others can see when you were last active" },
-                        { label: "Public profile", desc: "Your profile is visible to non-members" },
-                        { label: "Show karma publicly", desc: "Display your karma score on your profile" },
-                        { label: "Allow DMs from anyone", desc: "Anyone can send you direct messages" },
-                      ].map((item) => (
-                        <div key={item.label} className="flex items-start justify-between py-3 border-b border-[rgba(90,80,60,0.06)] last:border-0">
-                          <div>
-                            <p className="text-sm font-semibold text-[#1a1814]">{item.label}</p>
-                            <p className="text-xs text-[#a09880] mt-0.5">{item.desc}</p>
-                          </div>
-                          <button className="relative h-5 w-9 rounded-full bg-[#e85d26] ml-4 shrink-0 mt-0.5">
-                            <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-white shadow" />
+                          <button className="text-[#a09880] hover:text-red-500 transition-colors p-1">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
                           </button>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-5">
-                      <h3 className="text-sm font-bold text-[#1a1814] mb-3">Blocked users</h3>
-                      <p className="text-sm text-[#a09880]">You haven't blocked anyone yet.</p>
-                    </div>
-                  </div>
-                )}
+                  </Card>
+                </motion.div>
+              )}
 
-              </motion.div>
+              {/* ── Reading History ── */}
+              {section === "history" && (
+                <motion.div key="history" {...fadeProps}>
+                  <Card>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">Reading History</p>
+                      <button className="text-xs text-red-500 hover:underline">Clear all</button>
+                    </div>
+                    <p className="text-xs text-[#a09880] mb-4 bg-[rgba(90,80,60,0.04)] rounded-lg p-3">
+                      Posts you've read for 10+ seconds. Used to personalise your feed and avoid repeats.
+                      <Link to="/settings/topics" className="text-[#e85d26] hover:underline ml-1">Manage preferences →</Link>
+                    </p>
+                    <div className="space-y-2">
+                      {READING_HISTORY.map((h, i) => (
+                        <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(90,80,60,0.08)]">
+                          <div className="h-8 w-8 rounded-lg bg-[rgba(90,80,60,0.06)] flex items-center justify-center text-sm font-bold text-[#a09880] shrink-0">{i + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <Link to={`/blog/${h.id}`} className="text-sm font-semibold text-[#1a1814] hover:text-[#e85d26] transition-colors line-clamp-1">{h.title}</Link>
+                            <p className="text-xs text-[#a09880] mt-0.5">@{h.author} · {h.duration} · {h.time}</p>
+                          </div>
+                          <button className="text-[#a09880] hover:text-red-500 transition-colors p-1 shrink-0">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Communities ── */}
+              {section === "communities" && (
+                <motion.div key="communities" {...fadeProps}>
+                  <Card>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">My Communities</p>
+                      <Link to="/communities" className="text-xs text-[#e85d26] font-semibold hover:underline">Browse all →</Link>
+                    </div>
+                    <div className="space-y-2">
+                      {MY_COMMUNITIES.map((c) => (
+                        <Link key={c.slug} to={`/communities/${c.slug}`} className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(90,80,60,0.08)] hover:border-[rgba(232,93,38,0.2)] transition-all group">
+                          <span className="text-2xl">{c.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#1a1814] group-hover:text-[#e85d26] transition-colors">{c.name}</p>
+                            <p className="text-xs text-[#a09880]">{c.members.toLocaleString()} members</p>
+                          </div>
+                          {c.role === "admin" && <span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5 font-semibold">Admin</span>}
+                        </Link>
+                      ))}
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Notifications ── */}
+              {section === "notifications" && (
+                <motion.div key="notifications" {...fadeProps} className="space-y-4">
+                  <Card>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">Notifications</p>
+                      <button className="text-xs text-[#e85d26] font-semibold">Mark all read</button>
+                    </div>
+                    <div className="flex gap-1 mb-4">
+                      {["All", "Unread", "Mentions"].map((f) => (
+                        <button key={f} onClick={() => setNotifFilter(f)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${notifFilter === f ? "bg-[#fdf0ea] text-[#e85d26]" : "text-[#a09880] hover:bg-[rgba(90,80,60,0.06)]"}`}>
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="space-y-1">
+                      {NOTIFS.filter((n) => notifFilter === "All" || (notifFilter === "Unread" && n.unread) || (notifFilter === "Mentions" && n.type === "mention")).map((n) => (
+                        <div key={n.id} className={`flex items-start gap-3 p-3 rounded-xl transition-all cursor-pointer hover:bg-[rgba(90,80,60,0.03)] ${n.unread ? "bg-[rgba(232,93,38,0.03)]" : ""}`}>
+                          <span className="text-base mt-0.5">{n.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-[#1a1814]">{n.text}</p>
+                            {n.sub && <p className="text-xs text-[#a09880] mt-0.5 truncate">"{n.sub}"</p>}
+                            <p className="text-xs text-[#a09880] mt-0.5">{n.time}</p>
+                          </div>
+                          {n.unread && <div className="h-2 w-2 rounded-full bg-[#e85d26] shrink-0 mt-1.5" />}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Notification preferences</p>
+                    <div className="space-y-3">
+                      {[["likes", "Post likes"], ["comments", "New comments"], ["replies", "Replies to you"], ["mentions", "Mentions"], ["follows", "New followers"]].map(([key, label]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-sm text-[#1a1814]">{label}</span>
+                          <button onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
+                            className={`relative h-5 w-9 rounded-full transition-colors ${notifPrefs[key] ? "bg-[#e85d26]" : "bg-[rgba(90,80,60,0.2)]"}`}>
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${notifPrefs[key] ? "translate-x-4" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Topic Interests ── */}
+              {section === "interests" && (
+                <motion.div key="interests" {...fadeProps}>
+                  <Card>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#a09880]">Topic Interests</p>
+                      <Link to="/settings/topics" className="text-xs text-[#e85d26] font-semibold hover:underline">Advanced weights →</Link>
+                    </div>
+                    <p className="text-xs text-[#a09880] mb-4">Select topics to personalise your feed. For fine-grained weight control, use the advanced settings.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {TOPICS.map((t) => (
+                        <button key={t} onClick={() => toggleTopic(t)}
+                          className={`tag-pill transition-all ${selectedTopics.includes(t) ? "active" : ""}`}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                    <button className="mt-5 btn-primary text-xs px-4 py-2 rounded-lg">Save topics</button>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Edit Profile ── */}
+              {section === "profile" && (
+                <motion.div key="profile" {...fadeProps}>
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Edit Profile</p>
+                    <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[rgba(90,80,60,0.08)]">
+                      <div className="avatar h-16 w-16 text-xl">{(user?.username || "U")[0].toUpperCase()}</div>
+                      <div>
+                        <p className="text-sm font-bold text-[#1a1814]">@{user?.username}</p>
+                        <button className="text-xs text-[#e85d26] font-semibold hover:underline mt-1">Change avatar</button>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { label: "Full name", key: "full_name", placeholder: "Your name" },
+                        { label: "Bio", key: "bio", placeholder: "Tell the community about yourself" },
+                        { label: "Location", key: "location", placeholder: "City, Country" },
+                        { label: "Website", key: "website", placeholder: "https://yoursite.com" },
+                      ].map(({ label, key, placeholder }) => (
+                        <div key={key}>
+                          <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">{label}</label>
+                          <input value={profileForm[key]} onChange={(e) => setProfileForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} className="input-field" />
+                        </div>
+                      ))}
+                      <button className="btn-primary text-sm px-5 py-2.5 rounded-xl">Save changes</button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Account Settings ── */}
+              {section === "settings" && (
+                <motion.div key="settings" {...fadeProps} className="space-y-4">
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Account</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Username</label>
+                        <input defaultValue={user?.username} className="input-field" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Email</label>
+                        <input defaultValue={user?.email} className="input-field" />
+                      </div>
+                      <button className="btn-primary text-sm px-4 py-2 rounded-lg">Update</button>
+                    </div>
+                  </Card>
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Change password</p>
+                    <div className="space-y-3">
+                      {["Current password", "New password", "Confirm new password"].map((l) => (
+                        <input key={l} type="password" placeholder={l} className="input-field" />
+                      ))}
+                      <button className="btn-primary text-sm px-4 py-2 rounded-lg">Change password</button>
+                    </div>
+                  </Card>
+                  <Card className="border-red-200 bg-red-50/30">
+                    <p className="text-xs font-bold uppercase tracking-widest text-red-500 mb-3">Danger zone</p>
+                    {!showDeleteConfirm ? (
+                      <button onClick={() => setShowDeleteConfirm(true)} className="text-sm font-semibold text-red-600 hover:underline">Delete my account</button>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-red-700">This is permanent. Type <span className="font-mono font-bold">delete my account</span> to confirm.</p>
+                        <input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Type here..." className="input-field border-red-300" />
+                        <div className="flex gap-2">
+                          <button disabled={deleteConfirmText !== "delete my account"} className="btn-primary text-sm px-4 py-2 rounded-lg bg-red-600 shadow-[0_2px_8px_rgba(220,38,38,0.3)] hover:bg-red-700 disabled:opacity-40">Confirm delete</button>
+                          <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }} className="btn-secondary text-sm px-4 py-2 rounded-lg">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* ── Privacy ── */}
+              {section === "privacy" && (
+                <motion.div key="privacy" {...fadeProps} className="space-y-4">
+                  <Card>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Data & Tracking</p>
+                    <div className="space-y-4">
+                      {[
+                        { key: "reading_history", label: "Reading history tracking", desc: "Track posts you read to personalise your feed and avoid duplicates." },
+                        { key: "personalization", label: "Feed personalisation", desc: "Use your topic weights to rank your feed." },
+                        { key: "analytics", label: "Anonymous analytics", desc: "Help improve Nexos by sending anonymised usage data." },
+                      ].map(({ key, label, desc }) => (
+                        <div key={key} className="flex items-start gap-3 py-2 border-b border-[rgba(90,80,60,0.08)] last:border-0">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-[#1a1814]">{label}</p>
+                            <p className="text-xs text-[#a09880] mt-0.5">{desc}</p>
+                          </div>
+                          <button className="relative h-5 w-9 rounded-full bg-[#e85d26] shrink-0 mt-0.5">
+                            <span className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-white shadow" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex gap-3 flex-wrap">
+                      <button className="btn-secondary text-xs px-4 py-2 rounded-lg">Export my data</button>
+                      <Link to="/privacy" className="text-xs text-[#e85d26] font-semibold hover:underline self-center">View full privacy policy →</Link>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
             </AnimatePresence>
           </div>
         </div>
       </PageContainer>
-
-      {/* Delete account modal */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className="surface rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="text-3xl mb-3">⚠️</div>
-            <h3 className="font-display text-xl font-bold text-red-700 mb-2">Delete your account?</h3>
-            <p className="text-sm text-[#6b6358] mb-4">This will permanently delete all your posts, comments, saved content, and profile data. This cannot be undone.</p>
-            <p className="text-sm font-semibold text-[#1a1814] mb-2">Type your username to confirm:</p>
-            <input className="input-field mb-4" placeholder={user?.username || "username"} value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} />
-            <div className="flex gap-3">
-              <Button variant="danger" className="flex-1" disabled={deleteConfirmText !== (user?.username || "")}>Delete permanently</Button>
-              <Button variant="secondary" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}>Cancel</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }

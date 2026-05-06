@@ -139,8 +139,8 @@ def check_username(username:str=Query(... , min_length=3, max_length=50), db: Se
             detail="Failed to check username availability"
         )
 
-    user_repo = UserRepository(db)
-    user = user_repo.get_by_username(username)
+    user_repo = UserRepository()
+    user = user_repo.get_by_username(username, db)
     is_available = user is None
     
     # 4. Update Cache (Store for 5 minutes)

@@ -5,6 +5,9 @@ import { PostsProvider } from "./contexts/PostsContext";
 import { CategoriesProvider } from "./contexts/CategoriesContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import ConsentBanner from "./components/ConsentBanner";
+
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
@@ -20,9 +23,20 @@ import BlogDetail from "./pages/BlogDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
+
+
+import UserProfile from "./pages/UserProfile";
+import CommunityList from "./pages/CommunityList";
+import CommunityDetail from "./pages/CommunityDetail";
+import CommunityRules from "./pages/CommunityRules";
+import CommunityCreatePost from "./pages/CommunityCreatePost";
+import SettingsTopics from "./pages/SettingsTopics";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+
 import { AnimatePresence } from "framer-motion";
 import ToastViewport from "./components/ui/ToastViewport";
 import { ToastProvider } from "./contexts/ToastContext";
+import SearchPage from "./pages/SearchPage";
 
 const App: React.FC = () => {
   return (
@@ -37,6 +51,7 @@ const App: React.FC = () => {
                 <main className="flex-grow">
                   <AnimatePresence mode="wait">
                     <Routes>
+                      {/* Existing */}
                       <Route path="/" element={<Home />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/signup" element={<Signup />} />
@@ -52,10 +67,22 @@ const App: React.FC = () => {
                       <Route path="/features" element={<Features />} />
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/:slug" element={<BlogDetail />} />
+                      <Route path="/search" element={<SearchPage />} />
+
+                      {/* New routes */}
+                      <Route path="/u/:username" element={<UserProfile />} />
+                      <Route path="/communities" element={<CommunityList />} />
+                      <Route path="/communities/:slug" element={<CommunityDetail />} />
+                      <Route path="/communities/:slug/rules" element={<CommunityRules />} />
+                      <Route path="/communities/:slug/create-post" element={<CommunityCreatePost />} />
+                      <Route path="/settings/topics" element={<SettingsTopics />} />
+                      <Route path="/privacy" element={<PrivacyPolicy />} />
                     </Routes>
                   </AnimatePresence>
                 </main>
                 <Footer />
+                {/* Consent banner — shown once to new visitors */}
+                <ConsentBanner />
               </div>
             </Router>
           </CategoriesProvider>
