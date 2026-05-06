@@ -1,11 +1,11 @@
 import datetime
 from time import timezone
-from backend.app.models.ReadingHistoryModel import ReadingHistory
+from app.models.ReadingHistoryModel import ReadingHistory
 import cloudinary
 import cloudinary.uploader
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from slugify import slugify
 from fastapi import HTTPException, UploadFile, BackgroundTasks
 
@@ -167,72 +167,85 @@ class PostRepository:
     #  PERSONALIZED FEED                                                   #
     # ------------------------------------------------------------------ #
 
-# ─── replace fetch_feed_for_user ───────────────────────────────────────────────
-@staticmethod
-def fetch_feed_for_user(
-    db: Session,
-    user_id: int,
-    skip: int = 0,
-    limit: int = 20,
-) -> List[Post]:
-    cutoff = datetime.utcnow() - datetime.timedelta(hours=24)  # ✅ Python timedelta, no SQL interval bug
-
-    interest_score = (
-        db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
-        .outerjoin(PostTag, PostTag.post_id == Post.id)
-        .outerjoin(Tag, Tag.name == PostTag.tag)
-        .outerjoin(
-            UserInterest,
-            (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
+    # ------------------------------------------------------------------ #
+    #  COMMUNITY                                                           #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def get_by_community(db: Session, community_id: int, skip: int = 0, limit: int = 20) -> List[Post]:
+        return (
+            db.query(Post)
+            .filter(Post.community_id == community_id, Post.is_active == True)
+            .order_by(Post.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
         )
-        .filter(Post.is_active == True)
-        .group_by(Post.id)
-        .subquery()
-    )
 
-    recently_read = (
-        db.query(ReadingHistory.post_id)
-        .filter(
-            ReadingHistory.user_id == user_id,
-            ReadingHistory.created_at > cutoff,  # ✅ plain Python datetime
+    # ------------------------------------------------------------------ #
+    #  PERSONALIZED FEED                                                   #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def fetch_feed_for_user(
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> List[Post]:
+        cutoff = datetime.utcnow() - datetime.timedelta(hours=24)
+
+        interest_score = (
+            db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
+            .outerjoin(PostTag, PostTag.post_id == Post.id)
+            .outerjoin(Tag, Tag.name == PostTag.tag)
+            .outerjoin(
+                UserInterest,
+                (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
+            )
+            .filter(Post.is_active == True)
+            .group_by(Post.id)
+            .subquery()
         )
-        .subquery()
-    )
 
-    posts = (
-        db.query(Post)
-        .outerjoin(interest_score, interest_score.c.id == Post.id)
-        .outerjoin(recently_read, recently_read.c.post_id == Post.id)
-        .filter(Post.is_active == True)
-        .order_by(
-            func.coalesce(interest_score.c.score, 0).desc(),
-            case(
-                (recently_read.c.post_id != None, 0),  # ✅ SQLAlchemy 2.x case() syntax
-                else_=1,
-            ).desc(),
-            Post.created_at.desc(),
+        recently_read = (
+            db.query(ReadingHistory.post_id)
+            .filter(
+                ReadingHistory.user_id == user_id,
+                ReadingHistory.created_at > cutoff,
+            )
+            .subquery()
         )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-    return posts
 
-# ─── add below existing record_like / record_view ──────────────────────────────
-@staticmethod
-def increment_trending_score(db: Session, post: Post, delta: float) -> None:
-    """Time-decayed trending score — half-life 24h so old posts fall off naturally."""
-    now = datetime.now(timezone.utc)
-    created = post.created_at
-    if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
+        posts = (
+            db.query(Post)
+            .outerjoin(interest_score, interest_score.c.id == Post.id)
+            .outerjoin(recently_read, recently_read.c.post_id == Post.id)
+            .filter(Post.is_active == True)
+            .order_by(
+                func.coalesce(interest_score.c.score, 0).desc(),
+                case(
+                    (recently_read.c.post_id != None, 0),
+                    else_=1,
+                ).desc(),
+                Post.created_at.desc(),
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return posts
 
-    age_hours = (now - created).total_seconds() / 3600
-    decay = 0.5 ** (age_hours / 24)
-    post.trending_score = (post.trending_score or 0.0) + delta * decay
-    # caller must db.commit()
-    
-    
+    @staticmethod
+    def increment_trending_score(db: Session, post: Post, delta: float) -> None:
+        """Time-decayed trending score — half-life 24h so old posts fall off naturally."""
+        now = datetime.now(timezone.utc)
+        created = post.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+
+        age_hours = (now - created).total_seconds() / 3600
+        decay = 0.5 ** (age_hours / 24)
+        post.trending_score = (post.trending_score or 0.0) + delta * decay
+        # caller must db.commit()
 
     # ------------------------------------------------------------------ #
     #  DELETE                                                              #

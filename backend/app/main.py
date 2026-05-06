@@ -35,7 +35,13 @@ from app.api.v1.enpoint.admin.questions import router as admin_question_router
 
 ## Social / Onboarding system routers
 from app.api.v1.enpoint.userEndpoint import router as user_onboarding_router
+from app.api.v1.enpoint.readingHistoryEndpoint import router as history_router
+from app.api.v1.enpoint.communityEndpoint import router as community_router
+from app.api.v1.enpoint.aiEndpoint import router as ai_router
 
+app.include_router(history_router, prefix="/api/v1")
+app.include_router(community_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(post_router, prefix="/api/v1")
 app.include_router(comment_router, prefix="/api/v1")

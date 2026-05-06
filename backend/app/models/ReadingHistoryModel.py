@@ -9,7 +9,7 @@ class ReadingHistory(BaseModel):
     __tablename__ = "reading_history"
 
     # Foreign keys to find whose users read which posts
-    user_id = Column(Integer,ForeignKey("user.id" ,ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer,ForeignKey("users.id" ,ondelete="CASCADE"), nullable=False)
     post_id = Column(Integer, ForeignKey("posts.id",ondelete="CASCADE"), nullable=False)
 
 

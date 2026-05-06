@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
+import { apiClientCore } from "../services/api/client";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -36,10 +37,43 @@ export default function Signup() {
   const { register, loading, error } = useAuth();
   const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
   const [agreed, setAgreed] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState('idle'); // idle | checking | available | taken
+  const [usernameMsg, setUsernameMsg] = useState('');
+  const debounceRef = useRef(null);
+
+  // Debounced username availability check
+  useEffect(() => {
+    const username = form.username.trim().toLowerCase();
+    if (username.length < 3) {
+      setUsernameStatus('idle');
+      setUsernameMsg('');
+      return;
+    }
+    setUsernameStatus('checking');
+    setUsernameMsg('Checking availability...');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await apiClientCore.request(`/api/v1/auth/check-username?username=${encodeURIComponent(username)}`, { method: "GET" });
+        if (data.available) {
+          setUsernameStatus('available');
+          setUsernameMsg('Username available');
+        } else {
+          setUsernameStatus('taken');
+          setUsernameMsg('Username is already taken');
+        }
+      } catch {
+        setUsernameStatus('idle');
+        setUsernameMsg('');
+      }
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [form.username]);
 
   const submit = async (e) => {
     e.preventDefault();
     if (!agreed) return;
+    if (usernameStatus === 'taken') return;
     try {
       await register({ email: form.email, password: form.password, username: form.username || form.name, full_name: form.name });
       navigate("/verify-otp");
@@ -88,7 +122,25 @@ export default function Signup() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <Input label="Full name" placeholder="Jane Doe" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              <Input label="Username" placeholder="@janedoe" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.replace("@", "") })} hint="Public display name" />
+              <div className="relative">
+                <Input label="Username" placeholder="@janedoe" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.replace("@", "") })} required />
+                {usernameStatus !== 'idle' && (
+                  <span className={`absolute right-3 top-[34px] text-xs font-medium ${
+                    usernameStatus === 'available' ? 'text-green-600' :
+                    usernameStatus === 'taken' ? 'text-red-500' :
+                    'text-[#a09880]'
+                  }`}>
+                    {usernameStatus === 'checking' && (
+                      <svg className="inline w-3 h-3 animate-spin mr-1" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeDasharray="60 30" />
+                      </svg>
+                    )}
+                    {usernameStatus === 'available' && '✓'}
+                    {usernameStatus === 'taken' && '✗'}
+                    {' '}{usernameMsg}
+                  </span>
+                )}
+              </div>
             </div>
             <Input label="Email address" type="email" placeholder="jane@company.com" icon="✉️"
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
@@ -106,7 +158,7 @@ export default function Signup() {
                 I agree to the <Link to="/about" className="text-[#e85d26] hover:underline">Terms of Service</Link> and <Link to="/about" className="text-[#e85d26] hover:underline">Privacy Policy</Link>
               </span>
             </label>
-            <Button type="submit" className="w-full" disabled={loading || !agreed} size="lg">
+            <Button type="submit" className="w-full" disabled={loading || !agreed || usernameStatus === 'taken'} size="lg">
               {loading ? "Creating account..." : "Create free account →"}
             </Button>
           </form>
