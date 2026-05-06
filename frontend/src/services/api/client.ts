@@ -40,14 +40,16 @@ export class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
-        );
+        const message = errorData.detail || `HTTP ${response.status}: ${response.statusText}`;
+        // Don't log 401/403 as errors — those are normal auth states
+        if (response.status !== 401 && response.status !== 403) {
+          console.error("API request failed:", message);
+        }
+        throw new Error(message);
       }
 
       return await response.json();
     } catch (error) {
-      console.error("API request failed:", error);
       throw error;
     }
   }

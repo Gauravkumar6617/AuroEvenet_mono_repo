@@ -24,6 +24,7 @@ from app.api.v1.enpoint.auth import router as auth_router
 from app.api.v1.enpoint.postEnpoint import router as post_router
 from app.api.v1.enpoint.commentEndpoint import router as comment_router
 from app.api.v1.enpoint.likeEndpoint import router as like_router
+from app.api.v1.enpoint.categories import router as public_category_router
 
 
 
@@ -46,6 +47,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(post_router, prefix="/api/v1")
 app.include_router(comment_router, prefix="/api/v1")
 app.include_router(like_router, prefix="/api/v1")
+app.include_router(public_category_router, prefix="/api/v1")
 app.include_router(admin_category_router, prefix="/api/v1")
 app.include_router(admin_topic_router, prefix="/api/v1")
 app.include_router(admin_question_router, prefix="/api/v1")

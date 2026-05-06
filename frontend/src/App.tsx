@@ -7,6 +7,9 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ConsentBanner from "./components/ConsentBanner";
 
+import { GuestRoute } from "./components/routing/GuestRoute";
+import { ProtectedRoute } from "./components/routing/ProtectedRoute";
+import { RoleGuard } from "./components/routing/RoleGuard";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -23,7 +26,7 @@ import BlogDetail from "./pages/BlogDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
-
+import NotFound from "./pages/NotFound";
 
 import UserProfile from "./pages/UserProfile";
 import CommunityList from "./pages/CommunityList";
@@ -51,37 +54,55 @@ const App: React.FC = () => {
                 <main className="flex-grow">
                   <AnimatePresence mode="wait">
                     <Routes>
-                      {/* Existing */}
+                      {/* Public */}
                       <Route path="/" element={<Home />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/signup" element={<Signup />} />
-                      <Route path="/verify-otp" element={<VerifyOtp />} />
-                      <Route path="/forgot-password" element={<ForgotPassword />} />
-                      <Route path="/oauth/callback" element={<OAuthCallback />} />
-                      <Route path="/dashboard" element={<UserDashboard />} />
-                      <Route path="/admin" element={<AdminDashboard />} />
-                      <Route path="/super-admin" element={<SuperAdminDashboard />} />
-                      <Route path="/create-post" element={<CreatePost />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/features" element={<Features />} />
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/:slug" element={<BlogDetail />} />
                       <Route path="/search" element={<SearchPage />} />
-
-                      {/* New routes */}
-                      <Route path="/u/:username" element={<UserProfile />} />
                       <Route path="/communities" element={<CommunityList />} />
                       <Route path="/communities/:slug" element={<CommunityDetail />} />
                       <Route path="/communities/:slug/rules" element={<CommunityRules />} />
-                      <Route path="/communities/:slug/create-post" element={<CommunityCreatePost />} />
-                      <Route path="/settings/topics" element={<SettingsTopics />} />
                       <Route path="/privacy" element={<PrivacyPolicy />} />
+
+                      {/* Auth callbacks — public but state-aware */}
+                      <Route path="/oauth/callback" element={<OAuthCallback />} />
+
+                      {/* Guest-only (redirect to home if already logged in) */}
+                      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                      <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
+                      <Route path="/verify-otp" element={<GuestRoute><VerifyOtp /></GuestRoute>} />
+                      <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+
+                      {/* Authenticated only */}
+                      <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+                      <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+                      <Route path="/u/:username" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+                      <Route path="/settings/topics" element={<ProtectedRoute><SettingsTopics /></ProtectedRoute>} />
+                      <Route path="/communities/:slug/create-post" element={<ProtectedRoute><CommunityCreatePost /></ProtectedRoute>} />
+
+                      {/* Admin only */}
+                      <Route path="/admin" element={
+                        <RoleGuard allowedRoles={["admin", "super_admin"]}>
+                          <AdminDashboard />
+                        </RoleGuard>
+                      } />
+
+                      {/* Super-admin only */}
+                      <Route path="/super-admin" element={
+                        <RoleGuard allowedRoles={["super_admin"]}>
+                          <SuperAdminDashboard />
+                        </RoleGuard>
+                      } />
+
+                      {/* 404 fallback */}
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                   </AnimatePresence>
                 </main>
                 <Footer />
-                {/* Consent banner — shown once to new visitors */}
                 <ConsentBanner />
               </div>
             </Router>
