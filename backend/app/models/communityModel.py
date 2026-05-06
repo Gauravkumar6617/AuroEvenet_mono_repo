@@ -8,10 +8,12 @@ class Community(BaseModel):
     __tablename__ = "communities"
     
     name = Column(String(255), nullable=False,unique=True) #identity
-    description = Column(String(255), nullable=True,unique=True) #description
+    slug = Column(String(255), nullable=False, unique=True)
+    description = Column(String(255), nullable=True) #description
     is_active = Column(Boolean, nullable=False, default=True) #active
     icon_url = Column(String(255), nullable=True) #icon
     rules = Column(Text, nullable=True) #rules
+    tags = Column(String(255), nullable=True) #tags (comma-separated)
 
     #user
     members_count = Column(Integer, default=0)

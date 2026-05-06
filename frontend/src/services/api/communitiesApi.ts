@@ -21,12 +21,12 @@ export interface CommunityMemberResponse {
 }
 
 export const communitiesApi = {
-  createCommunity(data: { name: string; description?: string }) {
+  createCommunity(formData: FormData) {
     return apiClientCore.request<{ id: number; slug: string }>(
       "/api/v1/community",
       {
         method: "POST",
-        body: JSON.stringify(data),
+        body: formData,
       },
     );
   },

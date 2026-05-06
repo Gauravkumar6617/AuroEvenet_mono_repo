@@ -16,6 +16,10 @@ export interface Post {
   title: string;
   content: string;
   category_id: number;
+  category_name?: string;
+  author_id: number;
+  author_name?: string;
+  community_id?: number;
   slug: string;
   thumbnail_url: string;
   is_active: boolean;
@@ -24,7 +28,6 @@ export interface Post {
   like_count: number;
   comment_count: number;
   share_count: number;
-  author_id: number;
   created_at: string;
   tags: string[];
 }

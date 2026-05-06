@@ -1,5 +1,12 @@
+import sqlalchemy as sa
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+import cloudinary
+import cloudinary.uploader
+from app.core.config import settings
+from fastapi import UploadFile, HTTPException
 from app.models.communityModel import Community , CommunityMember
+from app.models.userModel import User
 from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
 from typing import Optional
 from typing import List
@@ -32,11 +39,32 @@ class CommunityRepositories:
             print(f"Error checking if slug exists: {e}")
             return False
 
-     ####to create community       
     @staticmethod
-    def create_community(db: Session, name:str,description:str,slug:str,rules:str,created_by_id:int):
+    def _init_cloudinary():
+        cloudinary.config(
+            cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+            api_key=settings.CLOUDINARY_API_KEY,
+            api_secret=settings.CLOUDINARY_API_SECRET,
+        )
+
+    @staticmethod
+    def create_community(db: Session, name:str,description:str,slug:str,rules:str,created_by_id:int, icon_image:UploadFile = None, tags:str = None):
+        CommunityRepositories._init_cloudinary()
+        icon_url = None
+        if icon_image:
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    icon_image.file,
+                    folder="blogbyte/communities",
+                    transformation={"width": 128, "height": 128, "crop": "fill"},
+                )
+                icon_url = upload_result.get("secure_url")
+            except Exception as e:
+                print(f"Icon upload failed: {e}")
+                # Optional: continue with icon_url = None, or raise
+
         try:
-            db_community = Community(name=name,description=description,slug=slug,rules=rules,created_by_id=created_by_id,members_count=1)
+            db_community = Community(name=name,description=description,slug=slug,rules=rules,created_by_id=created_by_id,members_count=1, icon_url=icon_url, tags=tags)
             db.add(db_community)
             db.flush()  # Get the ID without committing
             db.add(CommunityMember(community_id=db_community.id, user_id=created_by_id, role="admin"))
@@ -44,8 +72,9 @@ class CommunityRepositories:
             db.refresh(db_community)
             return db_community
         except Exception as e:
+            db.rollback()
             print(f"Error creating community: {e}")
-            return None
+            raise e
 
     ####get only active communities
     @staticmethod
@@ -58,14 +87,31 @@ class CommunityRepositories:
     
     ###get all members of a community (optionally filter by user_id)
     @staticmethod
-    def get_members(db: Session, community_id: int, user_id: Optional[int] = None) -> List[CommunityMember]:
+    def get_members(db: Session, community_id: int, user_id: Optional[int] = None) -> List[dict]:
         try:
-            query = db.query(CommunityMember).filter(CommunityMember.community_id == community_id)
+            query = db.query(
+                CommunityMember.community_id,
+                CommunityMember.user_id,
+                CommunityMember.role,
+                CommunityMember.joined_at,
+                User.username
+            ).join(User, User.id == CommunityMember.user_id).filter(CommunityMember.community_id == community_id)
+            
             if user_id is not None:
                 query = query.filter(CommunityMember.user_id == user_id)
-            return query.all()
+            
+            results = query.all()
+            return [
+                {
+                    "community_id": r.community_id,
+                    "user_id": r.user_id,
+                    "role": r.role,
+                    "joined_at": r.joined_at,
+                    "username": r.username
+                } for r in results
+            ]
         except Exception as e:
-            print(f"Error getting community member: {e}")
+            print(f"Error getting community members: {e}")
             return []
     ###to add memeber consurrently
     @staticmethod
@@ -94,7 +140,7 @@ class CommunityRepositories:
         if deleted:
             # ✅ Atomic decrement, floor at 0
             db.query(Community).filter(Community.id == community_id).update(
-                {Community.member_count: func.greatest(Community.member_count - 1, 0)},
+                {Community.members_count: func.greatest(Community.members_count - 1, 0)},
                 synchronize_session="fetch",
             )
             db.commit()

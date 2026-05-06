@@ -40,6 +40,11 @@ from app.api.v1.enpoint.readingHistoryEndpoint import router as history_router
 from app.api.v1.enpoint.communityEndpoint import router as community_router
 from app.api.v1.enpoint.aiEndpoint import router as ai_router
 
+
+###cron router
+from app.api.cron import router as cron_router
+app.include_router(cron_router)
+
 app.include_router(history_router, prefix="/api/v1")
 app.include_router(community_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")

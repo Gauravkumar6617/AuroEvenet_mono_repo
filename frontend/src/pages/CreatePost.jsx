@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePosts } from "../contexts/PostsContext";
 import { useCategories } from "../contexts/CategoriesContext";
+import { useCommunities } from "../contexts/CommunityContext";
 import { useAuth } from "../contexts/AuthContext";
 import PageContainer from "../components/layout/PageContainer";
 import Button from "../components/ui/Button";
@@ -14,19 +15,21 @@ export default function CreatePost() {
   const navigate = useNavigate();
   const { createPost } = usePosts();
   const { categories, fetchCategories } = useCategories();
+  const { communities, fetchCommunities } = useCommunities();
   const { isAuthenticated } = useAuth();
   const [mode, setMode] = useState("Question");
   const [saving, setSaving] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
   const [aiTagSuggestions, setAiTagSuggestions] = useState([]);
-  const [form, setForm] = useState({ title: "", content: "", category_id: "", tags: "", thumbnail: null });
+  const [form, setForm] = useState({ title: "", content: "", category_id: "", community_id: "", tags: [], thumbnail: null });
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/login");
     fetchCategories();
-  }, [isAuthenticated, navigate, fetchCategories]);
+    fetchCommunities();
+  }, [isAuthenticated, navigate, fetchCategories, fetchCommunities]);
 
   // Auto-suggest tags as title is typed
   useEffect(() => {
@@ -50,17 +53,27 @@ export default function CreatePost() {
   };
 
   const addTag = (tag) => {
-    const current = form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
-    if (!current.includes(tag)) {
-      setForm(f => ({ ...f, tags: [...current, tag].join(", ") }));
+    if (!form.tags.includes(tag)) {
+      setForm(f => ({ ...f, tags: [...f.tags, tag] }));
     }
+  };
+
+  const removeTag = (tag) => {
+    setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }));
   };
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await createPost({ title: form.title, content: form.content, category_id: Number(form.category_id), tags: form.tags, thumbnail: form.thumbnail });
+      await createPost({
+        title: form.title,
+        content: form.content,
+        category_id: Number(form.category_id),
+        community_id: form.community_id ? Number(form.community_id) : undefined,
+        tags: form.tags.join(","),
+        thumbnail: form.thumbnail
+      });
       navigate("/blog");
     } finally { setSaving(false); }
   };
@@ -179,12 +192,39 @@ export default function CreatePost() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Tags (comma-separated)</label>
-                  <input className="input-field" placeholder="e.g. react, performance, ssr" value={form.tags}
-                    onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+                  <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Community (Optional)</label>
+                  <select className="input-field" value={form.community_id} onChange={(e) => setForm({ ...form, community_id: e.target.value })}>
+                    <option value="">No community (Post to general feed)</option>
+                    {communities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Tags</label>
+                  <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 rounded-xl bg-[rgba(90,80,60,0.03)] border border-[rgba(90,80,60,0.08)]">
+                    {form.tags.length === 0 && <span className="text-xs text-[#a09880] p-1">No tags added yet</span>}
+                    {form.tags.map(t => (
+                      <span key={t} className="tag-pill py-1 px-2.5 text-xs bg-[#fdf0ea] text-[#e85d26] flex items-center gap-1.5 animate-in fade-in zoom-in duration-200">
+                        #{t}
+                        <button type="button" onClick={() => removeTag(t)} className="hover:text-red-500 transition-colors">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                  <input className="input-field" placeholder="Type a tag and press Enter..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = e.target.value.trim().replace(/^#/, '');
+                        if (val) addTag(val);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {SUGGESTED_TAGS.slice(0, 6).map(t => (
-                      <button key={t} type="button" onClick={() => addTag(t)} className="tag-pill py-0.5 text-xs">#{t}</button>
+                    {SUGGESTED_TAGS.slice(0, 8).map(t => (
+                      <button key={t} type="button" onClick={() => addTag(t)}
+                        className={`tag-pill py-1 px-2.5 text-xs transition-all ${form.tags.includes(t) ? "bg-[#e85d26] text-white opacity-50 cursor-not-allowed" : "hover:bg-[rgba(90,80,60,0.06)]"}`}>
+                        #{t}
+                      </button>
                     ))}
                   </div>
                 </div>

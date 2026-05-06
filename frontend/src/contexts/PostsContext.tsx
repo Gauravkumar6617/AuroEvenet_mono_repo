@@ -33,10 +33,12 @@ interface PostsContextType extends PostsState {
     title: string;
     content: string;
     category_id: number;
+    community_id?: number;
     tags?: string;
     thumbnail: File;
   }) => Promise<Post>;
   deletePost: (postId: number) => Promise<void>;
+  searchPosts: (query: string) => Promise<void>;
   clearError: () => void;
   setCurrentPost: (post: Post | null) => void;
 }
@@ -139,6 +141,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       title: string;
       content: string;
       category_id: number;
+      community_id?: number;
       tags?: string;
       thumbnail: File;
     }) => {
@@ -148,6 +151,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
           title: postData.title,
           content: postData.content,
           category_id: postData.category_id,
+          community_id: postData.community_id,
           tags: postData.tags || "",
           thumbnail: postData.thumbnail,
         })) as Post;
@@ -180,6 +184,22 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
     [removePost, setLoading, setError],
   );
 
+  const searchPosts = useCallback(
+    async (query: string) => {
+      setLoading(true);
+      try {
+        const response = await apiClient.searchPosts(query);
+        setPosts(response, response.length);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Search failed";
+        setError(errorMessage);
+        throw error;
+      }
+    },
+    [setPosts, setLoading, setError],
+  );
+
   const clearError = useCallback(() => {
     clearErrorStore();
   }, [clearErrorStore]);
@@ -203,6 +223,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       fetchPostBySlug,
       createPost,
       deletePost,
+      searchPosts,
       clearError,
       setCurrentPost,
     }),
@@ -217,6 +238,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       fetchPostBySlug,
       createPost,
       deletePost,
+      searchPosts,
       clearError,
       setCurrentPost,
     ],

@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
 
+    @property
     def Redis_URL(self) -> str:
         if self.REDIS_PASSWORD:
             return f"redis://{self.REDIS_USERNAME}:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}"
@@ -55,6 +56,10 @@ class Settings(BaseSettings):
 
 
     SENTRY_DSN: str
+
+
+    ####cronapi key
+    CRON_SECRET: str
 
     FRONTEND_URL: str = "https://blog-byte-mono-repo.vercel.app"
 
