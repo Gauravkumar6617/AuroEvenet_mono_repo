@@ -115,7 +115,7 @@ class PostRepository:
         # 4. Upsert Tags and create PostTag join rows
         tag_objects = _upsert_tags(db, tags)
         for tag in tag_objects:
-            db.add(PostTag(post_id=new_post.id, tag_id=tag.id))
+            db.add(PostTag(post_id=new_post.id, tag=tag.name))
             # Increment tag.post_count
             tag.post_count = (tag.post_count or 0) + 1
 
@@ -258,10 +258,11 @@ class PostRepository:
         if post.author_id != author_id:
             raise HTTPException(status_code=403, detail="Not allowed to delete this post")
 
-        # Decrement post_count on each associated tag
+        # Decrement post_count on each associated tag (look up by name string)
         for pt in post.post_tags:
-            if pt.tag and pt.tag.post_count > 0:
-                pt.tag.post_count -= 1
+            tag = db.query(Tag).filter(Tag.name == pt.tag).first() if pt.tag else None
+            if tag and tag.post_count and tag.post_count > 0:
+                tag.post_count -= 1
 
         db.delete(post)
         db.commit()
@@ -273,14 +274,16 @@ class PostRepository:
     @staticmethod
     def record_like(db: Session, user_id: int, post: Post):
         """Call this when a user likes a post to update their tag interests."""
-        tags = [pt.tag for pt in post.post_tags if pt.tag]
+        tag_names = [pt.tag for pt in post.post_tags if pt.tag]
+        tags = db.query(Tag).filter(Tag.name.in_(tag_names)).all()
         _bump_user_interests(db, user_id, tags, increment=2.0)
         db.commit()
 
     @staticmethod
     def record_view(db: Session, user_id: int, post: Post):
         """Call this when a user reads a post to gently update their interests."""
-        tags = [pt.tag for pt in post.post_tags if pt.tag]
+        tag_names = [pt.tag for pt in post.post_tags if pt.tag]
+        tags = db.query(Tag).filter(Tag.name.in_(tag_names)).all()
         _bump_user_interests(db, user_id, tags, increment=0.5)
         post.view_count = (post.view_count or 0) + 1
         db.commit()

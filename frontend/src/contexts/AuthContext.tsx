@@ -67,43 +67,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   } = useAuthStore();
 
   useEffect(() => {
-    // Check if user is already stored in localStorage on mount
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (token && userData) {
+    // Fetch real user from /auth/me on mount (backend uses HttpOnly cookies)
+    const initAuth = async () => {
       try {
-        const user = JSON.parse(userData);
+        const user = await authApi.getMe();
         setAuth(user);
-      } catch (error) {
-        logoutStore();
+      } catch {
+        // 401 is expected for anonymous users — only clear if we had a stale session
+        if (isAuthenticated) {
+          logoutStore();
+        }
       }
-    }
-  }, [setAuth, logoutStore]);
+    };
+    initAuth();
+  }, [setAuth, logoutStore, isAuthenticated]);
 
   const login = useCallback(
     async (email: string, password: string) => {
       setLoading(true);
       try {
-        const response = await authApi.login({
+        await authApi.login({
           email,
           password,
           user_Agent: navigator.userAgent,
         });
 
-        // Since backend doesn't return user in login response, create a minimal user object
-        // You might want to add a /me endpoint to get full user details
-        const user: User = {
-          id: 0, // This should come from the API
-          email,
-          username: email.split("@")[0],
-          is_active: true,
-          is_verified: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        localStorage.setItem("user", JSON.stringify(user));
+        // Backend sets HttpOnly cookies — fetch real user profile
+        const user = await authApi.getMe();
         setAuth(user);
         showToast("Logged in successfully", "success");
       } catch (error) {
@@ -155,18 +145,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const response = await authApi.verifyOTP({ email, otp });
         if (response.success) {
-          // Create a minimal user object after successful OTP verification
-          const user: User = {
-            id: 0, // This should come from the API
-            email,
-            username: email.split("@")[0],
-            is_active: true,
-            is_verified: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-
-          localStorage.setItem("user", JSON.stringify(user));
+          // Backend sets cookies after OTP — fetch real user profile
+          const user = await authApi.getMe();
           setAuth(user);
           showToast("Email verified. Welcome to Nexos!", "success");
         }

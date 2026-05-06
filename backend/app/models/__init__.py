@@ -17,7 +17,15 @@ from app.models.topicModel import Topic
 from app.models.onboardingQuestionModel import OnboardingQuestion
 from app.models.userPreferenceModel import UserPreference
 
-from app.models.models_enum import UserRole, AuthProvider
+# AI
+
+
+#community
+
+from app.models.communityModel import Community
+
+from app.models.ReadingHistoryModel import ReadingHistory
+
 
 __all__ = [
     "Base",
@@ -35,4 +43,7 @@ __all__ = [
     "Topic",
     "OnboardingQuestion",
     "UserPreference",
+    "Community",
+    "ReadingHistory",
 ]
+

@@ -16,15 +16,11 @@ export const postsApi = {
     if (postData.tags) formData.append("tags", postData.tags);
     formData.append("thumbnail", postData.thumbnail, postData.thumbnail.name);
 
-    return apiClientCore.request<Post>(
-      "/api/v1/posts/",
-      {
-        method: "POST",
-        body: formData,
-        headers: {},
-      },
-      true,
-    );
+    return apiClientCore.request<Post>("/api/v1/posts/", {
+      method: "POST",
+      body: formData,
+      headers: {},
+    });
   },
 
   getAllPosts(params?: Record<string, string | number | boolean>) {
@@ -39,7 +35,7 @@ export const postsApi = {
 
     return apiClientCore.request<Post[]>(`/api/v1/posts/${queryParams}`, {
       method: "GET",
-    }, true);
+    });
   },
 
   getPostById(postId: number) {
@@ -52,6 +48,20 @@ export const postsApi = {
     return apiClientCore.request<Post>(`/api/v1/posts/slug/${slug}`, {
       method: "GET",
     });
+  },
+
+  searchPosts(query: string, skip = 0, limit = 10) {
+    return apiClientCore.request<Post[]>(
+      `/api/v1/posts/search?q=${encodeURIComponent(query)}&skip=${skip}&limit=${limit}`,
+      { method: "GET" },
+    );
+  },
+
+  getPersonalizedFeed(skip = 0, limit = 20) {
+    return apiClientCore.request<Post[]>(
+      `/api/v1/posts/feed?skip=${skip}&limit=${limit}`,
+      { method: "GET" },
+    );
   },
 
   deletePost(postId: number) {
