@@ -4,6 +4,7 @@ import { usePosts } from "../contexts/PostsContext";
 import { useCategories } from "../contexts/CategoriesContext";
 import { useCommunities } from "../contexts/CommunityContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import PageContainer from "../components/layout/PageContainer";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
@@ -12,6 +13,8 @@ import Tabs from "../components/ui/Tabs";
 const SUGGESTED_TAGS = ["react", "python", "typescript", "fastapi", "devops", "system-design", "ai", "startup", "career", "frontend"];
 
 export default function CreatePost() {
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const { createPost } = usePosts();
   const { categories, fetchCategories } = useCategories();
@@ -74,7 +77,11 @@ export default function CreatePost() {
         tags: form.tags.join(","),
         thumbnail: form.thumbnail
       });
+      showToast("Post published successfully!", "success");
       navigate("/blog");
+    } catch (err) {
+      showToast("Failed to publish post. Please try again.", "error");
+      console.error(err);
     } finally { setSaving(false); }
   };
 

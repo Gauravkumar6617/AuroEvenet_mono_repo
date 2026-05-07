@@ -6,7 +6,7 @@ from app.db.session import get_db
 from app.repositories.postRepositories import PostRepository
 from app.schemas.postSchema import PostRead
 from app.models.userModel import User
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_user
 
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
@@ -72,9 +72,9 @@ async def fetch_all_posts(
 async def fetch_post_by_id(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Security(get_current_user, scopes=[]),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
-    post = PostRepository.fetch_post_by_id(db, post_id)
+    post = PostRepository.fetch_post_by_id(db, post_id, use_cache=current_user is None)
     # Record the view and update interests if user is logged in
     if current_user:
         PostRepository.record_view(db, current_user.id, post)

@@ -60,29 +60,26 @@ class PostRead(PostBase):
             # If it's an ORM object, we create a dict to ensure Pydantic 
             # picks up our custom 'tags' list instead of trying to 
             # find a 'tags' attribute on the ORM object which doesn't exist.
-            
-            # Use getattr to safely get all fields from the object
-            obj_dict = {
+
+            return {
                 "id": data.id,
                 "title": data.title,
                 "content": data.content,
                 "category_id": data.category_id,
                 "slug": data.slug,
-                "thumbnail_url": data.thumbnail_url,
+                "thumbnail_url": getattr(data, 'thumbnail_url', None),
                 "summary": data.summary,
                 "is_active": data.is_active,
                 "is_featured": data.is_featured,
-                "view_count": data.view_count,
-                "like_count": data.like_count,
-                "comment_count": data.comment_count,
-                "share_count": data.share_count,
+                "view_count": getattr(data, "view_count", 0) or 0,
+                "like_count": getattr(data, "like_count", 0) or 0,
+                "comment_count": getattr(data, "comment_count", 0) or 0,
+                "share_count": getattr(data, "share_count", 0) or 0,
                 "author_id": data.author_id,
                 "author_name": data.author.username if data.author else None,
-                "category_id": data.category_id,
+                "created_at": getattr(data, 'created_at', None),
                 "category_name": data.category.name if data.category else None,
                 "community_id": getattr(data, "community_id", None),
-                "created_at": data.created_at,
                 "tags": [pt.tag for pt in data.post_tags if pt.tag]
             }
-            return obj_dict
         return data

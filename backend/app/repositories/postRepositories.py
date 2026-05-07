@@ -1,19 +1,20 @@
 import datetime
-from time import timezone
 from app.models.ReadingHistoryModel import ReadingHistory
 import cloudinary
 import cloudinary.uploader
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, case
 from slugify import slugify
 from fastapi import HTTPException, UploadFile, BackgroundTasks
 
+from app.core.cache import cache_delete, cache_delete_pattern, cache_get_json, cache_set_json
 from app.models.postModel import Post
 from app.models.postTagModel import PostTag
 from app.models.tagModel import Tag
 from app.models.userInterestModel import UserInterest
 from app.core.config import settings
+from app.schemas.postSchema import PostRead
 from app.service.aiService import generate_summary
 
 
@@ -22,6 +23,28 @@ cloudinary.config(
     api_key=settings.CLOUDINARY_API_KEY,
     api_secret=settings.CLOUDINARY_API_SECRET,
 )
+
+POST_CACHE_TTL_SECONDS = 300
+POST_LIST_CACHE_TTL_SECONDS = 120
+
+
+def _serialize_post(post: Post) -> dict:
+    return PostRead.model_validate(post).model_dump(mode="json")
+
+
+def _post_cache_key(post_id: int) -> str:
+    return f"posts:detail:{post_id}"
+
+
+def _post_list_cache_key(skip: int, limit: int) -> str:
+    return f"posts:list:{skip}:{limit}"
+
+
+def _invalidate_post_cache(post_id: int | None = None, include_lists: bool = True) -> None:
+    if post_id is not None:
+        cache_delete(_post_cache_key(post_id))
+    if include_lists:
+        cache_delete_pattern("posts:list:*")
 
 
 def _upsert_tags(db: Session, tag_names: List[str]) -> List[Tag]:
@@ -123,6 +146,7 @@ class PostRepository:
 
         db.commit()
         db.refresh(new_post)
+        _invalidate_post_cache(new_post.id)
 
         # 5. AI summary in background
         bg_tasks.add_task(PostRepository._enrich_post_with_summary, new_post.id, content)
@@ -133,21 +157,64 @@ class PostRepository:
     #  READ                                                                #
     # ------------------------------------------------------------------ #
     @staticmethod
-    def fetch_all_posts(db: Session, skip: int = 0, limit: int = 20) -> List[Post]:
-        return db.query(Post).offset(skip).limit(limit).all()
+    def fetch_all_posts(db: Session, skip: int = 0, limit: int = 20) -> List[dict]:
+        cache_key = _post_list_cache_key(skip, limit)
+        cached_posts = cache_get_json(cache_key)
+        if cached_posts is not None:
+            return cached_posts
+
+        posts = (
+            db.query(Post)
+            .options(
+                joinedload(Post.author),
+                joinedload(Post.category),
+                selectinload(Post.post_tags),
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        serialized_posts = [_serialize_post(post) for post in posts]
+        cache_set_json(cache_key, serialized_posts, POST_LIST_CACHE_TTL_SECONDS)
+        return serialized_posts
 
     @staticmethod
-    def fetch_post_by_id(db: Session, post_id: int) -> Post:
-        post = db.query(Post).filter(Post.id == post_id).first()
+    def fetch_post_by_id(db: Session, post_id: int, use_cache: bool = True) -> Post | dict:
+        cache_key = _post_cache_key(post_id)
+        if use_cache:
+            cached_post = cache_get_json(cache_key)
+            if cached_post is not None:
+                return cached_post
+
+        post = (
+            db.query(Post)
+            .options(
+                joinedload(Post.author),
+                joinedload(Post.category),
+                selectinload(Post.post_tags),
+            )
+            .filter(Post.id == post_id)
+            .first()
+        )
         if not post:
             raise HTTPException(status_code=404, detail="Post not found")
-        return post
+        if not use_cache:
+            return post
+
+        serialized_post = _serialize_post(post)
+        cache_set_json(cache_key, serialized_post, POST_CACHE_TTL_SECONDS)
+        return serialized_post
 
     @staticmethod
     def fetch_post_by_slug(db: Session, slug: str) -> Post:
         post = db.query(Post).filter(Post.slug == slug).first()
         if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
+            # Fallback to ID if slug is numeric
+            if slug.isdigit():
+                post = db.query(Post).filter(Post.id == int(slug)).first()
+            
+            if not post:
+                raise HTTPException(status_code=404, detail="Post not found")
         return post
 
     @staticmethod
@@ -193,7 +260,7 @@ class PostRepository:
         skip: int = 0,
         limit: int = 20,
     ) -> List[Post]:
-        cutoff = datetime.utcnow() - datetime.timedelta(hours=24)
+        cutoff = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
         interest_score = (
             db.query(Post.id, func.coalesce(func.sum(UserInterest.score), 0).label("score"))
@@ -239,10 +306,10 @@ class PostRepository:
     @staticmethod
     def increment_trending_score(db: Session, post: Post, delta: float) -> None:
         """Time-decayed trending score — half-life 24h so old posts fall off naturally."""
-        now = datetime.now(timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
         created = post.created_at
         if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
+            created = created.replace(tzinfo=datetime.timezone.utc)
 
         age_hours = (now - created).total_seconds() / 3600
         decay = 0.5 ** (age_hours / 24)
@@ -268,6 +335,7 @@ class PostRepository:
 
         db.delete(post)
         db.commit()
+        _invalidate_post_cache(post_id)
         return {"detail": "Post deleted successfully"}
 
     # ------------------------------------------------------------------ #
@@ -289,6 +357,7 @@ class PostRepository:
         _bump_user_interests(db, user_id, tags, increment=0.5)
         post.view_count = (post.view_count or 0) + 1
         db.commit()
+        _invalidate_post_cache(post.id, include_lists=False)
 
     # ------------------------------------------------------------------ #
     #  BACKGROUND TASK                                                     #
@@ -301,5 +370,6 @@ class PostRepository:
             with SessionLocal() as db:
                 db.query(Post).filter(Post.id == post_id).update({"summary": summary})
                 db.commit()
+                _invalidate_post_cache(post_id)
         else:
             print(f"[AI] Failed to generate summary for post {post_id}")

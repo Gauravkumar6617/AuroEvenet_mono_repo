@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
@@ -6,15 +6,9 @@ import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Tabs from "../components/ui/Tabs";
-
-const ALL_POSTS = [
-  { id: 1, type: "question", title: "How to structure FastAPI for scale", excerpt: "A practical architecture for large Python APIs with domain-driven design and clean service boundaries.", author: "gaurav_dev", avatar: "G", category: "Backend", tag: "Python", votes: 82, comments: 19, saves: 31, time: "2h ago", answered: true },
-  { id: 2, type: "discussion", title: "React Query + Zustand in 2026 — Clear split of server vs client state", excerpt: "How we eliminated prop drilling, redux boilerplate, and over-fetching in a large dashboard app.", author: "priya_fe", avatar: "P", category: "Frontend", tag: "React", votes: 64, comments: 12, saves: 18, time: "5h ago", image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=300&q=60" },
-  { id: 3, type: "article", title: "Reliable async jobs with Redis queues — retries, DLQs, and observability", excerpt: "Operational patterns for background job processing that actually works at scale in production.", author: "alex_ops", avatar: "A", category: "DevOps", tag: "DevOps", votes: 45, comments: 9, saves: 24, time: "1d ago" },
-  { id: 4, type: "question", title: "What's the best auth strategy for a multi-tenant SaaS in 2026?", excerpt: "Comparing JWT, session tokens, and newer approaches for B2B apps. Looking for real production experience.", author: "sara_prod", avatar: "S", category: "Security", tag: "Auth", votes: 128, comments: 34, saves: 56, time: "1d ago", answered: false },
-  { id: 5, type: "article", title: "Scaling from 10 to 10,000 users: lessons from a bootstrapped SaaS", excerpt: "The technical and operational decisions that actually mattered — and the ones that didn't.", author: "ravi_founder", avatar: "R", category: "Startup", tag: "Startup", votes: 203, comments: 51, saves: 89, time: "2d ago", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=300&q=60" },
-  { id: 6, type: "discussion", title: "Is TypeScript's complexity worth it for small teams?", excerpt: "After 3 years of TypeScript-first development, here's my honest take on the tradeoffs.", author: "karthik_ts", avatar: "K", category: "Engineering", tag: "TypeScript", votes: 91, comments: 42, saves: 33, time: "3d ago" },
-];
+import PostCard from "../components/PostCard";
+import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
+import { usePosts } from "../contexts/PostsContext";
 
 const TAGS = ["All", "Engineering", "Frontend", "Backend", "DevOps", "Security", "Startup", "AI", "Career"];
 const SIDEBAR_TRENDING = [
@@ -24,23 +18,58 @@ const SIDEBAR_TRENDING = [
   { title: "How to do a proper technical interview prep", votes: 167 },
 ];
 
+// normalize API post fields to match PostCard expectations
+function normalizePost(raw) {
+  if (!raw) return null;
+  const excerpt = raw.content
+    ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
+    : "";
+  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const timeAgo = raw.created_at
+    ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "";
+  return {
+    id: raw.id,
+    type: "article",
+    title: raw.title,
+    excerpt,
+    image: raw.thumbnail_url || raw.image || "",
+    category: raw.category_name || raw.category || "General",
+    tag: firstTag,
+    votes: raw.likes_count ?? raw.votes ?? 0,
+    answers: raw.comments_count ?? raw.answers ?? 0,
+    comments: raw.comments_count ?? raw.comments ?? 0,
+    saves: raw.saves ?? 0,
+    author: raw.author_name || raw.author || "User",
+    avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
+    time: timeAgo,
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+  };
+}
+
 export default function Blog() {
+  const { posts, loading, error, fetchPosts } = usePosts();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
   const [votes, setVotes] = useState({});
 
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
   const filtered = useMemo(() => {
-    let base = ALL_POSTS.filter((p) => {
+    const normalizedPosts = (posts || []).map(normalizePost).filter(Boolean);
+    let base = normalizedPosts.filter((p) => {
       const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase()) || p.excerpt.toLowerCase().includes(query.toLowerCase());
       const matchesTag = activeTag === "All" || p.category === activeTag || p.tag === activeTag;
       return matchesQuery && matchesTag;
     });
-    if (sort === "Top") return [...base].sort((a, b) => b.votes - a.votes);
-    if (sort === "New") return [...base].sort((a, b) => a.id - b.id).reverse();
-    if (sort === "Unanswered") return base.filter((p) => p.type === "question" && !p.answered);
+    if (sort === "Top") return [...base].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    if (sort === "New") return [...base].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    if (sort === "Unanswered") return base.filter((p) => p.comments === 0);
     return base;
-  }, [query, sort, activeTag]);
+  }, [posts, query, sort, activeTag]);
 
   const handleVote = (id, dir) => {
     setVotes(prev => {
@@ -88,8 +117,20 @@ export default function Blog() {
             </div>
 
             {/* Post list */}
+            {error && (
+              <div className="surface rounded-2xl p-8 text-center text-red-500 mb-6">
+                <p className="font-bold">Error loading posts</p>
+                <p className="text-sm">{error}</p>
+                <Button onClick={() => fetchPosts()} className="mt-4" variant="secondary">Try Again</Button>
+              </div>
+            )}
+
             <AnimatePresence mode="popLayout">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="space-y-2.5">
+                  {Array(5).fill(0).map((_, i) => <PostCardSkeleton key={i} />)}
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="surface rounded-2xl p-12 text-center">
                   <p className="text-4xl mb-3">🔍</p>
                   <p className="font-display text-xl font-bold text-[#1a1814]">No results found</p>
@@ -98,60 +139,14 @@ export default function Blog() {
               ) : (
                 <div className="space-y-2.5">
                   {filtered.map((post, idx) => (
-                    <motion.div key={post.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ delay: idx * 0.04 }}>
-                      <Card className="p-0 post-card overflow-hidden rounded-2xl">
-                        <div className="flex">
-                          {/* Vote column */}
-                          <div className="flex flex-col items-center gap-1 px-3 py-4 bg-[rgba(90,80,60,0.03)] border-r border-[rgba(90,80,60,0.07)] shrink-0 min-w-[56px]">
-                            <button onClick={() => handleVote(post.id, "up")}
-                              className={`vote-btn ${votes[post.id] === "up" ? "active-up" : ""}`}>▲</button>
-                            <span className="text-sm font-bold text-[#1a1814]">
-                              {post.votes + (votes[post.id] === "up" ? 1 : votes[post.id] === "down" ? -1 : 0)}
-                            </span>
-                            <button onClick={() => handleVote(post.id, "down")}
-                              className={`vote-btn ${votes[post.id] === "down" ? "active-down" : ""}`}>▼</button>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex flex-1 items-start gap-4 p-4 min-w-0">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-2">
-                                <Badge tone={typeColor[post.type]}>{post.type}</Badge>
-                                <span className="tag-pill py-0.5">{post.tag}</span>
-                                {post.type === "question" && (
-                                  <Badge tone={post.answered ? "success" : "warning"} dot>{post.answered ? "Answered" : "Open"}</Badge>
-                                )}
-                              </div>
-                              <Link to={`/blog/${post.id}`}>
-                                <h3 className="font-display text-lg font-semibold text-[#1a1814] line-clamp-2 hover:text-[#e85d26] transition-colors leading-snug">
-                                  {post.title}
-                                </h3>
-                              </Link>
-                              <p className="mt-1.5 text-sm text-[#6b6358] line-clamp-2 leading-relaxed">{post.excerpt}</p>
-                              <div className="mt-3 flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>{post.avatar}</div>
-                                  <span className="text-xs font-medium text-[#6b6358]">@{post.author}</span>
-                                </div>
-                                <span className="text-xs text-[#a09880]">{post.time}</span>
-                                <Link to={`/blog/${post.id}`} className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#6b6358]">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                  {post.comments}
-                                </Link>
-                                <button className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#e85d26] transition-colors">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                                  {post.saves}
-                                </button>
-                                <button className="text-xs text-[#a09880] hover:text-[#6b6358]">Share</button>
-                              </div>
-                            </div>
-                            {post.image && (
-                              <img src={post.image} alt="" className="h-16 w-20 rounded-xl object-cover shrink-0 hidden sm:block" />
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    </motion.div>
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      idx={idx} 
+                      votes={votes} 
+                      onVote={handleVote} 
+                      typeColors={typeColor} 
+                    />
                   ))}
                 </div>
               )}

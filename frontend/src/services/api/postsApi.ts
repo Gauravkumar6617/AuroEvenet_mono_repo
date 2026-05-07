@@ -35,27 +35,46 @@ export const postsApi = {
       ).toString()}`
       : "";
 
-    return apiClientCore.request<Post[]>(`/api/v1/posts/${queryParams}`, {
-      method: "GET",
-    });
+    return apiClientCore.request<Post[]>(
+      `/api/v1/posts/${queryParams}`,
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
   },
 
   getPostById(postId: number) {
-    return apiClientCore.request<Post>(`/api/v1/posts/${postId}`, {
-      method: "GET",
-    });
+    return apiClientCore.request<Post>(
+      `/api/v1/posts/${postId}`,
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
   },
 
   getPostBySlug(slug: string) {
-    return apiClientCore.request<Post>(`/api/v1/posts/slug/${slug}`, {
-      method: "GET",
-    });
+    return apiClientCore.request<Post>(
+      `/api/v1/posts/slug/${slug}`,
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
   },
 
   searchPosts(query: string, skip = 0, limit = 10) {
     return apiClientCore.request<Post[]>(
       `/api/v1/posts/search?q=${encodeURIComponent(query)}&skip=${skip}&limit=${limit}`,
       { method: "GET" },
+      false,
+      null,
+      false,
+      false,
     );
   },
 

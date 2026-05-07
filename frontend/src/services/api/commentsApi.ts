@@ -23,14 +23,35 @@ export const commentsApi = {
   },
 
   getAllComments() {
-    return apiClientCore.request<Comment[]>("/api/v1/comments/comments", {
-      method: "GET",
-    });
+    return apiClientCore.request<Comment[]>(
+      "/api/v1/comments/comments",
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
+  },
+
+  getCommentsByPostId(postId: number) {
+    return apiClientCore.request<Comment[]>(
+      `/api/v1/comments/comments?post_id=${postId}`,
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
   },
 
   getCommentById(commentId: number) {
-    return apiClientCore.request<Comment>(`/api/v1/comments/${commentId}`, {
-      method: "GET",
-    });
+    return apiClientCore.request<Comment>(
+      `/api/v1/comments/${commentId}`,
+      { method: "GET" },
+      false,
+      null,
+      false,
+      false,
+    );
   },
 };

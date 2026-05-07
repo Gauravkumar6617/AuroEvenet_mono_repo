@@ -6,7 +6,9 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { useAuth } from "../contexts/AuthContext";
 import { useCommunities } from "../contexts/CommunityContext";
+import { useToast } from "../contexts/ToastContext";
 import { useEffect } from "react";
+import CommunityDetailSkeleton from "../components/skeletons/CommunityDetailSkeleton";
 
 
 import { communitiesApi } from "../services/api/communitiesApi";
@@ -27,6 +29,7 @@ export default function CommunityDetail() {
     leaveCommunity,
     loading
   } = useCommunities();
+  const { showToast } = useToast();
 
   const [tab, setTab] = useState("posts");
   const [sort, setSort] = useState("Hot");
@@ -46,16 +49,19 @@ export default function CommunityDetail() {
     try {
       if (currentCommunity.joined) {
         await leaveCommunity(currentCommunity.slug);
+        showToast("Left community", "success");
       } else {
         await joinCommunity(currentCommunity.slug);
+        showToast("Joined community!", "success");
       }
       fetchCommunityBySlug(slug);
     } catch (err) {
+      showToast(err?.message || "Action failed", "error");
       console.error(err);
     }
   };
 
-  if (loading && !currentCommunity) return <div className="py-20 text-center">Loading...</div>;
+  if (loading && !currentCommunity) return <CommunityDetailSkeleton />;
   if (!currentCommunity) return <div className="py-20 text-center">Community not found.</div>;
 
   const MOCK = currentCommunity;

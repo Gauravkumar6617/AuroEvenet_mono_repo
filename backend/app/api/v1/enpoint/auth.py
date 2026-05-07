@@ -28,7 +28,22 @@ def _cookie_policy(request: Request) -> tuple[bool, str]:
     - SameSite=None + Secure for frontend/API on different domains.
     - SameSite=Lax + non-secure fallback for local http development.
     """
-    is_https = request.url.scheme == "https"
+    # More robust HTTPS detection for various proxies
+    is_https = (
+        request.url.scheme == "https" or 
+        request.headers.get("x-forwarded-proto") == "https" or
+        request.headers.get("x-forwarded-ssl") == "on" or
+        "proto=https" in request.headers.get("forwarded", "").lower()
+    )
+    
+    # LOGGING at warning level to ensure it shows up in most logs
+    logger.warning(
+        "Cookie Policy - scheme: %s, x-forwarded-proto: %s, is_https: %s",
+        request.url.scheme,
+        request.headers.get("x-forwarded-proto"),
+        is_https
+    )
+    
     return is_https, "none" if is_https else "lax"
 
 
@@ -65,13 +80,17 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 def login(login_data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login user with email and password"""
     try:
-        tokens = auth_service.login_user(db, login_data)
+        user_agent = request.headers.get("user-agent", "unknown")
+        tokens = auth_service.login_user(db, login_data, user_agent=user_agent)
         secure_cookie, samesite_policy = _cookie_policy(request)
-        logger.info(
-            "Password login setting auth cookies secure=%s samesite=%s origin=%s",
+        
+        logger.warning(
+            "LOGIN SUCCESS - Setting cookies: secure=%s, samesite=%s, user_agent=%s, origin=%s, host=%s",
             secure_cookie,
             samesite_policy,
+            user_agent,
             request.headers.get("origin"),
+            request.headers.get("host")
         )
         
         # Set access token in HttpOnly cookie
@@ -95,19 +114,32 @@ def login(login_data: LoginRequest, request: Request, response: Response, db: Se
         )
         
         return tokens
-    except HTTPException:
+    except HTTPException as e:
+        logger.error("LOGIN FAILED - HTTPException: %s", e.detail)
         raise
     except Exception as e:
+        logger.exception("LOGIN FAILED - Unexpected error: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed. Please try again."
         )
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
     """Clear auth cookies"""
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    secure_cookie, samesite_policy = _cookie_policy(request)
+    response.delete_cookie(
+        "access_token",
+        secure=secure_cookie,
+        samesite=samesite_policy,
+        httponly=True
+    )
+    response.delete_cookie(
+        "refresh_token",
+        secure=secure_cookie,
+        samesite=samesite_policy,
+        httponly=True
+    )
     return {"message": "Logged out successfully"}
 
 
@@ -186,21 +218,35 @@ def reset_password(
     return {"message": "Password reset successful. You can now login with your new password."}
 @router.get("/me", response_model=UserResponse)
 def get_me(request: Request, db: Session = Depends(get_db)):
-    """Get current user info from cookie"""
-    token = request.cookies.get("access_token")
+    """Get current user info — accepts Authorization: Bearer header or HttpOnly cookie"""
+    from app.core.security import verify_token
+    
+    # 1. Try Bearer token from Authorization header first (for cross-origin SPAs)
+    auth_header = request.headers.get("authorization", "")
+    token = None
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:]
+    
+    # 2. Fall back to HttpOnly cookie (for same-origin or SSR contexts)
     if not token:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        logger.warning("GET /me - No token found (no Bearer header or cookie)")
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     user_agent = request.headers.get("user-agent", "unknown")
-    from app.core.security import verify_token
     user_id = verify_token(token, user_agent)
     
     if not user_id:
+        logger.warning("GET /me - Token verification failed")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
         
     user = UserRepository().get_by_id(user_id, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    logger.info("GET /me - Success for user_id: %s", user_id)
     return user
 
 @router.get("/google/login")

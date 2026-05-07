@@ -33,10 +33,10 @@ export const authApi = {
     });
   },
 
-  getMe() {
+  getMe(token?: string | null) {
     return apiClientCore.request<User>("/api/v1/auth/me", {
       method: "GET",
-    });
+    }, false, token);
   },
 
   verifyEmail(token: string) {

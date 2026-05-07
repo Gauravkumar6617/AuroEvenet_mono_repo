@@ -52,7 +52,7 @@ class AuthService:
         return new_user, otp
 
     # --- STANDARD LOGIN ---
-    def login_user(self, db: Session, login_req: LoginRequest) -> TokenResponse:
+    def login_user(self, db: Session, login_req: LoginRequest, user_agent: str = None) -> TokenResponse:
         try:
             user = self.user_repo.get_by_email(login_req.email, db)
             if not user or not user.password_hash: # Check for social users trying to login via pwd
@@ -61,8 +61,11 @@ class AuthService:
             if not verify_password(login_req.password, user.password_hash):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
 
+            # Use the passed user_agent if provided, otherwise fallback to request body
+            ua = user_agent if user_agent else login_req.user_Agent
+
             # Access and Refresh tokens
-            tokens = create_access_token(user.id, login_req.user_Agent)
+            tokens = create_access_token(user.id, ua)
             
             # Store session in Redis for Logout/Revocation support
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])

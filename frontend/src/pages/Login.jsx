@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import LoadingOverlay from "../components/ui/LoadingOverlay";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
+      <LoadingOverlay show={loading} message="Signing you in..." />
       <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-6">
         {/* Left panel */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}

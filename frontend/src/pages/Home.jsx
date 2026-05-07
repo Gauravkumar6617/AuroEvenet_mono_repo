@@ -9,6 +9,9 @@ import Badge from "../components/ui/Badge";
 import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
+import { usePosts } from "../contexts/PostsContext";
+import PostCard from "../components/PostCard";
+import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 
 const STATS = [
   { value: "1.9M", label: "Monthly discussions", icon: "💬" },
@@ -28,18 +31,43 @@ const TOPICS = [
   { id: 8, name: "Career", count: "1.1k", icon: "🎯", color: "bg-amber-50 text-amber-700" },
 ];
 
-const POSTS = [
-  { id: "p1", type: "question", title: "How do you handle distributed tracing in a microservices architecture?", author: "Alex Rivera", avatar: "A", category: "Engineering", votes: 142, answers: 23, time: "2h ago", tags: ["microservices", "observability"] },
-  { id: "p2", type: "discussion", title: "The shift from 'Users' to 'Community Members' — why it matters", author: "Sarah Chen", avatar: "S", category: "Product", votes: 88, answers: 31, time: "4h ago", tags: ["product", "community"], image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=400&q=60" },
-  { id: "p3", type: "article", title: "Scaling React applications with micro-frontends in 2026", author: "Dev Patel", avatar: "D", category: "Frontend", votes: 256, answers: 48, time: "1d ago", tags: ["react", "architecture"], image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=400&q=60" },
-];
+// normalize API post fields to match PostCard expectations
+function normalizePost(raw) {
+  if (!raw) return null;
+  const excerpt = raw.content
+    ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
+    : "";
+  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const timeAgo = raw.created_at
+    ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "";
+  return {
+    id: raw.id,
+    type: "article",
+    title: raw.title,
+    excerpt,
+    image: raw.thumbnail_url || raw.image || "",
+    category: raw.category_name || raw.category || "General",
+    tag: firstTag,
+    votes: raw.likes_count ?? raw.votes ?? 0,
+    answers: raw.comments_count ?? raw.answers ?? 0,
+    comments: raw.comments_count ?? raw.comments ?? 0,
+    saves: raw.saves ?? 0,
+    author: raw.author_name || raw.author || "User",
+    avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
+    time: timeAgo,
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+  };
+}
 
 export default function Home() {
   const { showToast } = useToast();
+  const { posts, loading: postsLoading, fetchPosts } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    fetchPosts().catch(() => showToast("Failed to load posts", "error"));
     setTimeout(() => setIsLoading(false), 800);
     const seen = localStorage.getItem("nexos_onboarding_done");
     if (!seen) {
@@ -141,50 +169,23 @@ export default function Home() {
             <Link to="/blog" className="hidden text-sm font-semibold text-[#e85d26] hover:underline md:block">View all →</Link>
           </div>
           <div className="space-y-3">
-            {isLoading ? (
-              Array(3).fill(0).map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)
+            {postsLoading ? (
+              Array(3).fill(0).map((_, i) => <PostCardSkeleton key={i} />)
             ) : (
-              POSTS.map((post, idx) => (
-                <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}>
-                  <Link to={`/blog/${post.id}`}>
-                    <Card hover className="p-0 overflow-hidden rounded-2xl">
-                      <div className="flex items-center gap-0">
-                        {/* Vote column */}
-                        <div className="flex flex-col items-center gap-1 px-4 py-4 border-r border-[rgba(90,80,60,0.07)] shrink-0">
-                          <button className="vote-btn" onClick={(e) => e.preventDefault()}>▲</button>
-                          <span className="text-sm font-bold text-[#1a1814]">{post.votes}</span>
-                          <button className="vote-btn" onClick={(e) => e.preventDefault()}>▼</button>
-                        </div>
-                        {/* Content */}
-                        <div className="flex flex-1 items-center gap-4 p-4 min-w-0">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              <Badge tone={typeColors[post.type]}>{post.type}</Badge>
-                              <span className="text-xs text-[#a09880]">{post.category} · {post.time}</span>
-                            </div>
-                            <h3 className="font-display text-lg font-semibold text-[#1a1814] line-clamp-2 leading-tight hover:text-[#e85d26] transition-colors">
-                              {post.title}
-                            </h3>
-                            <div className="mt-2 flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
-                                <div className="avatar h-5 w-5 text-xs" style={{ fontSize: "0.6rem" }}>{post.avatar}</div>
-                                <span className="text-xs text-[#6b6358]">{post.author}</span>
-                              </div>
-                              <span className="text-xs text-[#a09880]">{post.answers} answers</span>
-                              <div className="hidden sm:flex gap-1">
-                                {post.tags.map(t => <span key={t} className="tag-pill py-0.5 px-2 text-xs">#{t}</span>)}
-                              </div>
-                            </div>
-                          </div>
-                          {post.image && (
-                            <img src={post.image} alt={post.title} className="h-20 w-28 rounded-xl object-cover shrink-0 hidden sm:block" />
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))
+              (posts || []).slice(0, 5).map((raw, idx) => {
+                const post = normalizePost(raw);
+                if (!post) return null;
+                return (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    idx={idx}
+                    votes={{}}
+                    onVote={() => {}}
+                    typeColors={typeColors}
+                  />
+                );
+              })
             )}
           </div>
           <div className="mt-6 text-center">

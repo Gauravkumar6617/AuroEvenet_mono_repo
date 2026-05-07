@@ -59,18 +59,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     loading,
     error,
+    accessToken,
     setAuth,
     setLoading,
     setError,
+    setAccessToken,
     logout: logoutStore,
     clearError: clearErrorStore,
   } = useAuthStore();
 
   useEffect(() => {
-    // Fetch real user from /auth/me on mount (backend uses HttpOnly cookies)
+    // Fetch real user from /auth/me on mount.
+    // Uses Bearer token from session (cross-origin) or cookie (same-origin) as fallback.
     const initAuth = async () => {
       try {
-        const user = await authApi.getMe();
+        const storedToken = useAuthStore.getState().accessToken;
+        const user = await authApi.getMe(storedToken);
         setAuth(user);
       } catch {
         // 401 is expected for anonymous users — only clear if we had a stale session
@@ -86,14 +90,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     async (email: string, password: string) => {
       setLoading(true);
       try {
-        await authApi.login({
+        const tokenResponse = await authApi.login({
           email,
           password,
           user_Agent: navigator.userAgent,
         });
 
-        // Backend sets HttpOnly cookies — fetch real user profile
-        const user = await authApi.getMe();
+        // Store the access_token in session — bypasses cross-origin cookie blocking
+        const token = (tokenResponse as any).access_token ?? null;
+        if (token) setAccessToken(token);
+
+        // Fetch real user profile — pass token explicitly as Bearer header
+        const user = await authApi.getMe(token);
         setAuth(user);
         showToast("Logged in successfully", "success");
       } catch (error) {
@@ -104,7 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw error;
       }
     },
-    [setLoading, setError, setAuth, showToast],
+    [setLoading, setError, setAuth, setAccessToken, showToast],
   );
 
   const register = useCallback(
