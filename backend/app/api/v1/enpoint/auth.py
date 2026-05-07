@@ -35,6 +35,15 @@ def _cookie_policy(request: Request) -> tuple[bool, str]:
         request.headers.get("x-forwarded-ssl") == "on" or
         "proto=https" in request.headers.get("forwarded", "").lower()
     )
+    
+    # LOGGING at warning level to ensure it shows up in most logs
+    logger.warning(
+        "Cookie Policy - scheme: %s, x-forwarded-proto: %s, is_https: %s",
+        request.url.scheme,
+        request.headers.get("x-forwarded-proto"),
+        is_https
+    )
+    
     return is_https, "none" if is_https else "lax"
 
 
@@ -75,7 +84,7 @@ def login(login_data: LoginRequest, request: Request, response: Response, db: Se
         tokens = auth_service.login_user(db, login_data, user_agent=user_agent)
         secure_cookie, samesite_policy = _cookie_policy(request)
         
-        logger.info(
+        logger.warning(
             "LOGIN SUCCESS - Setting cookies: secure=%s, samesite=%s, user_agent=%s, origin=%s, host=%s",
             secure_cookie,
             samesite_policy,
@@ -209,31 +218,32 @@ def reset_password(
     return {"message": "Password reset successful. You can now login with your new password."}
 @router.get("/me", response_model=UserResponse)
 def get_me(request: Request, db: Session = Depends(get_db)):
-    """Get current user info from cookie"""
-    token = request.cookies.get("access_token")
+    """Get current user info — accepts Authorization: Bearer header or HttpOnly cookie"""
+    from app.core.security import verify_token
     
-    # DEBUG LOGGING
-    logger.info(
-        "GET /me - Cookies present: %s, Headers: %s",
-        list(request.cookies.keys()),
-        dict(request.headers)
-    )
+    # 1. Try Bearer token from Authorization header first (for cross-origin SPAs)
+    auth_header = request.headers.get("authorization", "")
+    token = None
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:]
+    
+    # 2. Fall back to HttpOnly cookie (for same-origin or SSR contexts)
+    if not token:
+        token = request.cookies.get("access_token")
 
     if not token:
-        logger.warning("GET /me - No access_token cookie found")
+        logger.warning("GET /me - No token found (no Bearer header or cookie)")
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     user_agent = request.headers.get("user-agent", "unknown")
-    from app.core.security import verify_token
     user_id = verify_token(token, user_agent)
     
     if not user_id:
-        logger.warning("GET /me - Token verification failed for user_agent: %s", user_agent)
+        logger.warning("GET /me - Token verification failed")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
         
     user = UserRepository().get_by_id(user_id, db)
     if not user:
-        logger.warning("GET /me - User not found in DB for user_id: %s", user_id)
         raise HTTPException(status_code=404, detail="User not found")
     
     logger.info("GET /me - Success for user_id: %s", user_id)

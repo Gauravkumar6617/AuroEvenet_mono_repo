@@ -11,7 +11,11 @@ export class ApiClient {
     };
   }
 
-  private getHeaders(options: RequestInit, includeApiKey: boolean = false): Record<string, string> {
+  private getHeaders(
+    options: RequestInit,
+    includeApiKey: boolean = false,
+    token?: string | null,
+  ): Record<string, string> {
     const headers = { ...this.defaultHeaders };
 
     if (options.body instanceof FormData) {
@@ -23,6 +27,11 @@ export class ApiClient {
         import.meta.env.VITE_INTERNAL_API_KEY || "your-internal-api-key";
     }
 
+    // Attach Bearer token if provided (fixes cross-origin cookie blocking)
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     return headers;
   }
 
@@ -30,11 +39,12 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {},
     includeApiKey: boolean = false,
+    token?: string | null,
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
-      headers: this.getHeaders(options, includeApiKey),
+      headers: this.getHeaders(options, includeApiKey, token),
       credentials: "include",
       ...options,
     };
