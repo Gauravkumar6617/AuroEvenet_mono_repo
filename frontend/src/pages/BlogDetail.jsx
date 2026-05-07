@@ -112,8 +112,7 @@ export default function BlogDetail() {
   if (!currentPost) return <div className="py-20 text-center text-[#a09880]">Post not found.</div>;
 
   const POST = currentPost;
-  const postVotes = (POST.likes || POST.like_count || 0) + (postVote === "up" ? 1 : postVote === "down" ? -1 : 0);
-
+  const postVotes = (POST.likes ?? POST.like_count ?? POST.votes ?? 0) + (postVote === "up" ? 1 : postVote === "down" ? -1 : 0);
   return (
     <div className="py-8">
       <PageContainer>
@@ -154,7 +153,7 @@ export default function BlogDetail() {
                       <Link to={`/u/${POST.author_name}`} className="font-medium text-[#6b6358] hover:text-[#e85d26] transition-colors">@{POST.author_name}</Link>
                     </div>
                     <span>{new Date(POST.created_at).toLocaleDateString()}</span>
-                    <span>{(POST.view_count || 0).toLocaleString()} views</span>
+                    <span>{(POST.view_count ?? POST.views ?? 0).toLocaleString()} views</span>
                   </div>
                   <div className="mt-5 prose-content text-sm text-[#3a3530] leading-relaxed" dangerouslySetInnerHTML={{ __html: POST.content }} />
                   <div className="mt-4 flex gap-2 flex-wrap">
@@ -208,17 +207,21 @@ export default function BlogDetail() {
           {/* Sidebar */}
           <aside className="space-y-4 hidden lg:block">
             <div className="surface rounded-2xl p-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">Related</h3>
-              <div className="space-y-2">
-                {RELATED.map((item) => (
-                  <Link key={item} to="/blog/1"
-                    className="block rounded-xl border border-[rgba(90,80,60,0.1)] p-3 text-sm text-[#6b6358] hover:border-[#e85d26] hover:bg-[#fdf0ea] hover:text-[#e85d26] transition-all">
-                    {item}
-                  </Link>
-                ))}
+              <div className="flex justify-between text-xs text-[#a09880] mb-1">
+                <span>Post stats</span>
               </div>
+              {[
+                ["Views", (POST.view_count ?? POST.views ?? 0).toLocaleString()], // Fixed line
+                ["Votes", postVotes],
+                ["Answers", ANSWERS.length],
+                ["Saves", POST.saves ?? 0] // Fixed line
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between items-center py-1.5 border-b border-[rgba(90,80,60,0.06)] last:border-0">
+                  <span className="text-xs text-[#6b6358]">{k}</span>
+                  <span className="text-xs font-bold text-[#1a1814]">{v}</span>
+                </div>
+              ))}
             </div>
-
             <div className="surface rounded-2xl p-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">About the author</h3>
               <div className="flex items-center gap-3 mb-3">
