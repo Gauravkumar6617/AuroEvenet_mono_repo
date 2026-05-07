@@ -7,6 +7,7 @@ import Button from "../components/ui/Button";
 import { useAuth } from "../contexts/AuthContext";
 import { useCommunities } from "../contexts/CommunityContext";
 import { useEffect } from "react";
+import CommunityDetailSkeleton from "../components/skeletons/CommunityDetailSkeleton";
 
 
 import { communitiesApi } from "../services/api/communitiesApi";
@@ -55,7 +56,7 @@ export default function CommunityDetail() {
     }
   };
 
-  if (loading && !currentCommunity) return <div className="py-20 text-center">Loading...</div>;
+  if (loading && !currentCommunity) return <CommunityDetailSkeleton />;
   if (!currentCommunity) return <div className="py-20 text-center">Community not found.</div>;
 
   const MOCK = currentCommunity;

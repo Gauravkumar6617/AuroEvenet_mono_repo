@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useCommunities } from "../contexts/CommunityContext";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import CommunityCardSkeleton from "../components/skeletons/CommunityCardSkeleton";
 
 const SORT_OPTIONS = ["Most active", "Newest", "Most members"];
 const CATEGORY_FILTERS = ["All", "Technology", "Design", "Career", "Startup"];
@@ -97,7 +98,11 @@ export default function CommunityList() {
 
             {/* Community cards */}
             <div className="space-y-3">
-              {loading && <div className="text-center py-20">Loading communities...</div>}
+              {loading && (
+                <div className="space-y-3">
+                  {[1,2,3,4,5].map(i => <CommunityCardSkeleton key={i} />)}
+                </div>
+              )}
               {error && <div className="text-center py-20 text-red-500">{error}</div>}
 
               {!loading && filtered.map((c, i) => (
