@@ -74,7 +74,7 @@ async def fetch_post_by_id(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_user),
 ):
-    post = PostRepository.fetch_post_by_id(db, post_id)
+    post = PostRepository.fetch_post_by_id(db, post_id, use_cache=current_user is None)
     # Record the view and update interests if user is logged in
     if current_user:
         PostRepository.record_view(db, current_user.id, post)
