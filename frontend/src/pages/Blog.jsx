@@ -8,15 +8,7 @@ import Button from "../components/ui/Button";
 import Tabs from "../components/ui/Tabs";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
-
-const ALL_POSTS = [
-  { id: 1, type: "question", title: "How to structure FastAPI for scale", excerpt: "A practical architecture for large Python APIs with domain-driven design and clean service boundaries.", author: "gaurav_dev", avatar: "G", category: "Backend", tag: "Python", votes: 82, comments: 19, saves: 31, time: "2h ago", answered: true },
-  { id: 2, type: "discussion", title: "React Query + Zustand in 2026 — Clear split of server vs client state", excerpt: "How we eliminated prop drilling, redux boilerplate, and over-fetching in a large dashboard app.", author: "priya_fe", avatar: "P", category: "Frontend", tag: "React", votes: 64, comments: 12, saves: 18, time: "5h ago", image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=300&q=60" },
-  { id: 3, type: "article", title: "Reliable async jobs with Redis queues — retries, DLQs, and observability", excerpt: "Operational patterns for background job processing that actually works at scale in production.", author: "alex_ops", avatar: "A", category: "DevOps", tag: "DevOps", votes: 45, comments: 9, saves: 24, time: "1d ago" },
-  { id: 4, type: "question", title: "What's the best auth strategy for a multi-tenant SaaS in 2026?", excerpt: "Comparing JWT, session tokens, and newer approaches for B2B apps. Looking for real production experience.", author: "sara_prod", avatar: "S", category: "Security", tag: "Auth", votes: 128, comments: 34, saves: 56, time: "1d ago", answered: false },
-  { id: 5, type: "article", title: "Scaling from 10 to 10,000 users: lessons from a bootstrapped SaaS", excerpt: "The technical and operational decisions that actually mattered — and the ones that didn't.", author: "ravi_founder", avatar: "R", category: "Startup", tag: "Startup", votes: 203, comments: 51, saves: 89, time: "2d ago", image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=300&q=60" },
-  { id: 6, type: "discussion", title: "Is TypeScript's complexity worth it for small teams?", excerpt: "After 3 years of TypeScript-first development, here's my honest take on the tradeoffs.", author: "karthik_ts", avatar: "K", category: "Engineering", tag: "TypeScript", votes: 91, comments: 42, saves: 33, time: "3d ago" },
-];
+import { usePosts } from "../contexts/PostsContext";
 
 const TAGS = ["All", "Engineering", "Frontend", "Backend", "DevOps", "Security", "Startup", "AI", "Career"];
 const SIDEBAR_TRENDING = [
@@ -27,28 +19,31 @@ const SIDEBAR_TRENDING = [
 ];
 
 export default function Blog() {
+  const { posts, loading, error, fetchPosts } = usePosts();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
   const [votes, setVotes] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    fetchPosts();
+  }, [fetchPosts]);
 
   const filtered = useMemo(() => {
-    let base = ALL_POSTS.filter((p) => {
-      const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase()) || p.excerpt.toLowerCase().includes(query.toLowerCase());
-      const matchesTag = activeTag === "All" || p.category === activeTag || p.tag === activeTag;
+    if (!posts) return [];
+    let base = posts.filter((p) => {
+      const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase()) || 
+                          (p.summary || "").toLowerCase().includes(query.toLowerCase());
+      const matchesTag = activeTag === "All" || 
+                        p.category_name === activeTag || 
+                        (p.tags && p.tags.includes(activeTag));
       return matchesQuery && matchesTag;
     });
-    if (sort === "Top") return [...base].sort((a, b) => b.votes - a.votes);
-    if (sort === "New") return [...base].sort((a, b) => a.id - b.id).reverse();
-    if (sort === "Unanswered") return base.filter((p) => p.type === "question" && !p.answered);
+    if (sort === "Top") return [...base].sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+    if (sort === "New") return [...base].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (sort === "Unanswered") return base.filter((p) => p.comment_count === 0);
     return base;
-  }, [query, sort, activeTag]);
+  }, [posts, query, sort, activeTag]);
 
   const handleVote = (id, dir) => {
     setVotes(prev => {
@@ -96,8 +91,20 @@ export default function Blog() {
             </div>
 
             {/* Post list */}
+            {error && (
+              <div className="surface rounded-2xl p-8 text-center text-red-500 mb-6">
+                <p className="font-bold">Error loading posts</p>
+                <p className="text-sm">{error}</p>
+                <Button onClick={() => fetchPosts()} className="mt-4" variant="secondary">Try Again</Button>
+              </div>
+            )}
+
             <AnimatePresence mode="popLayout">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="space-y-2.5">
+                  {Array(5).fill(0).map((_, i) => <PostCardSkeleton key={i} />)}
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="surface rounded-2xl p-12 text-center">
                   <p className="text-4xl mb-3">🔍</p>
                   <p className="font-display text-xl font-bold text-[#1a1814]">No results found</p>
@@ -105,20 +112,16 @@ export default function Blog() {
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {isLoading ? (
-                    Array(5).fill(0).map((_, i) => <PostCardSkeleton key={i} />)
-                  ) : (
-                    filtered.map((post, idx) => (
-                      <PostCard 
-                        key={post.id} 
-                        post={post} 
-                        idx={idx} 
-                        votes={votes} 
-                        onVote={handleVote} 
-                        typeColors={typeColor} 
-                      />
-                    ))
-                  )}
+                  {filtered.map((post, idx) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post} 
+                      idx={idx} 
+                      votes={votes} 
+                      onVote={handleVote} 
+                      typeColors={typeColor} 
+                    />
+                  ))}
                 </div>
               )}
             </AnimatePresence>

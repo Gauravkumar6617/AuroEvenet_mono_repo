@@ -4,6 +4,14 @@ import Card from "./ui/Card";
 import Badge from "./ui/Badge";
 
 export default function PostCard({ post, votes, onVote, typeColors, idx }) {
+  const likes = post.like_count !== undefined ? post.like_count : (post.votes || 0);
+  const author = post.author_name || post.author || "anonymous";
+  const date = post.created_at ? new Date(post.created_at).toLocaleDateString() : post.time;
+  const comments = post.comment_count !== undefined ? post.comment_count : post.comments;
+  const saves = post.share_count !== undefined ? post.share_count : post.saves;
+  const thumbnail = post.thumbnail_url || post.image;
+  const type = post.type || "article";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -21,7 +29,7 @@ export default function PostCard({ post, votes, onVote, typeColors, idx }) {
               ▲
             </button>
             <span className="text-sm font-bold text-[#1a1814]">
-              {post.votes + (votes[post.id] === "up" ? 1 : votes[post.id] === "down" ? -1 : 0)}
+              {likes + (votes[post.id] === "up" ? 1 : votes[post.id] === "down" ? -1 : 0)}
             </span>
             <button
               onClick={() => onVote(post.id, "down")}
@@ -35,10 +43,10 @@ export default function PostCard({ post, votes, onVote, typeColors, idx }) {
           <div className="flex flex-1 items-start gap-4 p-4 min-w-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <Badge tone={typeColors[post.type]}>{post.type}</Badge>
+                <Badge tone={typeColors[type] || "brand"}>{type}</Badge>
                 {post.tag && <span className="tag-pill py-0.5">{post.tag}</span>}
-                {post.category && <span className="text-xs text-[#a09880]">{post.category}</span>}
-                {post.type === "question" && post.hasOwnProperty("answered") && (
+                {post.category_name && <span className="text-xs text-[#a09880]">{post.category_name}</span>}
+                {type === "question" && post.hasOwnProperty("answered") && (
                   <Badge tone={post.answered ? "success" : "warning"} dot>
                     {post.answered ? "Answered" : "Open"}
                   </Badge>
@@ -49,35 +57,35 @@ export default function PostCard({ post, votes, onVote, typeColors, idx }) {
                   {post.title}
                 </h3>
               </Link>
-              {post.excerpt && (
+              {(post.summary || post.excerpt) && (
                 <p className="mt-1.5 text-sm text-[#6b6358] line-clamp-2 leading-relaxed">
-                  {post.excerpt}
+                  {post.summary || post.excerpt}
                 </p>
               )}
               <div className="mt-3 flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>
-                    {post.avatar || (post.author ? post.author[0].toUpperCase() : "?")}
+                    {post.avatar || author[0].toUpperCase()}
                   </div>
-                  <span className="text-xs font-medium text-[#6b6358]">@{post.author}</span>
+                  <span className="text-xs font-medium text-[#6b6358]">@{author}</span>
                 </div>
-                <span className="text-xs text-[#a09880]">{post.time}</span>
-                {post.comments !== undefined && (
+                <span className="text-xs text-[#a09880]">{date}</span>
+                {comments !== undefined && (
                   <Link to={`/blog/${post.id}`} className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#6b6358]">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    {post.comments}
+                    {comments}
                   </Link>
                 )}
-                {post.saves !== undefined && (
+                {saves !== undefined && (
                   <button className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#e85d26] transition-colors">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                    {post.saves}
+                    {saves}
                   </button>
                 )}
               </div>
             </div>
-            {post.image && (
-              <img src={post.image} alt="" className="h-20 w-28 rounded-xl object-cover shrink-0 hidden sm:block" />
+            {thumbnail && (
+              <img src={thumbnail} alt="" className="h-20 w-28 rounded-xl object-cover shrink-0 hidden sm:block" />
             )}
           </div>
         </div>

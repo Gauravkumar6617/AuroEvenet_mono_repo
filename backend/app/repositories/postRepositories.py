@@ -147,7 +147,12 @@ class PostRepository:
     def fetch_post_by_slug(db: Session, slug: str) -> Post:
         post = db.query(Post).filter(Post.slug == slug).first()
         if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
+            # Fallback to ID if slug is numeric
+            if slug.isdigit():
+                post = db.query(Post).filter(Post.id == int(slug)).first()
+            
+            if not post:
+                raise HTTPException(status_code=404, detail="Post not found")
         return post
 
     @staticmethod
