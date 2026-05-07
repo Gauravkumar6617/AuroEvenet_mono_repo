@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import useAuthStore from "../../store/useAuthStore";
+
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
 
 export class ApiClient {
   private baseURL: string;
@@ -24,12 +26,24 @@ export class ApiClient {
 
     if (includeApiKey) {
       headers["x-internal-api-key"] =
-        import.meta.env.VITE_INTERNAL_API_KEY || "your-internal-api-key";
+        (import.meta as any).env?.VITE_INTERNAL_API_KEY || "your-internal-api-key";
     }
 
     // Attach Bearer token if provided (fixes cross-origin cookie blocking)
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Auto-include token from auth store if available and no explicit token provided
+    if (!token) {
+      try {
+        const storedToken = useAuthStore.getState().accessToken;
+        if (storedToken) {
+          headers["Authorization"] = `Bearer ${storedToken}`;
+        }
+      } catch {
+        // Store might not be initialized yet, ignore
+      }
     }
 
     return headers;
