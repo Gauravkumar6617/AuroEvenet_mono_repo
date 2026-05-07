@@ -104,7 +104,14 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
 
   const fetchPostById = useCallback(
     async (postId: number) => {
-      setLoading(true);
+      const cachedPost = posts.find((post) => Number(post.id) === postId);
+      if (cachedPost) {
+        setCurrentPostStore(cachedPost);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       try {
         const post = (await apiClient.getPostById(postId)) as Post;
         setCurrentPostStore(post);
@@ -116,7 +123,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
         throw error;
       }
     },
-    [setCurrentPostStore, setLoading, setError],
+    [posts, setCurrentPostStore, setLoading, setError],
   );
 
   const fetchPostBySlug = useCallback(

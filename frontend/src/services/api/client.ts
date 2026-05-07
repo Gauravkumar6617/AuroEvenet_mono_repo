@@ -17,10 +17,11 @@ export class ApiClient {
     options: RequestInit,
     includeApiKey: boolean = false,
     token?: string | null,
+    includeAuth: boolean = true,
   ): Record<string, string> {
     const headers = { ...this.defaultHeaders };
 
-    if (options.body instanceof FormData) {
+    if (!options.body || options.body instanceof FormData) {
       delete headers["Content-Type"];
     }
 
@@ -30,12 +31,12 @@ export class ApiClient {
     }
 
     // Attach Bearer token if provided (fixes cross-origin cookie blocking)
-    if (token) {
+    if (includeAuth && token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
     // Auto-include token from auth store if available and no explicit token provided
-    if (!token) {
+    if (includeAuth && !token) {
       try {
         const storedToken = useAuthStore.getState().accessToken;
         if (storedToken) {
@@ -54,12 +55,14 @@ export class ApiClient {
     options: RequestInit = {},
     includeApiKey: boolean = false,
     token?: string | null,
+    includeCredentials: boolean = true,
+    includeAuth: boolean = true,
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
-      headers: this.getHeaders(options, includeApiKey, token),
-      credentials: "include",
+      headers: this.getHeaders(options, includeApiKey, token, includeAuth),
+      credentials: includeCredentials ? "include" : "omit",
       ...options,
     };
 

@@ -132,7 +132,9 @@ export default function BlogDetail() {
     }
   };
 
-  if (loading) return <BlogDetailSkeleton />;
+  const hasRequestedPost = currentPost && Number(currentPost.id) === Number(id);
+
+  if (loading && !hasRequestedPost) return <BlogDetailSkeleton />;
   if (error) return (
     <div className="py-20 text-center">
       <p className="text-red-500 font-medium">Error loading post</p>
@@ -140,7 +142,7 @@ export default function BlogDetail() {
       <Button onClick={() => fetchPostById(Number(id))} className="mt-4" variant="secondary">Try Again</Button>
     </div>
   );
-  if (!currentPost) return <div className="py-20 text-center text-[#a09880]">Post not found.</div>;
+  if (!hasRequestedPost) return <div className="py-20 text-center text-[#a09880]">Post not found.</div>;
 
   const POST = currentPost;
   const postVotes = (POST.likes ?? POST.like_count ?? POST.votes ?? 0) + (postVote === "up" ? 1 : postVote === "down" ? -1 : 0);
