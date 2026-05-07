@@ -62,7 +62,7 @@ const App: React.FC = () => {
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/features" element={<Features />} />
                         <Route path="/blog" element={<Blog />} />
-                        <Route path="/blog/:slug" element={<BlogDetail />} />
+                        <Route path="/blog/:id" element={<BlogDetail />} />
                         <Route path="/search" element={<SearchPage />} />
                         <Route path="/communities" element={<CommunityList />} />
                         <Route path="/communities/:slug" element={<CommunityDetail />} />

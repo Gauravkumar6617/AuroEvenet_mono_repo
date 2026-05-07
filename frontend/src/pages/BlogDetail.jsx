@@ -96,16 +96,16 @@ function Answer({ answer, depth = 0 }) {
 }
 
 export default function BlogDetail() {
-  const { slug } = useParams();
-  const { currentPost, fetchPostBySlug, loading, error } = usePosts();
+  const { id } = useParams();
+  const { currentPost, fetchPostById, loading, error } = usePosts();
   const [reply, setReply] = useState("");
   const [postVote, setPostVote] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [sortAnswers, setSortAnswers] = useState("Top");
 
   useEffect(() => {
-    if (slug) fetchPostBySlug(slug);
-  }, [slug, fetchPostBySlug]);
+    if (id) fetchPostById(Number(id));
+  }, [id, fetchPostById]);
 
   if (loading) return <div className="py-20 text-center text-[#6b6358]">Loading post...</div>;
   if (error) return <div className="py-20 text-center text-red-500">Error: {error}</div>;
@@ -238,7 +238,12 @@ export default function BlogDetail() {
               <div className="flex justify-between text-xs text-[#a09880] mb-1">
                 <span>Post stats</span>
               </div>
-              {[["Views", POST.views.toLocaleString()], ["Votes", POST.votes], ["Answers", ANSWERS.length], ["Saves", POST.saves]].map(([k, v]) => (
+              {[
+                ["Views", (POST.view_count ?? POST.views ?? 0).toLocaleString()],
+                ["Votes", postVotes],
+                ["Answers", ANSWERS.length],
+                ["Saves", POST.saves ?? 0]
+              ].map(([k, v]) => (
                 <div key={k} className="flex justify-between items-center py-1.5 border-b border-[rgba(90,80,60,0.06)] last:border-0">
                   <span className="text-xs text-[#6b6358]">{k}</span>
                   <span className="text-xs font-bold text-[#1a1814]">{v}</span>

@@ -18,6 +18,35 @@ const SIDEBAR_TRENDING = [
   { title: "How to do a proper technical interview prep", votes: 167 },
 ];
 
+// normalize API post fields to match PostCard expectations
+function normalizePost(raw) {
+  if (!raw) return null;
+  const excerpt = raw.content
+    ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
+    : "";
+  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const timeAgo = raw.created_at
+    ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "";
+  return {
+    id: raw.id,
+    type: "article",
+    title: raw.title,
+    excerpt,
+    image: raw.thumbnail_url || raw.image || "",
+    category: raw.category_name || raw.category || "General",
+    tag: firstTag,
+    votes: raw.likes_count ?? raw.votes ?? 0,
+    answers: raw.comments_count ?? raw.answers ?? 0,
+    comments: raw.comments_count ?? raw.comments ?? 0,
+    saves: raw.saves ?? 0,
+    author: raw.author_name || raw.author || "User",
+    avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
+    time: timeAgo,
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+  };
+}
+
 export default function Blog() {
   const { posts, loading, error, fetchPosts } = usePosts();
   const [query, setQuery] = useState("");
@@ -30,18 +59,15 @@ export default function Blog() {
   }, [fetchPosts]);
 
   const filtered = useMemo(() => {
-    if (!posts) return [];
-    let base = posts.filter((p) => {
-      const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase()) || 
-                          (p.summary || "").toLowerCase().includes(query.toLowerCase());
-      const matchesTag = activeTag === "All" || 
-                        p.category_name === activeTag || 
-                        (p.tags && p.tags.includes(activeTag));
+    const normalizedPosts = (posts || []).map(normalizePost).filter(Boolean);
+    let base = normalizedPosts.filter((p) => {
+      const matchesQuery = p.title.toLowerCase().includes(query.toLowerCase()) || p.excerpt.toLowerCase().includes(query.toLowerCase());
+      const matchesTag = activeTag === "All" || p.category === activeTag || p.tag === activeTag;
       return matchesQuery && matchesTag;
     });
-    if (sort === "Top") return [...base].sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-    if (sort === "New") return [...base].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    if (sort === "Unanswered") return base.filter((p) => p.comment_count === 0);
+    if (sort === "Top") return [...base].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    if (sort === "New") return [...base].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    if (sort === "Unanswered") return base.filter((p) => p.comments === 0);
     return base;
   }, [posts, query, sort, activeTag]);
 
