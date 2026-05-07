@@ -28,7 +28,10 @@ def _cookie_policy(request: Request) -> tuple[bool, str]:
     - SameSite=None + Secure for frontend/API on different domains.
     - SameSite=Lax + non-secure fallback for local http development.
     """
-    is_https = request.url.scheme == "https"
+    is_https = (
+        request.url.scheme == "https" or 
+        request.headers.get("x-forwarded-proto") == "https"
+    )
     return is_https, "none" if is_https else "lax"
 
 
