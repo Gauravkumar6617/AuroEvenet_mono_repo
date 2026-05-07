@@ -6,8 +6,12 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { usePosts } from "../contexts/PostsContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useEffect } from "react";
 import BlogDetailSkeleton from "../components/skeletons/BlogDetailSkeleton";
+import { commentsApi } from "../services/api/commentsApi";
+import { likesApi } from "../services/api/likesApi";
+import { useToast } from "../contexts/ToastContext";
 
 function CommentCard({ comment, depth = 0 }) {
   const [votes, setVotes] = useState(comment.votes ?? 0);
@@ -66,14 +70,67 @@ function CommentCard({ comment, depth = 0 }) {
 export default function BlogDetail() {
   const { id } = useParams();
   const { currentPost, fetchPostById, loading, error } = usePosts();
+  const { user, isAuthenticated } = useAuth();
+  const { showToast } = useToast();
   const [reply, setReply] = useState("");
   const [postVote, setPostVote] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [sortAnswers, setSortAnswers] = useState("Top");
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   useEffect(() => {
-    if (id) fetchPostById(Number(id));
+    if (id) {
+      fetchPostById(Number(id));
+      fetchComments(Number(id));
+    }
   }, [id, fetchPostById]);
+
+  const fetchComments = async (postId) => {
+    setCommentsLoading(true);
+    try {
+      const data = await commentsApi.getCommentsByPostId(postId);
+      setComments(data || []);
+    } catch {
+      // ignore comment fetch errors
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      showToast("Please sign in to vote", "error");
+      return;
+    }
+    try {
+      await likesApi.createLike({ post_id: Number(id) });
+      setPostVote(v => v === "up" ? null : "up");
+      showToast("Post liked!", "success");
+    } catch (err) {
+      showToast("Failed to vote. Please try again.", "error");
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!isAuthenticated) {
+      showToast("Please sign in to comment", "error");
+      return;
+    }
+    if (reply.length < 3) {
+      showToast("Comment must be at least 3 characters", "error");
+      return;
+    }
+    try {
+      await commentsApi.createComment({ content: reply, post_id: Number(id), user_id: user?.id || 0 });
+      setReply("");
+      fetchComments(Number(id));
+      showToast("Comment posted!", "success");
+    } catch (err) {
+      showToast("Failed to post comment. Please try again.", "error");
+    }
+  };
 
   if (loading) return <BlogDetailSkeleton />;
   if (error) return (
@@ -105,7 +162,7 @@ export default function BlogDetail() {
               <div className="flex items-start gap-4">
                 {/* Vote sidebar */}
                 <div className="flex flex-col items-center gap-1.5 shrink-0 pt-1">
-                  <button onClick={() => setPostVote(v => v === "up" ? null : "up")}
+                  <button onClick={handleLike}
                     className={`vote-btn ${postVote === "up" ? "active-up" : ""}`}>▲</button>
                   <span className="text-base font-bold text-[#1a1814]">{postVotes}</span>
                   <button onClick={() => setPostVote(v => v === "down" ? null : "down")}
@@ -129,6 +186,14 @@ export default function BlogDetail() {
                     <span>{POST.created_at ? new Date(POST.created_at).toLocaleDateString() : ""}</span>
                     <span>{(POST.view_count ?? POST.views ?? 0).toLocaleString()} views</span>
                   </div>
+                  {POST.thumbnail_url && (
+                    <img
+                      src={POST.thumbnail_url}
+                      alt={POST.title}
+                      className="w-full rounded-xl mt-4 mb-2 object-cover max-h-[400px]"
+                      loading="lazy"
+                    />
+                  )}
                   <div className="mt-5 prose-content text-sm text-[#3a3530] leading-relaxed" dangerouslySetInnerHTML={{ __html: POST.content }} />
                   <div className="mt-4 flex gap-2 flex-wrap">
                     <Button variant="secondary" size="sm">
@@ -152,8 +217,20 @@ export default function BlogDetail() {
                 </select>
               </div>
               <div className="space-y-4">
-                {POST.comments?.length > 0 ? (
-                  POST.comments.map((c) => <CommentCard key={c.id} comment={c} />)
+                {commentsLoading ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="rounded-2xl border border-[rgba(90,80,60,0.1)] p-4 bg-white animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-5 h-5 bg-gray-200 rounded" />
+                        <div className="flex-1 space-y-2">
+                          <div className="w-24 h-3 bg-gray-200 rounded" />
+                          <div className="w-full h-16 bg-gray-200 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : comments.length > 0 ? (
+                  comments.map((c) => <CommentCard key={c.id} comment={c} />)
                 ) : (
                   <div className="text-center py-8 text-[#a09880]">
                     <p className="text-2xl mb-2">💬</p>
@@ -179,7 +256,7 @@ export default function BlogDetail() {
               />
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-[#a09880]">Markdown supported. Be specific and cite your experience.</p>
-                <Button disabled={reply.length < 10}>
+                <Button onClick={handlePostComment} disabled={reply.length < 3}>
                   Post Answer
                 </Button>
               </div>

@@ -28,6 +28,12 @@ export const commentsApi = {
     });
   },
 
+  getCommentsByPostId(postId: number) {
+    return apiClientCore.request<Comment[]>(`/api/v1/comments/comments?post_id=${postId}`, {
+      method: "GET",
+    });
+  },
+
   getCommentById(commentId: number) {
     return apiClientCore.request<Comment>(`/api/v1/comments/${commentId}`, {
       method: "GET",
