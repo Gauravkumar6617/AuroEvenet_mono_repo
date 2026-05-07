@@ -9,6 +9,7 @@ import Badge from "../components/ui/Badge";
 import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
+import { usePosts } from "../contexts/PostsContext";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 
@@ -30,18 +31,43 @@ const TOPICS = [
   { id: 8, name: "Career", count: "1.1k", icon: "🎯", color: "bg-amber-50 text-amber-700" },
 ];
 
-const POSTS = [
-  { id: "p1", type: "question", title: "How do you handle distributed tracing in a microservices architecture?", author: "Alex Rivera", avatar: "A", category: "Engineering", votes: 142, answers: 23, time: "2h ago", tags: ["microservices", "observability"] },
-  { id: "p2", type: "discussion", title: "The shift from 'Users' to 'Community Members' — why it matters", author: "Sarah Chen", avatar: "S", category: "Product", votes: 88, answers: 31, time: "4h ago", tags: ["product", "community"], image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=400&q=60" },
-  { id: "p3", type: "article", title: "Scaling React applications with micro-frontends in 2026", author: "Dev Patel", avatar: "D", category: "Frontend", votes: 256, answers: 48, time: "1d ago", tags: ["react", "architecture"], image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=400&q=60" },
-];
+// normalize API post fields to match PostCard expectations
+function normalizePost(raw) {
+  if (!raw) return null;
+  const excerpt = raw.content
+    ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
+    : "";
+  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const timeAgo = raw.created_at
+    ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "";
+  return {
+    id: raw.id,
+    type: "article",
+    title: raw.title,
+    excerpt,
+    image: raw.thumbnail_url || raw.image || "",
+    category: raw.category_name || raw.category || "General",
+    tag: firstTag,
+    votes: raw.likes_count ?? raw.votes ?? 0,
+    answers: raw.comments_count ?? raw.answers ?? 0,
+    comments: raw.comments_count ?? raw.comments ?? 0,
+    saves: raw.saves ?? 0,
+    author: raw.author_name || raw.author || "User",
+    avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
+    time: timeAgo,
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+  };
+}
 
 export default function Home() {
   const { showToast } = useToast();
+  const { posts, loading: postsLoading, fetchPosts } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    fetchPosts().catch(() => showToast("Failed to load posts", "error"));
     setTimeout(() => setIsLoading(false), 800);
     const seen = localStorage.getItem("nexos_onboarding_done");
     if (!seen) {
@@ -143,19 +169,23 @@ export default function Home() {
             <Link to="/blog" className="hidden text-sm font-semibold text-[#e85d26] hover:underline md:block">View all →</Link>
           </div>
           <div className="space-y-3">
-            {isLoading ? (
+            {postsLoading ? (
               Array(3).fill(0).map((_, i) => <PostCardSkeleton key={i} />)
             ) : (
-              POSTS.map((post, idx) => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  idx={idx} 
-                  votes={{}} 
-                  onVote={() => {}} 
-                  typeColors={typeColors} 
-                />
-              ))
+              (posts || []).slice(0, 5).map((raw, idx) => {
+                const post = normalizePost(raw);
+                if (!post) return null;
+                return (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    idx={idx}
+                    votes={{}}
+                    onVote={() => {}}
+                    typeColors={typeColors}
+                  />
+                );
+              })
             )}
           </div>
           <div className="mt-6 text-center">

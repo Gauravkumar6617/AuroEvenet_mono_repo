@@ -6,6 +6,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { useAuth } from "../contexts/AuthContext";
 import { useCommunities } from "../contexts/CommunityContext";
+import { useToast } from "../contexts/ToastContext";
 import { useEffect } from "react";
 import CommunityDetailSkeleton from "../components/skeletons/CommunityDetailSkeleton";
 
@@ -28,6 +29,7 @@ export default function CommunityDetail() {
     leaveCommunity,
     loading
   } = useCommunities();
+  const { showToast } = useToast();
 
   const [tab, setTab] = useState("posts");
   const [sort, setSort] = useState("Hot");
@@ -47,11 +49,14 @@ export default function CommunityDetail() {
     try {
       if (currentCommunity.joined) {
         await leaveCommunity(currentCommunity.slug);
+        showToast("Left community", "success");
       } else {
         await joinCommunity(currentCommunity.slug);
+        showToast("Joined community!", "success");
       }
       fetchCommunityBySlug(slug);
     } catch (err) {
+      showToast(err?.message || "Action failed", "error");
       console.error(err);
     }
   };
