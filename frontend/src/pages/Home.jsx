@@ -9,6 +9,8 @@ import Badge from "../components/ui/Badge";
 import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
+import PostCard from "../components/PostCard";
+import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 
 const STATS = [
   { value: "1.9M", label: "Monthly discussions", icon: "💬" },
@@ -142,48 +144,17 @@ export default function Home() {
           </div>
           <div className="space-y-3">
             {isLoading ? (
-              Array(3).fill(0).map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)
+              Array(3).fill(0).map((_, i) => <PostCardSkeleton key={i} />)
             ) : (
               POSTS.map((post, idx) => (
-                <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}>
-                  <Link to={`/blog/${post.id}`}>
-                    <Card hover className="p-0 overflow-hidden rounded-2xl">
-                      <div className="flex items-center gap-0">
-                        {/* Vote column */}
-                        <div className="flex flex-col items-center gap-1 px-4 py-4 border-r border-[rgba(90,80,60,0.07)] shrink-0">
-                          <button className="vote-btn" onClick={(e) => e.preventDefault()}>▲</button>
-                          <span className="text-sm font-bold text-[#1a1814]">{post.votes}</span>
-                          <button className="vote-btn" onClick={(e) => e.preventDefault()}>▼</button>
-                        </div>
-                        {/* Content */}
-                        <div className="flex flex-1 items-center gap-4 p-4 min-w-0">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              <Badge tone={typeColors[post.type]}>{post.type}</Badge>
-                              <span className="text-xs text-[#a09880]">{post.category} · {post.time}</span>
-                            </div>
-                            <h3 className="font-display text-lg font-semibold text-[#1a1814] line-clamp-2 leading-tight hover:text-[#e85d26] transition-colors">
-                              {post.title}
-                            </h3>
-                            <div className="mt-2 flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
-                                <div className="avatar h-5 w-5 text-xs" style={{ fontSize: "0.6rem" }}>{post.avatar}</div>
-                                <span className="text-xs text-[#6b6358]">{post.author}</span>
-                              </div>
-                              <span className="text-xs text-[#a09880]">{post.answers} answers</span>
-                              <div className="hidden sm:flex gap-1">
-                                {post.tags.map(t => <span key={t} className="tag-pill py-0.5 px-2 text-xs">#{t}</span>)}
-                              </div>
-                            </div>
-                          </div>
-                          {post.image && (
-                            <img src={post.image} alt={post.title} className="h-20 w-28 rounded-xl object-cover shrink-0 hidden sm:block" />
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                </motion.div>
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  idx={idx} 
+                  votes={{}} 
+                  onVote={() => {}} 
+                  typeColors={typeColors} 
+                />
               ))
             )}
           </div>

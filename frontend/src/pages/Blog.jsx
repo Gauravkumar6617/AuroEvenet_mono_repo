@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
@@ -6,6 +6,8 @@ import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Tabs from "../components/ui/Tabs";
+import PostCard from "../components/PostCard";
+import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 
 const ALL_POSTS = [
   { id: 1, type: "question", title: "How to structure FastAPI for scale", excerpt: "A practical architecture for large Python APIs with domain-driven design and clean service boundaries.", author: "gaurav_dev", avatar: "G", category: "Backend", tag: "Python", votes: 82, comments: 19, saves: 31, time: "2h ago", answered: true },
@@ -29,6 +31,12 @@ export default function Blog() {
   const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
   const [votes, setVotes] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filtered = useMemo(() => {
     let base = ALL_POSTS.filter((p) => {
@@ -97,62 +105,20 @@ export default function Blog() {
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {filtered.map((post, idx) => (
-                    <motion.div key={post.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ delay: idx * 0.04 }}>
-                      <Card className="p-0 post-card overflow-hidden rounded-2xl">
-                        <div className="flex">
-                          {/* Vote column */}
-                          <div className="flex flex-col items-center gap-1 px-3 py-4 bg-[rgba(90,80,60,0.03)] border-r border-[rgba(90,80,60,0.07)] shrink-0 min-w-[56px]">
-                            <button onClick={() => handleVote(post.id, "up")}
-                              className={`vote-btn ${votes[post.id] === "up" ? "active-up" : ""}`}>▲</button>
-                            <span className="text-sm font-bold text-[#1a1814]">
-                              {post.votes + (votes[post.id] === "up" ? 1 : votes[post.id] === "down" ? -1 : 0)}
-                            </span>
-                            <button onClick={() => handleVote(post.id, "down")}
-                              className={`vote-btn ${votes[post.id] === "down" ? "active-down" : ""}`}>▼</button>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex flex-1 items-start gap-4 p-4 min-w-0">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-2">
-                                <Badge tone={typeColor[post.type]}>{post.type}</Badge>
-                                <span className="tag-pill py-0.5">{post.tag}</span>
-                                {post.type === "question" && (
-                                  <Badge tone={post.answered ? "success" : "warning"} dot>{post.answered ? "Answered" : "Open"}</Badge>
-                                )}
-                              </div>
-                              <Link to={`/blog/${post.id}`}>
-                                <h3 className="font-display text-lg font-semibold text-[#1a1814] line-clamp-2 hover:text-[#e85d26] transition-colors leading-snug">
-                                  {post.title}
-                                </h3>
-                              </Link>
-                              <p className="mt-1.5 text-sm text-[#6b6358] line-clamp-2 leading-relaxed">{post.excerpt}</p>
-                              <div className="mt-3 flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="avatar h-5 w-5" style={{ fontSize: "0.6rem" }}>{post.avatar}</div>
-                                  <span className="text-xs font-medium text-[#6b6358]">@{post.author}</span>
-                                </div>
-                                <span className="text-xs text-[#a09880]">{post.time}</span>
-                                <Link to={`/blog/${post.id}`} className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#6b6358]">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                  {post.comments}
-                                </Link>
-                                <button className="flex items-center gap-1 text-xs text-[#a09880] hover:text-[#e85d26] transition-colors">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                                  {post.saves}
-                                </button>
-                                <button className="text-xs text-[#a09880] hover:text-[#6b6358]">Share</button>
-                              </div>
-                            </div>
-                            {post.image && (
-                              <img src={post.image} alt="" className="h-16 w-20 rounded-xl object-cover shrink-0 hidden sm:block" />
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
+                  {isLoading ? (
+                    Array(5).fill(0).map((_, i) => <PostCardSkeleton key={i} />)
+                  ) : (
+                    filtered.map((post, idx) => (
+                      <PostCard 
+                        key={post.id} 
+                        post={post} 
+                        idx={idx} 
+                        votes={votes} 
+                        onVote={handleVote} 
+                        typeColors={typeColor} 
+                      />
+                    ))
+                  )}
                 </div>
               )}
             </AnimatePresence>

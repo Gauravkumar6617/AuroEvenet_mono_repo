@@ -107,10 +107,21 @@ def login(login_data: LoginRequest, request: Request, response: Response, db: Se
         )
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
     """Clear auth cookies"""
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    secure_cookie, samesite_policy = _cookie_policy(request)
+    response.delete_cookie(
+        "access_token",
+        secure=secure_cookie,
+        samesite=samesite_policy,
+        httponly=True
+    )
+    response.delete_cookie(
+        "refresh_token",
+        secure=secure_cookie,
+        samesite=samesite_policy,
+        httponly=True
+    )
     return {"message": "Logged out successfully"}
 
 
