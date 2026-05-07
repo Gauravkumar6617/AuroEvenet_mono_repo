@@ -28,9 +28,12 @@ def _cookie_policy(request: Request) -> tuple[bool, str]:
     - SameSite=None + Secure for frontend/API on different domains.
     - SameSite=Lax + non-secure fallback for local http development.
     """
+    # More robust HTTPS detection for various proxies
     is_https = (
         request.url.scheme == "https" or 
-        request.headers.get("x-forwarded-proto") == "https"
+        request.headers.get("x-forwarded-proto") == "https" or
+        request.headers.get("x-forwarded-ssl") == "on" or
+        "proto=https" in request.headers.get("forwarded", "").lower()
     )
     return is_https, "none" if is_https else "lax"
 
@@ -68,13 +71,17 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 def login(login_data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login user with email and password"""
     try:
-        tokens = auth_service.login_user(db, login_data)
+        user_agent = request.headers.get("user-agent", "unknown")
+        tokens = auth_service.login_user(db, login_data, user_agent=user_agent)
         secure_cookie, samesite_policy = _cookie_policy(request)
+        
         logger.info(
-            "Password login setting auth cookies secure=%s samesite=%s origin=%s",
+            "LOGIN SUCCESS - Setting cookies: secure=%s, samesite=%s, user_agent=%s, origin=%s, host=%s",
             secure_cookie,
             samesite_policy,
+            user_agent,
             request.headers.get("origin"),
+            request.headers.get("host")
         )
         
         # Set access token in HttpOnly cookie
@@ -98,9 +105,11 @@ def login(login_data: LoginRequest, request: Request, response: Response, db: Se
         )
         
         return tokens
-    except HTTPException:
+    except HTTPException as e:
+        logger.error("LOGIN FAILED - HTTPException: %s", e.detail)
         raise
     except Exception as e:
+        logger.exception("LOGIN FAILED - Unexpected error: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed. Please try again."
@@ -202,7 +211,16 @@ def reset_password(
 def get_me(request: Request, db: Session = Depends(get_db)):
     """Get current user info from cookie"""
     token = request.cookies.get("access_token")
+    
+    # DEBUG LOGGING
+    logger.info(
+        "GET /me - Cookies present: %s, Headers: %s",
+        list(request.cookies.keys()),
+        dict(request.headers)
+    )
+
     if not token:
+        logger.warning("GET /me - No access_token cookie found")
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     user_agent = request.headers.get("user-agent", "unknown")
@@ -210,11 +228,15 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     user_id = verify_token(token, user_agent)
     
     if not user_id:
+        logger.warning("GET /me - Token verification failed for user_agent: %s", user_agent)
         raise HTTPException(status_code=401, detail="Invalid or expired token")
         
     user = UserRepository().get_by_id(user_id, db)
     if not user:
+        logger.warning("GET /me - User not found in DB for user_id: %s", user_id)
         raise HTTPException(status_code=404, detail="User not found")
+    
+    logger.info("GET /me - Success for user_id: %s", user_id)
     return user
 
 @router.get("/google/login")
