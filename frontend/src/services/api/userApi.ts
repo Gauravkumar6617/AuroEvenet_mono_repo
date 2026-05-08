@@ -19,8 +19,9 @@ export interface OnboardingTopic {
 
 export interface OnboardingQuestion {
   id: number;
-  text: string;
+  question: string;
   topic_id: number;
+  page: number;
 }
 
 export interface OnboardingResponse {

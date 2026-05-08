@@ -1,32 +1,57 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import Button from "./ui/Button";
-
-const TOPICS = ["Engineering", "AI & ML", "Product Design", "DevOps", "Open Source", "Career", "Startup", "Data Science", "Frontend", "Backend", "System Design", "Security"];
-const GOALS = [
-  { id: "learn", label: "Learn from experts", icon: "📚" },
-  { id: "share", label: "Share my knowledge", icon: "✍️" },
-  { id: "network", label: "Connect with peers", icon: "🤝" },
-  { id: "answers", label: "Get questions answered", icon: "💡" },
-];
+import { apiClient } from "../services/api";
 
 export default function OnboardingModal({ onClose }) {
   const [step, setStep] = useState(0);
-  const [selectedTopics, setSelectedTopics] = useState([]);
-  const [selectedGoals, setSelectedGoals] = useState([]);
-  const [experience, setExperience] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    apiClient.getOnboardingData()
+      .then(data => setCategories(data?.categories || []))
+      .catch(console.error);
+  }, []);
 
   const steps = ["Welcome", "Interests", "Goals", "Experience"];
   const totalSteps = steps.length;
 
-  const toggleTopic = (t) => setSelectedTopics(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-  const toggleGoal = (g) => setSelectedGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
+  const allTopics = categories.flatMap(c => c.topics) || [];
+  const activeTopics = allTopics.filter(t => selectedTopicIds.includes(t.id));
+  const dynamicQuestions = [...new Map(activeTopics.flatMap(t => t.questions || []).map(q => [q.id, q])).values()];
+  const step2Questions = dynamicQuestions.filter(q => q.page === 2 || !q.page);
+  const step3Questions = dynamicQuestions.filter(q => q.page >= 3);
+
+  const toggleTopic = (tId) => setSelectedTopicIds(prev => prev.includes(tId) ? prev.filter(x => x !== tId) : [...prev, tId]);
 
   const canProceed = () => {
-    if (step === 1) return selectedTopics.length >= 2;
-    if (step === 2) return selectedGoals.length >= 1;
+    if (step === 1) return selectedTopicIds.length >= 2;
+    if (step === 2) return step2Questions.length === 0 || step2Questions.some(q => answers[q.id]?.trim());
     return true;
+  };
+
+  const handleFinish = async () => {
+    setIsSubmitting(true);
+    try {
+      if (selectedTopicIds.length > 0) {
+        await apiClient.saveTopics({ topic_ids: selectedTopicIds });
+      }
+      const payloadAnswers = Object.entries(answers).map(([qId, answer]) => ({
+        question_id: parseInt(qId),
+        answer: answer.trim()
+      })).filter(a => a.answer);
+      if (payloadAnswers.length > 0) {
+        await apiClient.saveAnswers({ answers: payloadAnswers });
+      }
+      onClose();
+    } catch (e) {
+      console.error(e);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,52 +110,67 @@ export default function OnboardingModal({ onClose }) {
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">What topics interest you?</h2>
                 <p className="text-[#a09880] text-sm mb-4">Pick at least 2 to personalize your feed.</p>
-                <div className="flex flex-wrap gap-2">
-                  {TOPICS.map((t) => (
-                    <button key={t} onClick={() => toggleTopic(t)}
-                      className={`tag-pill transition-all ${selectedTopics.includes(t) ? "active" : ""}`}>
-                      {selectedTopics.includes(t) && <span>✓ </span>}{t}
-                    </button>
-                  ))}
-                </div>
-                {selectedTopics.length > 0 && <p className="text-xs text-[#e85d26] mt-3">{selectedTopics.length} selected</p>}
+                {categories.map((cat) => (
+                  <div key={cat.id} className="mb-4">
+                    <h3 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.topics.map((t) => (
+                        <button key={t.id} onClick={() => toggleTopic(t.id)}
+                          className={`tag-pill transition-all ${selectedTopicIds.includes(t.id) ? "active" : ""}`}>
+                          {selectedTopicIds.includes(t.id) && <span>✓ </span>}{t.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {selectedTopicIds.length > 0 && <p className="text-xs text-[#e85d26] mt-3">{selectedTopicIds.length} selected</p>}
               </motion.div>
             )}
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">What brings you here?</h2>
-                <p className="text-[#a09880] text-sm mb-4">Select your primary goals (pick any).</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {GOALS.map((g) => (
-                    <button key={g.id} onClick={() => toggleGoal(g.id)}
-                      className={`flex items-center gap-3 rounded-xl border-[1.5px] p-3 text-left transition-all ${selectedGoals.includes(g.id) ? "border-[#e85d26] bg-[#fdf0ea]" : "border-[rgba(90,80,60,0.12)] bg-white hover:border-[rgba(232,93,38,0.3)]"}`}>
-                      <span className="text-xl">{g.icon}</span>
-                      <span className="text-sm font-medium text-[#1a1814]">{g.label}</span>
-                    </button>
-                  ))}
+                <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Your Goals</h2>
+                <p className="text-[#a09880] text-sm mb-4">Tell us about your objectives.</p>
+                <div className="space-y-4">
+                  {step2Questions.length === 0 ? (
+                    <p className="text-sm text-[#a09880] italic">No specific goal questions for the selected topics.</p>
+                  ) : (
+                    step2Questions.map((q) => (
+                      <div key={q.id}>
+                        <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
+                        <input
+                          type="text"
+                          className="input-field w-full text-sm"
+                          value={answers[q.id] || ""}
+                          onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                          placeholder="Type your answer..."
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               </motion.div>
             )}
             {step === 3 && (
               <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Your experience level?</h2>
-                <p className="text-[#a09880] text-sm mb-4">Helps us calibrate the depth of content shown.</p>
-                <div className="space-y-2.5">
-                  {[
-                    { id: "student", label: "Student / Learning", desc: "New to the field, building foundations" },
-                    { id: "mid", label: "Mid-level (2–5 yrs)", desc: "Hands-on practitioner, growing expertise" },
-                    { id: "senior", label: "Senior (5+ yrs)", desc: "Depth of experience, ready to contribute" },
-                    { id: "lead", label: "Lead / Staff / Principal", desc: "Driving technical strategy and teams" },
-                  ].map((opt) => (
-                    <button key={opt.id} onClick={() => setExperience(opt.id)}
-                      className={`flex items-center gap-3 w-full rounded-xl border-[1.5px] p-3 text-left transition-all ${experience === opt.id ? "border-[#e85d26] bg-[#fdf0ea]" : "border-[rgba(90,80,60,0.12)] bg-white hover:border-[rgba(232,93,38,0.3)]"}`}>
-                      <div className={`h-4 w-4 rounded-full border-2 shrink-0 transition-all ${experience === opt.id ? "border-[#e85d26] bg-[#e85d26]" : "border-[rgba(90,80,60,0.25)]"}`} />
-                      <div>
-                        <p className="text-sm font-semibold text-[#1a1814]">{opt.label}</p>
-                        <p className="text-xs text-[#a09880]">{opt.desc}</p>
+                <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Your Experience</h2>
+                <p className="text-[#a09880] text-sm mb-4">Help us calibrate the depth of content to show you.</p>
+                <div className="space-y-4">
+                  {step3Questions.length === 0 ? (
+                    <p className="text-sm text-[#a09880] italic">No specific experience questions for the selected topics.</p>
+                  ) : (
+                    step3Questions.map((q) => (
+                      <div key={q.id}>
+                        <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
+                        <input
+                          type="text"
+                          className="input-field w-full text-sm"
+                          value={answers[q.id] || ""}
+                          onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                          placeholder="Type your answer..."
+                        />
                       </div>
-                    </button>
-                  ))}
+                    ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -146,8 +186,8 @@ export default function OnboardingModal({ onClose }) {
               Continue →
             </Button>
           ) : (
-            <Button onClick={onClose} className="shadow-[0_4px_16px_rgba(232,93,38,0.3)]">
-              🎉 Enter Nexos
+            <Button onClick={handleFinish} disabled={isSubmitting || !canProceed()} className="shadow-[0_4px_16px_rgba(232,93,38,0.3)]">
+              {isSubmitting ? "Saving..." : "🎉 Enter Nexos"}
             </Button>
           )}
         </div>
