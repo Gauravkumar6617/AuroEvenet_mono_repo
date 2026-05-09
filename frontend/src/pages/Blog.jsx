@@ -20,13 +20,20 @@ const SIDEBAR_TRENDING = [
   { title: "How to do a proper technical interview prep", votes: 167 },
 ];
 
+// safely extract a string from a string or an object with name/tag property
+function asString(val) {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object") return val.name || val.tag || val.slug || "";
+  return "";
+}
+
 // normalize API post fields to match PostCard expectations
 function normalizePost(raw) {
   if (!raw) return null;
   const excerpt = raw.content
     ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
     : "";
-  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const firstTag = raw.post_tags?.[0]?.tag || asString(raw.tags?.[0]) || "";
   const timeAgo = raw.created_at
     ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
     : "";
@@ -36,7 +43,7 @@ function normalizePost(raw) {
     title: raw.title,
     excerpt,
     image: raw.thumbnail_url || raw.image || "",
-    category: raw.category_name || raw.category || "General",
+    category: asString(raw.category_name) || asString(raw.category) || "General",
     tag: firstTag,
     votes: raw.likes_count ?? raw.votes ?? 0,
     answers: raw.comments_count ?? raw.answers ?? 0,
@@ -45,7 +52,7 @@ function normalizePost(raw) {
     author: raw.author_name || raw.author || "User",
     avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
     time: timeAgo,
-    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags?.map(asString) || [],
   };
 }
 
