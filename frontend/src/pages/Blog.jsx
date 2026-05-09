@@ -11,6 +11,7 @@ import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 import { usePosts } from "../contexts/PostsContext";
 import { likesApi } from "../services/api/likesApi";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 
 const TAGS = ["All", "Engineering", "Frontend", "Backend", "DevOps", "Security", "Startup", "AI", "Career"];
 const SIDEBAR_TRENDING = [
@@ -59,6 +60,7 @@ function normalizePost(raw) {
 export default function Blog() {
   const { posts, loading, error, fetchPosts } = usePosts();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
@@ -111,7 +113,7 @@ export default function Blog() {
 
   const handleVote = async (postId) => {
     if (!user) {
-      alert("Please login to like posts");
+      showToast("Please login to like posts", "info");
       return;
     }
 

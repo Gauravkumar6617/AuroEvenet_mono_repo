@@ -116,7 +116,7 @@ export default function Home() {
 
   const handleLike = async (postId) => {
     if (!user) {
-      alert("Please login to like posts");
+      showToast("Please login to like posts", "info");
       return;
     }
 
