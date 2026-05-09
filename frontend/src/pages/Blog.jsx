@@ -9,6 +9,8 @@ import Tabs from "../components/ui/Tabs";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 import { usePosts } from "../contexts/PostsContext";
+import { likesApi } from "../services/api/likesApi";
+import { useAuth } from "../contexts/AuthContext";
 
 const TAGS = ["All", "Engineering", "Frontend", "Backend", "DevOps", "Security", "Startup", "AI", "Career"];
 const SIDEBAR_TRENDING = [
@@ -49,14 +51,43 @@ function normalizePost(raw) {
 
 export default function Blog() {
   const { posts, loading, error, fetchPosts } = usePosts();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
-  const [votes, setVotes] = useState({});
+  const [likeCounts, setLikeCounts] = useState({});
+  const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      fetchLikeData();
+    }
+  }, [posts, user]);
+
+  const fetchLikeData = async () => {
+    if (!posts) return;
+    
+    const counts = {};
+    const likes = {};
+    
+    for (const post of posts) {
+      try {
+        const response = await likesApi.getLikeCount(post.id);
+        counts[post.id] = response.count;
+        likes[post.id] = response.liked;
+      } catch (err) {
+        counts[post.id] = 0;
+        likes[post.id] = false;
+      }
+    }
+    
+    setLikeCounts(counts);
+    setUserLikes(likes);
+  };
 
   const filtered = useMemo(() => {
     const normalizedPosts = (posts || []).map(normalizePost).filter(Boolean);
@@ -65,17 +96,30 @@ export default function Blog() {
       const matchesTag = activeTag === "All" || p.category === activeTag || p.tag === activeTag;
       return matchesQuery && matchesTag;
     });
-    if (sort === "Top") return [...base].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    if (sort === "Top") return [...base].sort((a, b) => (likeCounts[b.id] || 0) - (likeCounts[a.id] || 0));
     if (sort === "New") return [...base].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
     if (sort === "Unanswered") return base.filter((p) => p.comments === 0);
     return base;
-  }, [posts, query, sort, activeTag]);
+  }, [posts, query, sort, activeTag, likeCounts]);
 
-  const handleVote = (id, dir) => {
-    setVotes(prev => {
-      const cur = prev[id] || "none";
-      return { ...prev, [id]: cur === dir ? "none" : dir };
-    });
+  const handleVote = async (postId) => {
+    if (!user) {
+      alert("Please login to like posts");
+      return;
+    }
+
+    try {
+      await likesApi.toggleLike(postId);
+      
+      // Update local state
+      const currentLiked = userLikes[postId] || false;
+      const currentCount = likeCounts[postId] || 0;
+      
+      setUserLikes(prev => ({ ...prev, [postId]: !currentLiked }));
+      setLikeCounts(prev => ({ ...prev, [postId]: currentLiked ? currentCount - 1 : currentCount + 1 }));
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+    }
   };
 
   const typeColor = { question: "info", discussion: "success", article: "brand" };
@@ -143,8 +187,9 @@ export default function Blog() {
                       key={post.id} 
                       post={post} 
                       idx={idx} 
-                      votes={votes} 
-                      onVote={handleVote} 
+                      likeCount={likeCounts[post.id] || 0}
+                      isLiked={userLikes[post.id] || false}
+                      onLike={handleVote} 
                       typeColors={typeColor} 
                     />
                   ))}
