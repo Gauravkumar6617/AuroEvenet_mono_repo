@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 import Card from "./ui/Card";
 import Badge from "./ui/Badge";
 
-export default function PostCard({ post, votes, onVote, typeColors, idx }) {
-  const likes = post.like_count !== undefined ? post.like_count : (post.votes || 0);
+export default function PostCard({ post, likeCount, isLiked, onLike, typeColors, idx }) {
+  const likes = likeCount !== undefined ? likeCount : (post.like_count || post.votes || 0);
   const author = post.author_name || post.author || "anonymous";
   const date = post.created_at ? new Date(post.created_at).toLocaleDateString() : post.time;
   const comments = post.comment_count !== undefined ? post.comment_count : post.comments;
@@ -20,23 +20,26 @@ export default function PostCard({ post, votes, onVote, typeColors, idx }) {
     >
       <Card className="p-0 post-card overflow-hidden rounded-2xl group">
         <div className="flex">
-          {/* Vote column */}
+          {/* Like column */}
           <div className="flex flex-col items-center gap-1 px-3 py-4 bg-[rgba(90,80,60,0.03)] border-r border-[rgba(90,80,60,0.07)] shrink-0 min-w-[56px]">
             <button
-              onClick={() => onVote(post.id, "up")}
-              className={`vote-btn ${votes[post.id] === "up" ? "active-up" : ""}`}
+              onClick={() => onLike(post.id)}
+              className={`vote-btn ${isLiked ? "active-up" : ""}`}
+              title={isLiked ? "Unlike" : "Like"}
             >
-              ▲
+              {isLiked ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#e85d26" stroke="#e85d26" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              )}
             </button>
             <span className="text-sm font-bold text-[#1a1814]">
-              {likes + (votes[post.id] === "up" ? 1 : votes[post.id] === "down" ? -1 : 0)}
+              {likes}
             </span>
-            <button
-              onClick={() => onVote(post.id, "down")}
-              className={`vote-btn ${votes[post.id] === "down" ? "active-down" : ""}`}
-            >
-              ▼
-            </button>
           </div>
 
           {/* Content */}

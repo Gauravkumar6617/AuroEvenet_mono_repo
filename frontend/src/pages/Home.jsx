@@ -10,8 +10,10 @@ import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
 import { usePosts } from "../contexts/PostsContext";
+import { useAuth } from "../contexts/AuthContext";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
+import { likesApi } from "../services/api/likesApi";
 
 const STATS = [
   { value: "1.9M", label: "Monthly discussions", icon: "💬" },
@@ -31,13 +33,20 @@ const TOPICS = [
   { id: 8, name: "Career", count: "1.1k", icon: "🎯", color: "bg-amber-50 text-amber-700" },
 ];
 
+// safely extract a string from a string or an object with name/tag property
+function asString(val) {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object") return val.name || val.tag || val.slug || "";
+  return "";
+}
+
 // normalize API post fields to match PostCard expectations
 function normalizePost(raw) {
   if (!raw) return null;
   const excerpt = raw.content
     ? raw.content.replace(/<[^>]*>/g, "").slice(0, 160) + (raw.content.length > 160 ? "…" : "")
     : "";
-  const firstTag = raw.post_tags?.[0]?.tag || raw.tags?.[0] || "";
+  const firstTag = raw.post_tags?.[0]?.tag || asString(raw.tags?.[0]) || "";
   const timeAgo = raw.created_at
     ? new Date(raw.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
     : "";
@@ -47,7 +56,7 @@ function normalizePost(raw) {
     title: raw.title,
     excerpt,
     image: raw.thumbnail_url || raw.image || "",
-    category: raw.category_name || raw.category || "General",
+    category: asString(raw.category_name) || asString(raw.category) || "General",
     tag: firstTag,
     votes: raw.likes_count ?? raw.votes ?? 0,
     answers: raw.comments_count ?? raw.answers ?? 0,
@@ -56,15 +65,18 @@ function normalizePost(raw) {
     author: raw.author_name || raw.author || "User",
     avatar: (raw.author_name || raw.author || "U")[0]?.toUpperCase(),
     time: timeAgo,
-    tags: raw.post_tags?.map((t) => t.tag) || raw.tags || [],
+    tags: raw.post_tags?.map((t) => t.tag) || raw.tags?.map(asString) || [],
   };
 }
 
 export default function Home() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const { posts, loading: postsLoading, fetchPosts } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [likeCounts, setLikeCounts] = useState({});
+  const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
     fetchPosts().catch(() => showToast("Failed to load posts", "error"));
@@ -74,6 +86,52 @@ export default function Home() {
       setTimeout(() => setShowOnboarding(true), 1200);
     }
   }, []);
+
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      fetchLikeData();
+    }
+  }, [posts, user]);
+
+  const fetchLikeData = async () => {
+    if (!posts) return;
+    
+    const counts = {};
+    const likes = {};
+    
+    for (const post of posts.slice(0, 5)) {
+      try {
+        const response = await likesApi.getLikeCount(post.id);
+        counts[post.id] = response.count;
+        likes[post.id] = response.liked;
+      } catch (err) {
+        counts[post.id] = 0;
+        likes[post.id] = false;
+      }
+    }
+    
+    setLikeCounts(counts);
+    setUserLikes(likes);
+  };
+
+  const handleLike = async (postId) => {
+    if (!user) {
+      showToast("Please login to like posts", "info");
+      return;
+    }
+
+    try {
+      await likesApi.toggleLike(postId);
+      
+      const currentLiked = userLikes[postId] || false;
+      const currentCount = likeCounts[postId] || 0;
+      
+      setUserLikes(prev => ({ ...prev, [postId]: !currentLiked }));
+      setLikeCounts(prev => ({ ...prev, [postId]: currentLiked ? currentCount - 1 : currentCount + 1 }));
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+    }
+  };
 
   const typeColors = { question: "info", discussion: "success", article: "brand" };
 
@@ -180,8 +238,9 @@ export default function Home() {
                     key={post.id}
                     post={post}
                     idx={idx}
-                    votes={{}}
-                    onVote={() => {}}
+                    likeCount={likeCounts[post.id] || 0}
+                    isLiked={userLikes[post.id] || false}
+                    onLike={handleLike}
                     typeColors={typeColors}
                   />
                 );

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiClient } from "../services/api";
 import PageContainer from "../components/layout/PageContainer";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
@@ -52,12 +53,60 @@ export default function SuperAdminDashboard() {
     toxicity: "Analyze this content for toxicity. Return JSON: { score: 0-1, flagged: bool }",
   });
 
+  const [onboardingCategories, setOnboardingCategories] = useState([]);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [topicQuestions, setTopicQuestions] = useState([]);
+  const [newQuestionText, setNewQuestionText] = useState("");
+  const [newQuestionPage, setNewQuestionPage] = useState(2);
+
+  useEffect(() => {
+    if (section === "onboarding") {
+      apiClient.getOnboardingData()
+        .then(data => setOnboardingCategories(data?.categories || []))
+        .catch(console.error);
+    }
+  }, [section]);
+
+  const loadQuestions = async (topicId) => {
+    try {
+      const data = await apiClient.getQuestionsByTopic(topicId);
+      setTopicQuestions(data);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSelectTopic = (topic) => {
+    setSelectedTopic(topic);
+    loadQuestions(topic.id);
+  };
+
+  const handleCreateQuestion = async () => {
+    if (!selectedTopic || !newQuestionText) return;
+    try {
+      await apiClient.createQuestion({
+        topic_id: selectedTopic.id,
+        question: newQuestionText,
+        page: parseInt(newQuestionPage) || 2
+      });
+      setNewQuestionText("");
+      loadQuestions(selectedTopic.id);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteQuestion = async (qId) => {
+    if (!confirm("Delete this question?")) return;
+    try {
+      await apiClient.deleteQuestion(qId);
+      loadQuestions(selectedTopic.id);
+    } catch (e) { console.error(e); }
+  };
+
   const navItems = [
     { key: "overview", label: "Platform Overview", icon: "📊" },
     { key: "users", label: "All Users", icon: "👥" },
     { key: "content", label: "All Content", icon: "📝" },
     { key: "ai", label: "AI Monitor", icon: "🤖" },
     { key: "config", label: "Site Config", icon: "⚙️" },
+    { key: "onboarding", label: "Onboarding Config", icon: "🚀" },
     { key: "sessions", label: "Active Sessions", icon: "🔐" },
     { key: "audit", label: "Audit Log", icon: "📋" },
     { key: "danger", label: "Danger Zone", icon: "⚠️" },
@@ -297,6 +346,93 @@ export default function SuperAdminDashboard() {
                       ))}
                     </div>
                     <Button className="mt-4" variant="secondary">Save limits</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* ONBOARDING CONFIG */}
+              {section === "onboarding" && (
+                <div className="space-y-4">
+                  <div className="surface rounded-2xl p-5">
+                    <h2 className="font-display text-xl font-bold text-[#1a1814] mb-4">Onboarding Configuration</h2>
+                    <p className="text-sm text-[#6b6358] mb-5">Configure user preferences categories and dynamic questions to display based on topic selection.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Topics Selection */}
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        <h3 className="font-semibold text-sm text-[#1a1814]">1. Select a Topic</h3>
+                        {onboardingCategories.map(cat => (
+                          <div key={cat.id} className="mb-4">
+                            <h4 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h4>
+                            <div className="space-y-1">
+                              {cat.topics.map(topic => (
+                                <button
+                                  key={topic.id}
+                                  onClick={() => handleSelectTopic(topic)}
+                                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedTopic?.id === topic.id ? 'bg-[#e85d26] text-white' : 'hover:bg-[rgba(90,80,60,0.05)] text-[#1a1814]'}`}
+                                >
+                                  {topic.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Questions Management */}
+                      <div className="surface bg-[#faf9f7] rounded-xl p-4 border border-[rgba(90,80,60,0.08)]">
+                        <h3 className="font-semibold text-sm text-[#1a1814] mb-3">
+                          {selectedTopic ? `2. Questions for "${selectedTopic.name}"` : "2. Select a topic to manage questions"}
+                        </h3>
+                        
+                        {selectedTopic && (
+                          <>
+                            <div className="space-y-3 mb-6 max-h-[250px] overflow-y-auto">
+                              {topicQuestions.length === 0 ? (
+                                <p className="text-sm text-[#a09880] italic">No questions added yet.</p>
+                              ) : (
+                                topicQuestions.map(q => (
+                                  <div key={q.id} className="bg-white p-3 rounded-lg shadow-sm text-sm flex justify-between gap-3 border border-[rgba(90,80,60,0.08)]">
+                                    <div className="min-w-0">
+                                      <p className="text-[#1a1814] mb-1 leading-snug">{q.question}</p>
+                                      <p className="text-xs text-[#a09880]">Targeting step page {q.page || 2}</p>
+                                    </div>
+                                    <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-700 text-xs shrink-0 self-start">
+                                      Delete
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            <div className="pt-4 border-t border-[rgba(90,80,60,0.08)]">
+                              <h4 className="text-xs font-semibold text-[#1a1814] mb-2">Add New Question</h4>
+                              <div className="space-y-2">
+                                <textarea
+                                  className="input-field min-h-[60px] text-sm"
+                                  placeholder="e.g. What is your primary language for Backend dev?"
+                                  value={newQuestionText}
+                                  onChange={e => setNewQuestionText(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    className="input-field w-20 text-sm"
+                                    placeholder="Page"
+                                    min="2"
+                                    max="4"
+                                    value={newQuestionPage}
+                                    onChange={e => setNewQuestionPage(e.target.value)}
+                                  />
+                                  <Button onClick={handleCreateQuestion} disabled={!newQuestionText} className="flex-1">Add Question</Button>
+                                </div>
+                                <p className="text-[10px] text-[#a09880]">Page 2 = Goals, Page 3 = Experience, Page 4 = Extras</p>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
