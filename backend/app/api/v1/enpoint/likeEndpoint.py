@@ -33,9 +33,12 @@ async def toggle_like(request: ToggleLikeRequest, db: Session = Depends(get_db),
 async def get_like_count(post_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_current_user)):
     count = LikeRepositorires.get_like_count_for_post(db, post_id)
     liked = False
-    if current_user:
-        existing_like = LikeRepositorires.fetch_like_by_user_and_post(db, current_user.id, post_id)
-        liked = existing_like is not None
+    try:
+        if current_user:
+            existing_like = LikeRepositorires.fetch_like_by_user_and_post(db, current_user.id, post_id)
+            liked = existing_like is not None
+    except:
+        liked = False
     return LikeCountResponse(count=count, liked=liked)
 
 @router.get("/check/{post_id}")

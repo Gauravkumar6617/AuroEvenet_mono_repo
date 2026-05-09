@@ -10,8 +10,10 @@ import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
 import { usePosts } from "../contexts/PostsContext";
+import { useAuth } from "../contexts/AuthContext";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
+import { likesApi } from "../services/api/likesApi";
 
 const STATS = [
   { value: "1.9M", label: "Monthly discussions", icon: "💬" },
@@ -62,9 +64,12 @@ function normalizePost(raw) {
 
 export default function Home() {
   const { showToast } = useToast();
+  const { user } = useAuth();
   const { posts, loading: postsLoading, fetchPosts } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [likeCounts, setLikeCounts] = useState({});
+  const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
     fetchPosts().catch(() => showToast("Failed to load posts", "error"));
@@ -74,6 +79,52 @@ export default function Home() {
       setTimeout(() => setShowOnboarding(true), 1200);
     }
   }, []);
+
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      fetchLikeData();
+    }
+  }, [posts, user]);
+
+  const fetchLikeData = async () => {
+    if (!posts) return;
+    
+    const counts = {};
+    const likes = {};
+    
+    for (const post of posts.slice(0, 5)) {
+      try {
+        const response = await likesApi.getLikeCount(post.id);
+        counts[post.id] = response.count;
+        likes[post.id] = response.liked;
+      } catch (err) {
+        counts[post.id] = 0;
+        likes[post.id] = false;
+      }
+    }
+    
+    setLikeCounts(counts);
+    setUserLikes(likes);
+  };
+
+  const handleLike = async (postId) => {
+    if (!user) {
+      alert("Please login to like posts");
+      return;
+    }
+
+    try {
+      await likesApi.toggleLike(postId);
+      
+      const currentLiked = userLikes[postId] || false;
+      const currentCount = likeCounts[postId] || 0;
+      
+      setUserLikes(prev => ({ ...prev, [postId]: !currentLiked }));
+      setLikeCounts(prev => ({ ...prev, [postId]: currentLiked ? currentCount - 1 : currentCount + 1 }));
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+    }
+  };
 
   const typeColors = { question: "info", discussion: "success", article: "brand" };
 
@@ -180,8 +231,9 @@ export default function Home() {
                     key={post.id}
                     post={post}
                     idx={idx}
-                    votes={{}}
-                    onVote={() => {}}
+                    likeCount={likeCounts[post.id] || 0}
+                    isLiked={userLikes[post.id] || false}
+                    onLike={handleLike}
                     typeColors={typeColors}
                   />
                 );
