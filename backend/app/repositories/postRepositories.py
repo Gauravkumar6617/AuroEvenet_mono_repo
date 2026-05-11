@@ -157,6 +157,22 @@ class PostRepository:
     #  READ                                                                #
     # ------------------------------------------------------------------ #
     @staticmethod
+    def fetch_my_posts(db: Session, user_id: int, skip: int = 0, limit: int = 50) -> List[Post]:
+        return (
+            db.query(Post)
+            .options(
+                joinedload(Post.author),
+                joinedload(Post.category),
+                selectinload(Post.post_tags),
+            )
+            .filter(Post.author_id == user_id)
+            .order_by(Post.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    @staticmethod
     def fetch_all_posts(db: Session, skip: int = 0, limit: int = 20) -> List[dict]:
         cache_key = _post_list_cache_key(skip, limit)
         cached_posts = cache_get_json(cache_key)

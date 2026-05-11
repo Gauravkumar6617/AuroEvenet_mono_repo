@@ -4,6 +4,7 @@ import {
   OTPVerifyResponse,
   RegisterResponse,
   User,
+  ProfileUpdate,
 } from "./types";
 
 export const authApi = {
@@ -70,6 +71,19 @@ export const authApi = {
   githubCallback(code: string) {
     return apiClientCore.request<any>(`/api/v1/auth/github/callback?code=${code}`, {
       method: "GET",
+    });
+  },
+
+  getProfile() {
+    return apiClientCore.request<User>("/api/v1/user/profile", {
+      method: "GET",
+    });
+  },
+
+  updateProfile(data: ProfileUpdate) {
+    return apiClientCore.request<User>("/api/v1/user/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
     });
   },
 };

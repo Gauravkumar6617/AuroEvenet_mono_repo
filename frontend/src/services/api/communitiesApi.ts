@@ -44,6 +44,12 @@ export const communitiesApi = {
     );
   },
 
+  getMyCommunities() {
+    return apiClientCore.request<Community[]>("/api/v1/community/my", {
+      method: "GET",
+    });
+  },
+
   getMembers(slug: string) {
     return apiClientCore.request<CommunityMemberResponse>(
       `/api/v1/community/${slug}/members`,

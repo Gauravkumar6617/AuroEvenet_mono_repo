@@ -11,7 +11,7 @@ class ReadingHistoryService:
     def track(
         db: Session, user_id: int, payload: TrackHistoryRequest
     ) -> ReadingHistory:
-        return ReadingHistoryRepository.upsert(
+        return ReadingHistoryRepository.Upsert(
             db=db,
             user_id=user_id,
             post_id=payload.post_id,
@@ -24,7 +24,7 @@ class ReadingHistoryService:
     def get_history(
         db: Session, user_id: int, skip: int, limit: int
     ) -> List[ReadingHistory]:
-        return ReadingHistoryRepository.get_by_user(db, user_id, skip, limit)
+        return ReadingHistoryRepository.GetByUserId(db, user_id, skip, limit)
 
     @staticmethod
     def remove(db: Session, user_id: int, post_id: int) -> bool:

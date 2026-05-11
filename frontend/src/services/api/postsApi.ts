@@ -78,6 +78,13 @@ export const postsApi = {
     );
   },
 
+  getMyPosts(skip = 0, limit = 50) {
+    return apiClientCore.request<Post[]>(
+      `/api/v1/posts/my?skip=${skip}&limit=${limit}`,
+      { method: "GET" },
+    );
+  },
+
   getPersonalizedFeed(skip = 0, limit = 20) {
     return apiClientCore.request<Post[]>(
       `/api/v1/posts/feed?skip=${skip}&limit=${limit}`,

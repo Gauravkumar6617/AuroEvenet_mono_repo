@@ -128,8 +128,11 @@ export default function Home() {
       
       setUserLikes(prev => ({ ...prev, [postId]: !currentLiked }));
       setLikeCounts(prev => ({ ...prev, [postId]: currentLiked ? currentCount - 1 : currentCount + 1 }));
+      
+      showToast(currentLiked ? "Removed like" : "Post liked!", currentLiked ? "info" : "success");
     } catch (err) {
       console.error("Failed to toggle like:", err);
+      showToast("Failed to toggle like", "error");
     }
   };
 

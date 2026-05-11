@@ -38,6 +38,16 @@ async def create_post(
     )
 
 
+@router.get("/my", response_model=List[PostRead])
+async def fetch_my_posts(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Security(get_current_user),
+):
+    return PostRepository.fetch_my_posts(db, user_id=current_user.id, skip=skip, limit=limit)
+
+
 @router.get("/feed", response_model=List[PostRead])
 async def get_personalized_feed(
     skip: int = 0,

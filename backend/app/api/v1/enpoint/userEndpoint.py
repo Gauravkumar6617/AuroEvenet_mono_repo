@@ -5,6 +5,8 @@ All routes require an authenticated user (`get_current_user`).
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from pydantic import BaseModel
+from typing import Optional
 
 from app.db.session import get_db
 from app.core.dependencies import get_current_user
@@ -13,6 +15,8 @@ from app.models.category import Category
 from app.models.topicModel import Topic
 from app.models.onboardingQuestionModel import OnboardingQuestion
 from app.models.userPreferenceModel import UserPreference
+from app.models.userInterestModel import UserInterest
+from app.models.tagModel import Tag
 
 from app.schemas.onboarding import (
     OnboardingResponse,
@@ -25,8 +29,66 @@ from app.schemas.user_preference import (
     SaveTopicsRequest,
     SaveAnswersRequest,
 )
+from app.schemas.userSchema import UserResponse
 
 router = APIRouter(tags=["User"])
+
+
+class ProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    website: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
+@router.get("/user/profile", response_model=UserResponse)
+def get_user_profile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get current user's profile with all fields."""
+    db_user = db.query(User).filter(User.id == user.id).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return db_user
+
+
+@router.get("/user/interests")
+def get_my_interests(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return tag names the user has interacted with (interests)."""
+    rows = (
+        db.query(Tag.name)
+        .join(UserInterest, UserInterest.tag_id == Tag.id)
+        .filter(UserInterest.user_id == user.id)
+        .order_by(UserInterest.score.desc())
+        .limit(20)
+        .all()
+    )
+    return [r.name for r in rows]
+
+
+@router.put("/user/profile", response_model=UserResponse)
+def update_user_profile(
+    payload: ProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Update current user's profile fields."""
+    db_user = db.query(User).filter(User.id == user.id).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 
 # ───────────────────── Onboarding (read-only) ─────────────────────

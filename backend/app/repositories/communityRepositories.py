@@ -10,13 +10,23 @@ from app.models.userModel import User
 from app.schemas.communitySchema import CommunityResponse, CommunityMemberResponse
 from typing import Optional
 from typing import List
+from app.core.cache import cache_get_json, cache_set_json
+
 class CommunityRepositories:
 
     ##get by slug
     @staticmethod
     def get_by_slug(db: Session, slug: str)->Optional[Community]:
+        cache_key = f"community:slug:{slug}"
+        cached_data = cache_get_json(cache_key)
+        if cached_data:
+            return Community(**cached_data)
+
         try:
-            return db.query(Community).filter(Community.slug == slug).first()
+            community = db.query(Community).filter(Community.slug == slug).first()
+            if community:
+                cache_set_json(cache_key, community.__dict__, ttl_seconds=3600)
+            return community
         except Exception as e:
             print(f"Error getting community by slug: {e}")
             return None
@@ -24,8 +34,16 @@ class CommunityRepositories:
     ##to get by id
     @staticmethod
     def get_by_id(db: Session, id: int)->Optional[Community]:
+        cache_key = f"community:id:{id}"
+        cached_data = cache_get_json(cache_key)
+        if cached_data:
+            return Community(**cached_data)
+
         try:
-            return db.query(Community).filter(Community.id == id).first()
+            community = db.query(Community).filter(Community.id == id).first()
+            if community:
+                cache_set_json(cache_key, community.__dict__, ttl_seconds=3600)
+            return community
         except Exception as e:
             print(f"Error getting community by id: {e}")
             return None
@@ -146,5 +164,4 @@ class CommunityRepositories:
             db.commit()
         return deleted > 0
 
-    
-       
+
