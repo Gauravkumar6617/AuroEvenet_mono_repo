@@ -23,6 +23,11 @@ class UserResponse(UserBase):
     is_active: bool = True
     is_verified: bool = False
     oauth_provider: OAuthProviderEnum = OAuthProviderEnum.NONE
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    website: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True

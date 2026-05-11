@@ -122,10 +122,30 @@ export default function UserProfile() {
   const [tab, setTab] = useState("posts");
   const [following, setFollowing] = useState(false);
 
-  const profile = username === "gaurav_dev" ? MOCK_USER_STATIC : generateMockUser(username || "user");
-  const posts = username === "gaurav_dev" ? MOCK_POSTS_STATIC : generateMockPosts(username || "user");
-  const comments = username === "gaurav_dev" ? MOCK_COMMENTS_STATIC : generateMockComments(username || "user");
-  const isOwn = me?.username === (username || profile.username);
+  const isOwn = me?.username === username;
+
+  // Use real data for own profile, mock for others
+  const baseProfile = isOwn && me ? {
+    username: me.username,
+    full_name: me.full_name || me.username,
+    avatar: me.full_name?.[0]?.toUpperCase() || me.username?.[0]?.toUpperCase() || "U",
+    bio: me.bio || "",
+    location: me.location || "",
+    website: me.website || "",
+    joined: me.created_at ? new Date(me.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "Recently",
+    role: me.role || "member",
+    karma: 0,
+    followers: 0,
+    following: 0,
+    posts_count: 0,
+    badges: ["Member"],
+    communities: [],
+    topics: [],
+  } : generateMockUser(username || "user");
+
+  const profile = isOwn && me ? baseProfile : generateMockUser(username || "user");
+  const posts = generateMockPosts(username || "user");
+  const comments = generateMockComments(username || "user");
 
   const tabs = [
     { key: "posts", label: "Posts", count: profile.posts_count },
@@ -158,7 +178,7 @@ export default function UserProfile() {
                   </div>
 
                   {isOwn ? (
-                    <Link to="/dashboard" className="btn-secondary text-xs px-4 py-2 rounded-lg w-full justify-center">
+                    <Link to="/edit-profile" className="btn-secondary text-xs px-4 py-2 rounded-lg w-full justify-center">
                       Edit profile
                     </Link>
                   ) : (

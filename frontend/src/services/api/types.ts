@@ -9,6 +9,18 @@ export interface User {
   created_at: string;
   updated_at: string;
   oauth_provider?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  avatar_url?: string;
+}
+
+export interface ProfileUpdate {
+  full_name?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  avatar_url?: string;
 }
 
 export interface Post {

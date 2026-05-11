@@ -55,7 +55,6 @@ export default function UserDashboard() {
   const [selectedTopics, setSelectedTopics] = useState(["Engineering", "Frontend", "AI & ML"]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [profileForm, setProfileForm] = useState({ full_name: user?.full_name || "", bio: "", location: "", website: "" });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -73,7 +72,6 @@ export default function UserDashboard() {
     { key: "communities", label: "My Communities", icon: "🌐" },
     { key: "notifications", label: "Notifications", icon: "🔔", count: NOTIFS.filter((n) => n.unread).length },
     { key: "interests", label: "Topic Interests", icon: "🎯" },
-    { key: "profile", label: "Edit Profile", icon: "👤" },
     { key: "settings", label: "Account Settings", icon: "⚙️" },
     { key: "privacy", label: "Privacy", icon: "🔒" },
   ];
@@ -106,6 +104,9 @@ export default function UserDashboard() {
             </div>
             <Link to={`/u/${user?.username || "user"}`} className="sidebar-item mb-1 text-[#e85d26] bg-[#fdf0ea] hover:bg-[#fdf0ea]">
               <span>🔗</span><span className="flex-1">View public profile</span>
+            </Link>
+            <Link to="/edit-profile" className="sidebar-item mb-1">
+              <span>👤</span><span className="flex-1">Edit Profile</span>
             </Link>
             {sidebarItems.map((item) => (
               <button key={item.key} onClick={() => setSection(item.key)}
@@ -317,36 +318,6 @@ export default function UserDashboard() {
                       ))}
                     </div>
                     <button className="mt-5 btn-primary text-xs px-4 py-2 rounded-lg">Save topics</button>
-                  </Card>
-                </motion.div>
-              )}
-
-              {/* ── Edit Profile ── */}
-              {section === "profile" && (
-                <motion.div key="profile" {...fadeProps}>
-                  <Card>
-                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-4">Edit Profile</p>
-                    <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[rgba(90,80,60,0.08)]">
-                      <div className="avatar h-16 w-16 text-xl">{(user?.username || "U")[0].toUpperCase()}</div>
-                      <div>
-                        <p className="text-sm font-bold text-[#1a1814]">@{user?.username}</p>
-                        <button className="text-xs text-[#e85d26] font-semibold hover:underline mt-1">Change avatar</button>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Full name", key: "full_name", placeholder: "Your name" },
-                        { label: "Bio", key: "bio", placeholder: "Tell the community about yourself" },
-                        { label: "Location", key: "location", placeholder: "City, Country" },
-                        { label: "Website", key: "website", placeholder: "https://yoursite.com" },
-                      ].map(({ label, key, placeholder }) => (
-                        <div key={key}>
-                          <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">{label}</label>
-                          <input value={profileForm[key]} onChange={(e) => setProfileForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} className="input-field" />
-                        </div>
-                      ))}
-                      <button className="btn-primary text-sm px-5 py-2.5 rounded-xl">Save changes</button>
-                    </div>
                   </Card>
                 </motion.div>
               )}

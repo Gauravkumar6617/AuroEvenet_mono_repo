@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.models.baseModel import BaseModel
 from app.models.models_enum import UserRole, AuthProvider
@@ -16,6 +16,13 @@ class User(BaseModel):
 
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+
+    # Profile fields
+    full_name = Column(String(255), nullable=True)
+    bio = Column(Text, nullable=True)
+    location = Column(String(255), nullable=True)
+    website = Column(String(512), nullable=True)
+    avatar_url = Column(String(512), nullable=True)
 
     # Relationships
     posts = relationship("Post", back_populates="author", cascade="all, delete-orphan")
