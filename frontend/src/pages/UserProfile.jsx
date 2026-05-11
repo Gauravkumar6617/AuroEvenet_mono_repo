@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
@@ -6,6 +6,10 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { useAuth } from "../contexts/AuthContext";
+import { postsApi } from "../services/api/postsApi";
+import { communitiesApi } from "../services/api/communitiesApi";
+import { userApi } from "../services/api/userApi";
+import { commentsApi } from "../services/api/commentsApi";
 
 function generateMockUser(username) {
   const initial = username ? username[0].toUpperCase() : "U";
@@ -121,11 +125,22 @@ export default function UserProfile() {
   const { user: me } = useAuth();
   const [tab, setTab] = useState("posts");
   const [following, setFollowing] = useState(false);
+  const [myPosts, setMyPosts] = useState([]);
+  const [myCommunities, setMyCommunities] = useState([]);
+  const [myInterests, setMyInterests] = useState([]);
+  const [myComments, setMyComments] = useState([]);
 
   const isOwn = me?.username === username;
 
-  // Use real data for own profile, mock for others
-  const baseProfile = isOwn && me ? {
+  useEffect(() => {
+    if (!isOwn) return;
+    postsApi.getMyPosts().then(setMyPosts).catch(() => {});
+    communitiesApi.getMyCommunities().then(setMyCommunities).catch(() => {});
+    userApi.getMyInterests().then(setMyInterests).catch(() => {});
+    commentsApi.getMyComments().then(setMyComments).catch(() => {});
+  }, [isOwn]);
+
+  const profile = isOwn && me ? {
     username: me.username,
     full_name: me.full_name || me.username,
     avatar: me.full_name?.[0]?.toUpperCase() || me.username?.[0]?.toUpperCase() || "U",
@@ -134,21 +149,45 @@ export default function UserProfile() {
     website: me.website || "",
     joined: me.created_at ? new Date(me.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "Recently",
     role: me.role || "member",
-    karma: 0,
+    karma: myPosts.reduce((sum, p) => sum + (p.like_count || 0), 0),
     followers: 0,
     following: 0,
-    posts_count: 0,
+    posts_count: myPosts.length,
     badges: ["Member"],
-    communities: [],
-    topics: [],
+    communities: myCommunities.map((c) => ({
+      name: c.name,
+      slug: c.slug,
+      icon: c.icon_url || "🌐",
+    })),
+    topics: myInterests,
   } : generateMockUser(username || "user");
 
-  const profile = isOwn && me ? baseProfile : generateMockUser(username || "user");
-  const posts = generateMockPosts(username || "user");
-  const comments = generateMockComments(username || "user");
+  const posts = isOwn
+    ? myPosts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        votes: p.like_count || 0,
+        comments: p.comment_count || 0,
+        views: p.view_count || 0,
+        time: new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        type: p.category_name?.toLowerCase().includes("discuss") ? "discussion" : "article",
+        tags: p.tags || [],
+      }))
+    : generateMockPosts(username || "user");
+
+  const comments = isOwn
+    ? myComments.map((c) => ({
+        id: c.id,
+        post_title: c.post_title || `Post #${c.post_id}`,
+        post_slug: c.post_slug || c.post_id,
+        body: c.content,
+        votes: 0,
+        time: new Date(c.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      }))
+    : generateMockComments(username || "user");
 
   const tabs = [
-    { key: "posts", label: "Posts", count: profile.posts_count },
+    { key: "posts", label: "Posts", count: posts.length },
     { key: "comments", label: "Comments", count: comments.length },
     { key: "communities", label: "Communities", count: profile.communities.length },
   ];
@@ -334,7 +373,7 @@ export default function UserProfile() {
                     <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
                       <Card>
                         <p className="text-xs text-[#a09880] mb-1.5">
-                          On: <Link to="/blog/1" className="text-[#e85d26] hover:underline font-medium">{c.post_title}</Link>
+                          On: <Link to={`/blog/${c.post_slug}`} className="text-[#e85d26] hover:underline font-medium">{c.post_title}</Link>
                         </p>
                         <p className="text-sm text-[#1a1814] leading-relaxed">{c.body}</p>
                         <div className="flex items-center gap-3 mt-2.5 text-xs text-[#a09880]">

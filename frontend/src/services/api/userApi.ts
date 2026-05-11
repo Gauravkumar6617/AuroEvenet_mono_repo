@@ -81,4 +81,10 @@ export const userApi = {
       method: "GET",
     });
   },
+
+  getMyInterests() {
+    return apiClientCore.request<string[]>("/api/v1/user/interests", {
+      method: "GET",
+    });
+  },
 };

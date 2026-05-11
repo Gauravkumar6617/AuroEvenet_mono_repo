@@ -26,9 +26,26 @@ async def create_community(
     return {"id": community.id, "slug": community.slug}
 
 
+###to get communities the current user has joined — MUST be before /{slug}
+@router.get("/my", response_model=List[CommunityResponse])
+def get_my_communities(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.communityModel import CommunityMember
+    rows = (
+        db.query(Community)
+        .join(CommunityMember, CommunityMember.community_id == Community.id)
+        .filter(CommunityMember.user_id == user.id, Community.is_active == True)
+        .all()
+    )
+    for c in rows:
+        c.joined = True
+    return rows
 
-####to get community by sluf
-@router.get("/{slug}",response_model=CommunityResponse)
+
+####to get community by slug
+@router.get("/{slug}", response_model=CommunityResponse)
 def get_community(slug:str,db:Session = Depends(get_db),user:Optional[User] = Depends(get_optional_user)):
     user_id = user.id if user else None
     community = CommunityService.get(db, slug, user_id=user_id)

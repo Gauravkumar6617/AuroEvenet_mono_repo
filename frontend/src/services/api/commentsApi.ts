@@ -37,11 +37,14 @@ export const commentsApi = {
     return apiClientCore.request<Comment[]>(
       `/api/v1/comments/comments?post_id=${postId}`,
       { method: "GET" },
-      false,
-      null,
-      false,
-      false,
+      false, null, false, false,
     );
+  },
+
+  getMyComments() {
+    return apiClientCore.request<any[]>("/api/v1/comments/my", {
+      method: "GET",
+    });
   },
 
   getCommentById(commentId: number) {

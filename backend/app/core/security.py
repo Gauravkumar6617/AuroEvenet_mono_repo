@@ -1,6 +1,5 @@
 import jwt
 import uuid
-import hashlib
 import redis
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -44,12 +43,9 @@ def create_access_token(user_id: int, user_Agent: str):
     # ACCESS_TOKEN_EXPIRE_MINUTES,
     r.setex(redis_key, timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), jti)
 
-    fingerprint = hashlib.sha256(user_Agent.encode()).hexdigest()
-
     acc_payload = {
         "sub": str(user_id),
         "jti": jti,
-        "dev": fingerprint,
         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     }
 
@@ -70,17 +66,10 @@ def verify_token(token: str, user_Agent: str) -> Optional[int]:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id = int(payload.get("sub"))
         jti = payload.get("jti")
-        fingerprint = payload.get("dev")
 
-        # 1. Device check
-        if fingerprint and fingerprint != hashlib.sha256(user_Agent.encode()).hexdigest():
-            return None
-
-        # 2. Redis Session check
+        # Redis Session check — primary security gate
         redis_key = f"s:{user_id}"
         stored_jti = r.get(redis_key)
-        
-        # Because of decode_responses=True, we don't need .decode()
         if stored_jti is None or stored_jti != jti:
             return None
 

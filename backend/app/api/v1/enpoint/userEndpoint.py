@@ -15,6 +15,8 @@ from app.models.category import Category
 from app.models.topicModel import Topic
 from app.models.onboardingQuestionModel import OnboardingQuestion
 from app.models.userPreferenceModel import UserPreference
+from app.models.userInterestModel import UserInterest
+from app.models.tagModel import Tag
 
 from app.schemas.onboarding import (
     OnboardingResponse,
@@ -50,6 +52,23 @@ def get_user_profile(
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
+
+
+@router.get("/user/interests")
+def get_my_interests(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return tag names the user has interacted with (interests)."""
+    rows = (
+        db.query(Tag.name)
+        .join(UserInterest, UserInterest.tag_id == Tag.id)
+        .filter(UserInterest.user_id == user.id)
+        .order_by(UserInterest.score.desc())
+        .limit(20)
+        .all()
+    )
+    return [r.name for r in rows]
 
 
 @router.put("/user/profile", response_model=UserResponse)
