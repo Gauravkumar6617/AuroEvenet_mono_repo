@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.db.session import get_db
 from app.core.dependencies import require_super_admin
@@ -9,6 +10,7 @@ from app.models.userModel import User
 from app.models.postModel import Post
 from app.models.likeModel import Like
 from app.models.commentModel import Comment
+from app.models.communityModel import Community
 from app.schemas.userSchema import UserResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -17,6 +19,19 @@ router = APIRouter(
     prefix="/admin/users",
     tags=["Superadmin Users"],
 )
+
+
+@router.get("/stats")
+def get_platform_stats(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    return {
+        "total_users": db.query(func.count(User.id)).scalar(),
+        "total_posts": db.query(func.count(Post.id)).scalar(),
+        "total_comments": db.query(func.count(Comment.id)).scalar(),
+        "total_communities": db.query(func.count(Community.id)).scalar(),
+    }
 
 
 class UserStats(BaseModel):
@@ -71,6 +86,35 @@ def list_users(
         }
         result.append(user_dict)
     return result
+
+
+@router.put("/{user_id}/role")
+def update_user_role(
+    user_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = payload.get("role", user.role)
+    db.commit()
+    return {"detail": "Role updated"}
+
+
+@router.put("/{user_id}/ban")
+def ban_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    db.commit()
+    return {"detail": "User banned"}
 
 
 @router.get("/{user_id}", response_model=UserDetail)

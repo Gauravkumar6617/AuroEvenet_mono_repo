@@ -70,21 +70,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Fetch real user from /auth/me on mount.
-    // Uses Bearer token from session (cross-origin) or cookie (same-origin) as fallback.
     const initAuth = async () => {
+      setLoading(true);
       try {
         const storedToken = useAuthStore.getState().accessToken;
         const user = await authApi.getMe(storedToken);
         setAuth(user);
       } catch {
-        // 401 is expected for anonymous users — only clear if we had a stale session
         if (isAuthenticated) {
           logoutStore();
         }
+      } finally {
+        setLoading(false);
       }
     };
     initAuth();
-  }, [setAuth, logoutStore, isAuthenticated]);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
