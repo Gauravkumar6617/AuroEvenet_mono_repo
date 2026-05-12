@@ -83,15 +83,19 @@ export default function Blog() {
     const counts = {};
     const likes = {};
     
-    for (const post of posts) {
-      try {
-        const response = await likesApi.getLikeCount(post.id);
-        counts[post.id] = response.count;
-        likes[post.id] = response.liked;
-      } catch (err) {
-        counts[post.id] = 0;
-        likes[post.id] = false;
-      }
+    posts.forEach((post) => {
+      counts[post.id] = post.like_count ?? post.likes_count ?? post.votes ?? 0;
+      likes[post.id] = false;
+    });
+
+    try {
+      const response = await likesApi.getLikeCounts(posts.map((post) => post.id));
+      posts.forEach((post) => {
+        counts[post.id] = response[post.id]?.count ?? counts[post.id];
+        likes[post.id] = response[post.id]?.liked ?? false;
+      });
+    } catch (err) {
+      console.error("Failed to load like data:", err);
     }
     
     setLikeCounts(counts);

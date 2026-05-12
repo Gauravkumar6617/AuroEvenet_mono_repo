@@ -20,6 +20,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    role: Optional[str] = None
     is_active: bool = True
     is_verified: bool = False
     oauth_provider: OAuthProviderEnum = OAuthProviderEnum.NONE
@@ -42,8 +43,10 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     message: str = "Login successful"
+    id: Optional[int] = None
     email: Optional[str] = None
     username: Optional[str] = None
+    role: Optional[str] = None
 
 class RegisterResponse(BaseModel):
     user: UserResponse
