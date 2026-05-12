@@ -104,16 +104,34 @@ export const likesApi = {
     });
 
     if (missingPostIds.length > 0) {
-      const response = await apiClientCore.request<LikeCountBatchItem[]>("/api/v1/likes/counts", {
-        method: "POST",
-        body: JSON.stringify({ post_ids: missingPostIds }),
-      });
+      try {
+        const response = await apiClientCore.request<LikeCountBatchItem[]>("/api/v1/likes/counts", {
+          method: "POST",
+          body: JSON.stringify({ post_ids: missingPostIds }),
+        });
 
-      response.forEach((item) => {
-        const value = { count: item.count, liked: item.liked };
-        results[item.post_id] = value;
-        writeCachedLike(item.post_id, value);
-      });
+        response.forEach((item) => {
+          const value = { count: item.count, liked: item.liked };
+          results[item.post_id] = value;
+          writeCachedLike(item.post_id, value);
+        });
+      } catch (error) {
+        const fallbackResults = await Promise.allSettled(
+          missingPostIds.map(async (postId) => {
+            const value = await this.getLikeCount(postId);
+            return { postId, value };
+          }),
+        );
+
+        fallbackResults.forEach((result, index) => {
+          const postId = missingPostIds[index];
+          const value = result.status === "fulfilled"
+            ? result.value.value
+            : { count: 0, liked: false };
+          results[postId] = value;
+          writeCachedLike(postId, value);
+        });
+      }
     }
 
     return results;
