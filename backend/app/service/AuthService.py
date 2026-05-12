@@ -70,7 +70,13 @@ class AuthService:
             # Store session in Redis for Logout/Revocation support
             r.setex(f"session:{user.id}", 604800, tokens["refresh_token"])
             
-            return TokenResponse(**tokens)
+            return TokenResponse(
+                **tokens,
+                id=user.id,
+                email=user.email,
+                username=user.username,
+                role=user.role,
+            )
         except Exception as e:
             logger.exception("login_user failed: %s", str(e))
             traceback.print_exc()
