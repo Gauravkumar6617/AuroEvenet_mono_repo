@@ -1,8 +1,16 @@
-from sqlalchemy import Column, String, Boolean, Text
+from sqlalchemy import Column, String, Boolean, Text ,Table,ForeignKey
 from sqlalchemy.orm import relationship
 from app.models.baseModel import BaseModel
 from app.models.models_enum import UserRole, AuthProvider
 
+
+user_follower=Table(
+    "follower",
+    BaseModel.metadata,
+    Column("follower_id",String,ForeignKey("users.id"),primary_key=True),
+    Column("followed_id",String,ForeignKey("users.id"),primary_key=True)
+
+)
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -33,4 +41,14 @@ class User(BaseModel):
     # reading_history = relationship("ReadingHistory", back_populates="user", cascade="all, delete-orphan")/
     reading_history = relationship("ReadingHistory", back_populates="user", cascade="all, delete-orphan")
     community_members = relationship("CommunityMember", back_populates="user", cascade="all, delete-orphan")
+
+
+    ####follower feautres
+    following=relationship(
+        "users",
+        secondary=user_follower,
+        primary_join=(user_follower.c.follower_id == id),
+        secondry_join=(user_follower.c.followed_id == id),
+        backref=user_follower
+    )
 

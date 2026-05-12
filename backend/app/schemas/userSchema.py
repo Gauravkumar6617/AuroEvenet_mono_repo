@@ -24,6 +24,7 @@ class UserResponse(UserBase):
     is_active: bool = True
     is_verified: bool = False
     oauth_provider: OAuthProviderEnum = OAuthProviderEnum.NONE
+    auth_provider: Optional[str] = None  # Added auth_provider field
     full_name: Optional[str] = None
     bio: Optional[str] = None
     location: Optional[str] = None
@@ -60,4 +61,10 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     otp: str
     new_password: str
+
+
+class UserFollowerInfo(BaseModel):
+    follower_count:int=0
+    followed_count:int=0
+    is_following:Optional[bool]=None
 

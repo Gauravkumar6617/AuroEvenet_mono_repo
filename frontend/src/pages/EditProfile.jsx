@@ -7,6 +7,7 @@ import Button from "../components/ui/Button";
 import { authApi } from "../services/api/authApi";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import axios from "axios";
 
 export default function EditProfile() {
   const { user, setAuth } = useAuth();
@@ -20,6 +21,8 @@ export default function EditProfile() {
     website: "",
     avatar_url: "",
   });
+
+  const [avatarFile, setAvatarFile] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,32 +44,64 @@ export default function EditProfile() {
     };
 
     fetchProfile();
-  }, []);
+  }, [showToast]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      showToast("No file selected for upload", "error");
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("file", avatarFile);
+    formData.append("upload_preset", "ml_default");
+
+    try {
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/dkxqnz5m/image/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      return response.data.secure_url;
+    } catch (error) {
+      console.error("Cloudinary error:", error.response?.data || error);
+      return null;
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+
+    let avatarUrl = form.avatar_url;
+    if (avatarFile) {
+      avatarUrl = await handleAvatarUpload();
+      if (!avatarUrl) {
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
-      const updated = await authApi.updateProfile({
-        full_name: form.full_name || undefined,
-        bio: form.bio || undefined,
-        location: form.location || undefined,
-        website: form.website || undefined,
-        avatar_url: form.avatar_url || undefined,
-      });
-      setAuth(updated);
-      showToast("Profile updated successfully!", "success");
+      await authApi.updateProfile({ ...form, avatar_url: avatarUrl });
+      setAuth({ ...form, avatar_url: avatarUrl });
+      showToast("Profile updated successfully", "success");
     } catch (err) {
       console.error("Error updating profile:", err);
       showToast("Failed to update profile", "error");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
@@ -97,30 +132,42 @@ export default function EditProfile() {
         >
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="font-display text-2xl font-bold text-[#1a1814]">Edit Profile</h1>
-              <p className="text-sm text-[#6b6358] mt-1">Update your public profile information</p>
+              <h1 className="font-display text-2xl font-bold text-[#1a1814]">
+                Edit Profile
+              </h1>
+              <p className="text-sm text-[#6b6358] mt-1">
+                Update your public profile information
+              </p>
             </div>
             <Link to={`/u/${user?.username || "user"}`}>
-              <Button variant="secondary" size="sm">View Profile</Button>
+              <Button variant="secondary" size="sm">
+                View Profile
+              </Button>
             </Link>
           </div>
 
           <Card>
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Avatar preview */}
+              {/* Avatar upload */}
               <div className="flex items-center gap-4 pb-5 border-b border-[rgba(90,80,60,0.08)]">
                 <div className="avatar h-16 w-16 text-xl shrink-0">
-                  {form.full_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || "U"}
+                  {form.full_name?.[0]?.toUpperCase() ||
+                    user?.username?.[0]?.toUpperCase() ||
+                    "U"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#1a1814]">@{user?.username}</p>
+                  <p className="text-sm font-bold text-[#1a1814]">
+                    @{user?.username}
+                  </p>
                   <p className="text-xs text-[#a09880]">{user?.email}</p>
                 </div>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Full Name</label>
+                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     name="full_name"
@@ -132,7 +179,9 @@ export default function EditProfile() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Bio</label>
+                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">
+                    Bio
+                  </label>
                   <textarea
                     name="bio"
                     value={form.bio}
@@ -141,11 +190,15 @@ export default function EditProfile() {
                     rows={4}
                     className="input-field resize-none"
                   />
-                  <p className="text-xs text-[#a09880] mt-1">{form.bio?.length || 0}/500 characters</p>
+                  <p className="text-xs text-[#a09880] mt-1">
+                    {form.bio?.length || 0}/500 characters
+                  </p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Location</label>
+                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">
+                    Location
+                  </label>
                   <input
                     type="text"
                     name="location"
@@ -157,7 +210,9 @@ export default function EditProfile() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Website</label>
+                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">
+                    Website
+                  </label>
                   <input
                     type="url"
                     name="website"
@@ -169,15 +224,22 @@ export default function EditProfile() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Avatar URL</label>
+                  <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">
+                    Avatar
+                  </label>
                   <input
-                    type="url"
-                    name="avatar_url"
-                    value={form.avatar_url}
-                    onChange={handleChange}
-                    placeholder="https://example.com/avatar.png"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatarFile(e.target.files[0])}
                     className="input-field"
                   />
+                  {form.avatar_url && (
+                    <img
+                      src={form.avatar_url}
+                      alt="Avatar Preview"
+                      className="mt-2 w-24 h-24 rounded-full object-cover"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -185,9 +247,24 @@ export default function EditProfile() {
                 <Button type="submit" disabled={saving}>
                   {saving ? (
                     <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
                       </svg>
                       Saving...
                     </span>
@@ -196,7 +273,9 @@ export default function EditProfile() {
                   )}
                 </Button>
                 <Link to="/dashboard">
-                  <Button variant="ghost" type="button">Cancel</Button>
+                  <Button variant="ghost" type="button">
+                    Cancel
+                  </Button>
                 </Link>
               </div>
             </form>
