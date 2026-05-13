@@ -23,6 +23,8 @@ export default function EditProfile() {
   });
 
   const [avatarFile, setAvatarFile] = useState(null);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -43,7 +45,27 @@ export default function EditProfile() {
       }
     };
 
+    const fetchFollowersAndFollowing = async () => {
+      try {
+        const token = localStorage.getItem("authToken"); // Retrieve the token from local storage
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const followersResponse = await axios.get("/api/v1/user/followers", {
+          headers,
+        });
+        const followingResponse = await axios.get("/api/v1/user/following", {
+          headers,
+        });
+
+        setFollowers(followersResponse.data || []); // Ensure data is an array
+        setFollowing(followingResponse.data || []); // Ensure data is an array
+      } catch (error) {
+        console.error("Error fetching followers or following:", error);
+      }
+    };
+
     fetchProfile();
+    fetchFollowersAndFollowing();
   }, [showToast]);
 
   const handleAvatarUpload = async () => {
@@ -280,6 +302,49 @@ export default function EditProfile() {
               </div>
             </form>
           </Card>
+
+          {/* Followers and Following sections */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-[#1a1814] mb-4">
+              Followers
+            </h2>
+            <ul className="space-y-2">
+              {Array.isArray(followers) && followers.length > 0 ? (
+                followers.map((follower) => (
+                  <li
+                    key={follower.id}
+                    className="p-3 rounded-lg bg-[rgba(90,80,60,0.04)]"
+                  >
+                    {follower.username}
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-[#a09880]">No followers yet.</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold text-[#1a1814] mb-4">
+              Following
+            </h2>
+            <ul className="space-y-2">
+              {Array.isArray(following) && following.length > 0 ? (
+                following.map((followed) => (
+                  <li
+                    key={followed.id}
+                    className="p-3 rounded-lg bg-[rgba(90,80,60,0.04)]"
+                  >
+                    {followed.username}
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-[#a09880]">
+                  Not following anyone yet.
+                </li>
+              )}
+            </ul>
+          </div>
         </motion.div>
       </PageContainer>
     </div>

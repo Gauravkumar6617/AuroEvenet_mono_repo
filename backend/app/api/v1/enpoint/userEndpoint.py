@@ -71,6 +71,102 @@ def get_my_interests(
     return [r.name for r in rows]
 
 
+@router.get("/user/public/{username}")
+def get_public_profile(
+    username: str,
+    db: Session = Depends(get_db),
+):
+    """Public profile for any user by username — no auth required."""
+    from app.models.postModel import Post
+    from app.models.commentModel import Comment
+    from app.models.communityModel import Community, CommunityMember
+    from sqlalchemy.orm import selectinload
+
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    posts = (
+        db.query(Post)
+        .options(selectinload(Post.post_tags))
+        .filter(Post.author_id == target.id)
+        .order_by(Post.created_at.desc())
+        .all()
+    )
+
+    comments = (
+        db.query(Comment)
+        .filter(Comment.user_id == target.id)
+        .order_by(Comment.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    # post titles for comments
+    post_map = {p.id: p for p in db.query(Post).filter(
+        Post.id.in_([c.post_id for c in comments])
+    ).all()}
+
+    communities = (
+        db.query(Community)
+        .join(CommunityMember, CommunityMember.community_id == Community.id)
+        .filter(CommunityMember.user_id == target.id, Community.is_active == True)
+        .all()
+    )
+
+    interests = (
+        db.query(Tag.name)
+        .join(UserInterest, UserInterest.tag_id == Tag.id)
+        .filter(UserInterest.user_id == target.id)
+        .order_by(UserInterest.score.desc())
+        .limit(20)
+        .all()
+    )
+
+    return {
+        "user": {
+            "id": target.id,
+            "username": target.username,
+            "full_name": target.full_name,
+            "bio": target.bio,
+            "location": target.location,
+            "website": target.website,
+            "avatar_url": target.avatar_url,
+            "role": target.role,
+            "created_at": str(target.created_at) if target.created_at else None,
+        },
+        "posts": [
+            {
+                "id": p.id,
+                "title": p.title,
+                "slug": p.slug,
+                "like_count": p.like_count,
+                "comment_count": p.comment_count,
+                "view_count": p.view_count,
+                "created_at": str(p.created_at),
+                "tags": [pt.tag for pt in p.post_tags if pt.tag],
+            }
+            for p in posts
+        ],
+        "comments": [
+            {
+                "id": c.id,
+                "content": c.content,
+                "post_id": c.post_id,
+                "post_title": post_map.get(c.post_id, {}).title if c.post_id in post_map else None,
+                "post_slug": post_map.get(c.post_id, {}).slug if c.post_id in post_map else None,
+                "created_at": str(c.created_at),
+            }
+            for c in comments
+        ],
+        "communities": [
+            {"name": c.name, "slug": c.slug, "icon_url": c.icon_url, "members_count": c.members_count}
+            for c in communities
+        ],
+        "interests": [r.name for r in interests],
+    }
+
+
 @router.put("/user/profile", response_model=UserResponse)
 def update_user_profile(
     payload: ProfileUpdateRequest,

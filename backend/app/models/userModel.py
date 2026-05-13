@@ -46,5 +46,8 @@ class User(BaseModel):
     following = relationship(
         "User",
         secondary=user_follower,
-        backref="followers"
+        primaryjoin=lambda: User.id == user_follower.c.follower_id,
+        secondaryjoin=lambda: User.id == user_follower.c.followed_id,
+        backref="followers",
+        foreign_keys=[user_follower.c.follower_id, user_follower.c.followed_id],
     )

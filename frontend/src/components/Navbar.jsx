@@ -266,7 +266,7 @@ export default function Navbar() {
                     {[
                       { label: "Browse communities", to: "/communities", icon: "🌐" },
                       { label: "Topic preferences", to: "/settings/topics", icon: "🎯" },
-                      { label: "My profile", to: `/u/${user?.username || ""}`, icon: "👤" },
+                      { label: "My profile", to: user?.username ? `/u/${user.username}` : "/dashboard", icon: "👤" },
                     ].map(({ label, to, icon }) => (
                       <Link key={label} to={to} onClick={() => setSearchOpen(false)}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.05)] hover:text-[#1a1814]">
