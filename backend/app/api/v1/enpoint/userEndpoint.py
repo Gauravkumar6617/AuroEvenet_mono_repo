@@ -3,7 +3,7 @@ User routes — Onboarding flow and Preference management.
 All routes require an authenticated user (`get_current_user`).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import Optional
@@ -52,6 +52,38 @@ def get_user_profile(
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
+
+
+@router.post("/user/avatar")
+def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Upload avatar to Cloudinary via backend (keeps API secret server-side)."""
+    import cloudinary
+    import cloudinary.uploader
+    from app.core.config import settings
+    cloudinary.config(
+        cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+        api_key=settings.CLOUDINARY_API_KEY,
+        api_secret=settings.CLOUDINARY_API_SECRET,
+    )
+    try:
+        result = cloudinary.uploader.upload(
+            file.file,
+            folder="blogbyte/avatars",
+            transformation={"width": 256, "height": 256, "crop": "fill", "gravity": "face"},
+            public_id=f"avatar_{user.id}",
+            overwrite=True,
+        )
+        url = result.get("secure_url")
+        db_user = db.query(User).filter(User.id == user.id).first()
+        db_user.avatar_url = url
+        db.commit()
+        return {"avatar_url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 @router.get("/user/interests")

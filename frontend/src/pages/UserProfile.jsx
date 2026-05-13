@@ -33,10 +33,11 @@ export default function UserProfile() {
   const { username } = useParams();
   const { user: me } = useAuth();
   const [tab, setTab] = useState("posts");
-  const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [stats, setStats] = useState({ followers_count: 0, following_count: 0 });
 
-  // profile data
   const [profileUser, setProfileUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
@@ -50,21 +51,21 @@ export default function UserProfile() {
     setLoading(true);
 
     if (isOwn && me) {
-      // own profile — use authenticated endpoints
       Promise.all([
         postsApi.getMyPosts().catch(() => []),
         communitiesApi.getMyCommunities().catch(() => []),
         userApi.getMyInterests().catch(() => []),
         commentsApi.getMyComments().catch(() => []),
-      ]).then(([p, c, i, cm]) => {
+        authApi_getProfile(),
+      ]).then(([p, c, i, cm, profile]) => {
+        if (profile?.id) {
+          apiClientCore.request(`/api/v1/social/stats/${profile.id}`, { method: "GET" }, false, null, false, false)
+            .then(setStats).catch(() => {});
+        }
         setPosts(p.map((post) => ({
-          id: post.id,
-          title: post.title,
-          slug: post.slug,
-          votes: post.like_count || 0,
-          comments: post.comment_count || 0,
-          views: post.view_count || 0,
-          time: timeAgo(post.created_at),
+          id: post.id, title: post.title, slug: post.slug,
+          votes: post.like_count || 0, comments: post.comment_count || 0,
+          views: post.view_count || 0, time: timeAgo(post.created_at),
           type: post.category_name?.toLowerCase().includes("discuss") ? "discussion" : "article",
           tags: post.tags || [],
         })));
@@ -80,37 +81,59 @@ export default function UserProfile() {
         setLoading(false);
       });
     } else {
-      // other user — use public endpoint (no auth needed)
       apiClientCore.request(`/api/v1/user/public/${username}`, { method: "GET" }, false, null, false, false)
         .then((data) => {
           setProfileUser(data.user);
           setPosts(data.posts.map((p) => ({
-            id: p.id,
-            title: p.title,
-            slug: p.slug,
-            votes: p.like_count || 0,
-            comments: p.comment_count || 0,
-            views: p.view_count || 0,
-            time: timeAgo(p.created_at),
-            type: "article",
-            tags: p.tags || [],
+            id: p.id, title: p.title, slug: p.slug,
+            votes: p.like_count || 0, comments: p.comment_count || 0,
+            views: p.view_count || 0, time: timeAgo(p.created_at),
+            type: "article", tags: p.tags || [],
           })));
           setComments(data.comments.map((c) => ({
             id: c.id,
             post_title: c.post_title || `Post #${c.post_id}`,
             post_slug: c.post_slug || String(c.post_id),
-            body: c.content,
-            time: timeAgo(c.created_at),
+            body: c.content, time: timeAgo(c.created_at),
           })));
           setCommunities(data.communities);
           setInterests(data.interests);
+
+          // fetch real follower/following counts
+          if (data.user?.id) {
+            apiClientCore.request(`/api/v1/social/stats/${data.user.id}`, { method: "GET" }, false, null, false, false)
+              .then(setStats).catch(() => {});
+            // check if current user is following this profile
+            if (me) {
+              apiClientCore.request(`/api/v1/social/is-following/${data.user.id}`, { method: "GET" })
+                .then((r) => setIsFollowing(r.is_following)).catch(() => {});
+            }
+          }
           setLoading(false);
         })
         .catch(() => setLoading(false));
     }
   }, [username, isOwn]);
 
-  // build profile object from real data
+  // helper to get own profile id
+  function authApi_getProfile() {
+    return apiClientCore.request("/api/v1/user/profile", { method: "GET" }).catch(() => null);
+  }
+
+  const handleFollow = async () => {
+    if (!profileUser?.id || followLoading) return;
+    setFollowLoading(true);
+    try {
+      const res = await apiClientCore.request(`/api/v1/social/follow/${profileUser.id}`, { method: "POST" });
+      setIsFollowing(res.action === "followed");
+      setStats(res.stats);
+    } catch {
+      // ignore
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   const profile = (() => {
     const src = isOwn ? me : profileUser;
     if (!src) return null;
@@ -164,7 +187,8 @@ export default function UserProfile() {
               <Card>
                 <div className="flex flex-col items-center text-center pb-4 border-b border-[rgba(90,80,60,0.08)]">
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={profile.username} className="h-20 w-20 rounded-full object-cover mb-3 ring-4 ring-[rgba(232,93,38,0.15)]" />
+                    <img src={profile.avatar_url} alt={profile.username}
+                      className="h-20 w-20 rounded-full object-cover mb-3 ring-4 ring-[rgba(232,93,38,0.15)]" />
                   ) : (
                     <div className="avatar h-20 w-20 text-2xl mb-3 ring-4 ring-[rgba(232,93,38,0.15)]">
                       {profile.avatar}
@@ -179,20 +203,21 @@ export default function UserProfile() {
                     </Link>
                   ) : (
                     <button
-                      onClick={() => setFollowing((f) => !f)}
-                      className={`w-full text-xs px-4 py-2 rounded-lg font-semibold transition-all ${following ? "btn-secondary" : "btn-primary"}`}
+                      onClick={handleFollow}
+                      disabled={followLoading || !me}
+                      className={`w-full text-xs px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-60 ${isFollowing ? "btn-secondary" : "btn-primary"}`}
                     >
-                      {following ? "Following ✓" : "Follow"}
+                      {followLoading ? "…" : isFollowing ? "Following ✓" : "Follow"}
                     </button>
                   )}
                 </div>
 
-                {/* Stats */}
+                {/* Stats — real follower/following counts */}
                 <div className="grid grid-cols-3 py-3 border-b border-[rgba(90,80,60,0.08)]">
                   {[
                     { label: "Posts", value: profile.posts_count },
-                    { label: "Communities", value: communities.length },
-                    { label: "Karma", value: profile.karma },
+                    { label: "Followers", value: stats.followers_count },
+                    { label: "Following", value: stats.following_count },
                   ].map(({ label, value }) => (
                     <div key={label} className="text-center">
                       <p className="text-base font-bold text-[#1a1814]">{value}</p>
@@ -222,7 +247,6 @@ export default function UserProfile() {
               </Card>
             </motion.div>
 
-            {/* Interests */}
             {interests.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.08 }}>
                 <Card>
@@ -234,7 +258,6 @@ export default function UserProfile() {
               </motion.div>
             )}
 
-            {/* Communities */}
             {communities.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.12 }}>
                 <Card>
@@ -245,8 +268,7 @@ export default function UserProfile() {
                         className="flex items-center gap-2.5 rounded-lg p-2 hover:bg-[rgba(90,80,60,0.05)] transition-all group">
                         {c.icon_url
                           ? <img src={c.icon_url} className="h-6 w-6 rounded object-cover" alt={c.name} />
-                          : <span className="text-base">🌐</span>
-                        }
+                          : <span className="text-base">🌐</span>}
                         <span className="text-sm font-medium text-[#1a1814] group-hover:text-[#e85d26] transition-colors">{c.name}</span>
                         <svg className="ml-auto w-3.5 h-3.5 text-[#a09880]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                       </Link>
@@ -260,7 +282,6 @@ export default function UserProfile() {
           {/* ── Right: Activity ── */}
           <div>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }}>
-              {/* Tabs */}
               <div className="flex gap-1 border-b border-[rgba(90,80,60,0.1)] mb-5">
                 {tabs.map((t) => (
                   <button key={t.key} onClick={() => setTab(t.key)}
@@ -275,7 +296,6 @@ export default function UserProfile() {
                 ))}
               </div>
 
-              {/* Posts tab */}
               {tab === "posts" && (
                 <div className="space-y-3">
                   {posts.length === 0 ? (
@@ -311,7 +331,6 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {/* Comments tab */}
               {tab === "comments" && (
                 <div className="space-y-3">
                   {comments.length === 0 ? (
@@ -323,16 +342,13 @@ export default function UserProfile() {
                           On: <Link to={`/blog/${c.post_slug}`} className="text-[#e85d26] hover:underline font-medium">{c.post_title}</Link>
                         </p>
                         <p className="text-sm text-[#1a1814] leading-relaxed">{c.body}</p>
-                        <div className="flex items-center gap-3 mt-2.5 text-xs text-[#a09880]">
-                          <span className="ml-auto">{c.time}</span>
-                        </div>
+                        <p className="text-xs text-[#a09880] mt-2 text-right">{c.time}</p>
                       </Card>
                     </motion.div>
                   ))}
                 </div>
               )}
 
-              {/* Communities tab */}
               {tab === "communities" && (
                 <div className="grid sm:grid-cols-2 gap-3">
                   {communities.length === 0 ? (
@@ -344,8 +360,7 @@ export default function UserProfile() {
                           <div className="flex items-center gap-3">
                             {c.icon_url
                               ? <img src={c.icon_url} className="h-8 w-8 rounded-lg object-cover" alt={c.name} />
-                              : <span className="text-2xl">🌐</span>
-                            }
+                              : <span className="text-2xl">🌐</span>}
                             <div>
                               <p className="text-sm font-bold text-[#1a1814]">{c.name}</p>
                               <p className="text-xs text-[#a09880]">{c.members_count?.toLocaleString()} members</p>
