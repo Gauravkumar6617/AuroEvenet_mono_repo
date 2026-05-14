@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     ####cronapi key
     CRON_SECRET: str
 
+
+
+    ####
+    ADMIN_EMAIL: str
+
     FRONTEND_URL: str = "https://blog-byte-mono-repo.vercel.app"
 
     model_config = SettingsConfigDict(

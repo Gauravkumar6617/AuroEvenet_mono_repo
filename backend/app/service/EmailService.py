@@ -193,3 +193,56 @@ class EmailService:
         print("="*60 + "\n")
         
         logger.info(f"OTP email simulation completed for {to_email}")
+
+    
+    def send_contact_email(self, sender_name: str, sender_email: str, subject: str, message: str) -> bool:
+        """
+        Processes the contact form submission. 
+        Sends an email to the ADMIN (configured in settings) with the user's details.
+        """
+        try:
+            # 1. Define the recipient (the site admin/support)
+            admin_email = settings.ADMIN_EMAIL  # Add this to your settings/config
+            
+            # 2. Prepare content
+            email_subject = f"Contact Inquiry: {subject}"
+            
+            html_content = f"""
+            <html>
+            <body style="font-family: sans-serif;">
+                <h2>New Contact Message</h2>
+                <p><strong>From:</strong> {sender_name} ({sender_email})</p>
+                <p><strong>Subject:</strong> {subject}</p>
+                <hr>
+                <p><strong>Message:</strong></p>
+                <div style="background: #f4f4f4; padding: 15px; border-radius: 5px;">
+                    {message}
+                </div>
+            </body>
+            </html>
+            """
+            
+            text_content = f"New Message from {sender_name} ({sender_email}):\n\n{message}"
+
+            # 3. Routing: Real vs. Simulation
+            if self.smtp_host and self.smtp_host != "localhost" and self.smtp_username and self.smtp_password:
+                return self._send_real_email(admin_email, email_subject, text_content, html_content)
+            else:
+                return self._simulate_contact_email(admin_email, sender_email, email_subject, text_content)
+
+        except Exception as e:
+            logger.error(f"Failed to process contact email: {str(e)}")
+            return False
+
+    def _simulate_contact_email(self, admin_email: str, sender_email: str, subject: str, text_content: str) -> bool:
+        """Helper to log contact emails in development"""
+        print("\n" + "="*60)
+        print("📧 CONTACT FORM SIMULATION (Development Mode)")
+        print("="*60)
+        print(f"To (Admin): {admin_email}")
+        print(f"From (User): {sender_email}")
+        print(f"Subject: {subject}")
+        print("-"*60)
+        print(text_content)
+        print("="*60 + "\n")
+        return True
