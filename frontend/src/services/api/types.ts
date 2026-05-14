@@ -80,3 +80,8 @@ export interface ValidationError {
 export interface HTTPValidationError {
   detail: ValidationError[];
 }
+
+export interface ContactResponse {
+  message: string;
+  success: boolean;
+}
