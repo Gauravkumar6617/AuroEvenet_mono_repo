@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { useToast } from "../contexts/ToastContext"; // adjust path
+import { useToast } from "../contexts/ToastContext";
 import PageContainer from "../components/layout/PageContainer";
 import SectionHeader from "../components/layout/SectionHeader";
 import Button from "../components/ui/Button";
+import { contactApi } from "../services/api/contactApi"; // adjust path
 
 export default function Contact() {
   const { showToast } = useToast();
 
+  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -15,20 +18,38 @@ export default function Contact() {
     message: "",
   });
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
 
-    // custom toast
-    showToast("Message sent successfully 🚀", "success");
+    try {
+      setLoading(true);
 
-    setSent(true);
+      // IMPORTANT: convert to FormData (because backend expects FormData)
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("subject", form.subject);
+      formData.append("message", form.message);
 
-    setForm({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+      // API CALL 👇
+      await contactApi.sendContactForm(formData);
+
+      showToast("Message sent successfully 🚀", "success");
+
+      setSent(true);
+
+      setForm({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+      });
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to send message ❌", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,9 +76,7 @@ export default function Contact() {
           <form onSubmit={submit} className="surface rounded-2xl p-8 space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">
-                  Name
-                </label>
+                <label>Name</label>
                 <input
                   className="input-field"
                   value={form.name}
@@ -67,9 +86,7 @@ export default function Contact() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">
-                  Email
-                </label>
+                <label>Email</label>
                 <input
                   type="email"
                   className="input-field"
@@ -81,9 +98,7 @@ export default function Contact() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">
-                Subject
-              </label>
+              <label>Subject</label>
               <input
                 className="input-field"
                 value={form.subject}
@@ -93,9 +108,7 @@ export default function Contact() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">
-                Message
-              </label>
+              <label>Message</label>
               <textarea
                 className="input-field min-h-36 resize-none"
                 value={form.message}
@@ -104,8 +117,13 @@ export default function Contact() {
               />
             </div>
 
-            <Button type="submit" size="lg" className="w-full">
-              Send message →
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? "Sending..." : "Send message →"}
             </Button>
           </form>
         )}
