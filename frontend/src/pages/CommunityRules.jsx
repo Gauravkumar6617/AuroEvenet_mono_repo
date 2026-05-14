@@ -65,7 +65,11 @@ const CommunityRules = () => {
       <div className="bg-gradient-to-r from-[#1a1814] to-[#2d2820] border-b border-[rgba(90,80,60,0.15)]">
         <PageContainer>
           <div className="py-8 flex items-start gap-5 flex-wrap">
-            <span className="text-5xl">{community.icon}</span>
+            <img
+              src={community.image_url}
+              alt={community.name}
+              className="w-20 h-20 rounded-full object-cover"
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="font-display text-2xl font-bold text-white">

@@ -40,6 +40,10 @@ from app.api.v1.enpoint.userEndpoint import router as user_onboarding_router
 from app.api.v1.enpoint.readingHistoryEndpoint import router as history_router
 from app.api.v1.enpoint.communityEndpoint import router as community_router
 from app.api.v1.enpoint.aiEndpoint import router as ai_router
+from app.api.v1.enpoint.socialEndpoint import router as follow_router
+from app.api.v1.enpoint.contactEnpoint import router as contact_router
+
+
 
 
 ###cron router
@@ -59,6 +63,9 @@ app.include_router(admin_topic_router, prefix="/api/v1")
 app.include_router(admin_question_router, prefix="/api/v1")
 app.include_router(admin_users_router, prefix="/api/v1")
 app.include_router(user_onboarding_router, prefix="/api/v1")
+app.include_router(follow_router, prefix="/api/v1")
+app.include_router(contact_router, prefix="/api/v1")
+
 app.include_router(system_router)
 
 origins = [

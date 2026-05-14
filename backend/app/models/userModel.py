@@ -1,8 +1,15 @@
-from sqlalchemy import Column, String, Boolean, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Boolean, Text ,Table,ForeignKey ,and_
+from sqlalchemy.orm import relationship ,foreign ,remote 
 from app.models.baseModel import BaseModel
 from app.models.models_enum import UserRole, AuthProvider
 
+
+user_follower = Table(
+    "follower",
+    BaseModel.metadata,
+    Column("follower_id", ForeignKey("users.id"), primary_key=True),
+    Column("followed_id", ForeignKey("users.id"), primary_key=True),
+)
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -34,3 +41,13 @@ class User(BaseModel):
     reading_history = relationship("ReadingHistory", back_populates="user", cascade="all, delete-orphan")
     community_members = relationship("CommunityMember", back_populates="user", cascade="all, delete-orphan")
 
+
+    ####follower feautres
+    following = relationship(
+        "User",
+        secondary=user_follower,
+        primaryjoin=lambda: User.id == user_follower.c.follower_id,
+        secondaryjoin=lambda: User.id == user_follower.c.followed_id,
+        backref="followers",
+        foreign_keys=[user_follower.c.follower_id, user_follower.c.followed_id],
+    )

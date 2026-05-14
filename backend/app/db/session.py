@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker 
+from fastapi import HTTPException
 from app.core.config import settings
 
 engine=create_engine(str(settings.DATABASE_URL), pool_pre_ping=True)
@@ -13,6 +14,8 @@ def get_db():
     try:
 
         yield db
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"DEBUG: Database session error: {str(e)}")
         import traceback
@@ -21,5 +24,3 @@ def get_db():
     finally:
         db.close()
 
-
-# postgresql://postgres:7Ov71Xg2BRaNq7Wi@db.xybfeerxyrzhdnerqfqv.supabase.co:5432/postgres
