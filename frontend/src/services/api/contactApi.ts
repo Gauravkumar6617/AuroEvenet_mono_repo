@@ -2,10 +2,18 @@ import { apiClientCore } from "./client";
 import { ContactResponse } from "./types";
 
 export const contactApi = {
-  sendContactForm(formData: FormData) {
-    return apiClientCore.request<ContactResponse>("/api/v1/contact", {
+  sendContactForm(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }) {
+    return apiClientCore.request<ContactResponse>("/api/v1/contact/", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     });
   },
 };

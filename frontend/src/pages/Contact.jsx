@@ -32,7 +32,7 @@ export default function Contact() {
       formData.append("message", form.message);
 
       // API CALL 👇
-      await contactApi.sendContactForm(formData);
+      await contactApi.sendContactForm(form);
 
       showToast("Message sent successfully 🚀", "success");
 
