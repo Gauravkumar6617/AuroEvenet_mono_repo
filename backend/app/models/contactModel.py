@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
-from sqlalchemy.sql import func
-from app.database import Base
+from sqlalchemy import Column, Integer, String, Text
+from app.models.baseModel import BaseModel
 
-class Contact(Base):
+class Contact(BaseModel):
     __tablename__ = "contacts"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -10,5 +9,3 @@ class Contact(Base):
     email = Column(String, nullable=False)
     subject = Column(String, nullable=False)
     message = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

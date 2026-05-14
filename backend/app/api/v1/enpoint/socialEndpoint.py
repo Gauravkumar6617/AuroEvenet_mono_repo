@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -50,8 +52,11 @@ def get_following(
 def is_following(
     target_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
+    if current_user is None:
+        return {"is_following": False}
+
     row = db.query(user_follower).filter(
         user_follower.c.follower_id == current_user.id,
         user_follower.c.followed_id == target_id

@@ -26,6 +26,9 @@ from app.models.communityModel import Community
 
 from app.models.ReadingHistoryModel import ReadingHistory
 
+#contact
+from app.models.contactModel import Contact
+
 
 __all__ = [
     "Base",
@@ -45,5 +48,6 @@ __all__ = [
     "UserPreference",
     "Community",
     "ReadingHistory",
+    "Contact",
 ]
 

@@ -1,4 +1,5 @@
 from pydantic import EmailStr, BaseModel
+from datetime import datetime
 
 class ContactSchema(BaseModel):
     name: str
@@ -8,8 +9,8 @@ class ContactSchema(BaseModel):
 
 class ContactResponse(ContactSchema):
     id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True
