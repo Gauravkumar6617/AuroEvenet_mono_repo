@@ -23,13 +23,13 @@ export default function OnboardingModal({ onClose }) {
   const allTopics = categories.flatMap(c => c.topics) || [];
   const activeTopics = allTopics.filter(t => selectedTopicIds.includes(t.id));
   const dynamicQuestions = [...new Map(activeTopics.flatMap(t => t.questions || []).map(q => [q.id, q])).values()];
-  const step2Questions = dynamicQuestions.filter(q => q.page === 2 || !q.page);
+  const step2Questions = dynamicQuestions.filter(q => q.page <= 2 || !q.page);
   const step3Questions = dynamicQuestions.filter(q => q.page >= 3);
 
   const toggleTopic = (tId) => setSelectedTopicIds(prev => prev.includes(tId) ? prev.filter(x => x !== tId) : [...prev, tId]);
 
   const canProceed = () => {
-    if (step === 1) return selectedTopicIds.length >= 2;
+    if (step === 1) return selectedTopicIds.length >= 1;
     if (step === 2) return step2Questions.length === 0 || step2Questions.some(q => answers[q.id]?.trim());
     return true;
   };
@@ -109,7 +109,7 @@ export default function OnboardingModal({ onClose }) {
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">What topics interest you?</h2>
-                <p className="text-[#a09880] text-sm mb-4">Pick at least 2 to personalize your feed.</p>
+                <p className="text-[#a09880] text-sm mb-4">Pick at least 1 to personalize your feed.</p>
                 {categories.map((cat) => (
                   <div key={cat.id} className="mb-4">
                     <h3 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h3>

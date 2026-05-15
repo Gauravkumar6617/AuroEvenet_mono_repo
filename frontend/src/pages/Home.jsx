@@ -14,6 +14,7 @@ import { useAuth } from "../contexts/AuthContext";
 import PostCard from "../components/PostCard";
 import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 import { likesApi } from "../services/api/likesApi";
+import { userApi } from "../services/api/userApi";
 
 const STATS = [
   { value: "1.9M", label: "Monthly discussions", icon: "💬" },
@@ -71,21 +72,53 @@ function normalizePost(raw) {
 
 export default function Home() {
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { posts, loading: postsLoading, fetchPosts } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [likeCounts, setLikeCounts] = useState({});
   const [userLikes, setUserLikes] = useState({});
+  const onboardingStorageKey = user?.id ? `nexos_onboarding_skipped_${user.id}` : null;
 
   useEffect(() => {
     fetchPosts().catch(() => showToast("Failed to load posts", "error"));
     setTimeout(() => setIsLoading(false), 800);
-    const seen = localStorage.getItem("nexos_onboarding_done");
-    if (!seen) {
-      setTimeout(() => setShowOnboarding(true), 1200);
-    }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      setShowOnboarding(false);
+      return;
+    }
+
+    let cancelled = false;
+    const checkOnboarding = async () => {
+      const skipped = onboardingStorageKey ? localStorage.getItem(onboardingStorageKey) : null;
+      if (skipped) return;
+
+      try {
+        const preferences = await userApi.getPreferences();
+        if (!cancelled && preferences.length === 0) {
+          setTimeout(() => {
+            if (!cancelled) setShowOnboarding(true);
+          }, 700);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTimeout(() => {
+            if (!cancelled) setShowOnboarding(true);
+          }, 700);
+        }
+      }
+    };
+
+    checkOnboarding();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading, onboardingStorageKey]);
 
   useEffect(() => {
     if (posts && posts.length > 0) {
@@ -145,7 +178,7 @@ export default function Home() {
 
   return (
     <div className="pb-20">
-      {showOnboarding && <OnboardingModal onClose={() => { setShowOnboarding(false); localStorage.setItem("nexos_onboarding_done", "1"); }} />}
+      {showOnboarding && <OnboardingModal onClose={() => { setShowOnboarding(false); if (onboardingStorageKey) localStorage.setItem(onboardingStorageKey, "1"); }} />}
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-12 pb-16">

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_user
 from app.models.userModel import User
 from app.models.category import Category
 from app.models.topicModel import Topic
@@ -225,7 +225,7 @@ def update_user_profile(
 @router.get("/onboarding", response_model=OnboardingResponse)
 def get_onboarding_data(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User | None = Depends(get_optional_user),
 ):
     """
     Returns the full onboarding payload grouped:

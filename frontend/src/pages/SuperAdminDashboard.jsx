@@ -25,6 +25,11 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function onboardingQuestionPage(value) {
+  const parsed = parseInt(value) || 2;
+  return Math.min(4, Math.max(2, parsed));
+}
+
 const emptyCategoryForm = { name: "", slug: "", is_active: true };
 const emptyTopicForm = { name: "", slug: "", category_id: "", is_active: true };
 
@@ -134,7 +139,7 @@ export default function SuperAdminDashboard() {
     const topicId = selectedTopic?.id || Number(questionTopicId);
     if (!topicId || !newQuestionText.trim()) return;
     try {
-      await adminQuestionsApi.createQuestion({ topic_id: topicId, question: newQuestionText.trim(), page: parseInt(newQuestionPage) || 2 });
+      await adminQuestionsApi.createQuestion({ topic_id: topicId, question: newQuestionText.trim(), page: onboardingQuestionPage(newQuestionPage) });
       setNewQuestionText("");
       const topic = adminTopics.find(t => t.id === topicId);
       if (topic && !selectedTopic) setSelectedTopic(topic);
@@ -278,7 +283,7 @@ export default function SuperAdminDashboard() {
     try {
       await adminQuestionsApi.updateQuestion(editingQuestionId, {
         question: questionEditText.trim(),
-        page: parseInt(questionEditPage) || 2,
+        page: onboardingQuestionPage(questionEditPage),
       });
       setEditingQuestionId(null);
       setQuestionEditText("");
@@ -551,51 +556,69 @@ export default function SuperAdminDashboard() {
                         {selectedTopic ? `Questions for "${selectedTopic.name}"` : "Questions"}
                       </h3>
                       <p className="text-sm text-[#6b6358] mb-4">
-                        {selectedTopic ? "Manage prompts shown after the user chooses this topic." : "Select a topic to manage its onboarding questions."}
+                        Choose a topic here, then add the prompts that should appear in the onboarding popup.
                       </p>
-                      {selectedTopic && (
-                        <>
-                          <div className="space-y-3 mb-6 max-h-[360px] overflow-y-auto pr-1">
-                            {topicQuestions.length === 0 ? (
-                              <p className="text-sm text-[#a09880]">No questions added yet.</p>
-                            ) : topicQuestions.map(q => (
-                              <div key={q.id} className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-white p-3">
-                                {editingQuestionId === q.id ? (
-                                  <div className="space-y-2">
-                                    <textarea className="input-field min-h-[70px] text-sm" value={questionEditText} onChange={e => setQuestionEditText(e.target.value)} />
-                                    <div className="flex flex-wrap gap-2">
-                                      <input type="number" className="input-field w-24 text-sm" min="1" max="4" value={questionEditPage} onChange={e => setQuestionEditPage(e.target.value)} />
-                                      <Button size="sm" onClick={handleUpdateQuestion} disabled={!questionEditText.trim()}>Save</Button>
-                                      <Button size="sm" variant="ghost" onClick={() => setEditingQuestionId(null)}>Cancel</Button>
-                                    </div>
+                      <div className="mb-4">
+                        <select className="input-field text-sm" value={questionTopicId} onChange={e => handleQuestionTopicChange(e.target.value)}>
+                          <option value="">Select topic for questions</option>
+                          {adminCategories.map(category => (
+                            <optgroup key={category.id} label={category.name}>
+                              {adminTopics.filter(topic => topic.category_id === category.id).map(topic => (
+                                <option key={topic.id} value={topic.id}>{topic.name}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedTopic ? (
+                        <div className="space-y-3 mb-6 max-h-[360px] overflow-y-auto pr-1">
+                          {topicQuestions.length === 0 ? (
+                            <p className="text-sm text-[#a09880]">No questions added yet for this topic.</p>
+                          ) : topicQuestions.map(q => (
+                            <div key={q.id} className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-white p-3">
+                              {editingQuestionId === q.id ? (
+                                <div className="space-y-2">
+                                  <textarea className="input-field min-h-[70px] text-sm" value={questionEditText} onChange={e => setQuestionEditText(e.target.value)} />
+                                  <div className="flex flex-wrap gap-2">
+                                    <input type="number" className="input-field w-24 text-sm" min="2" max="4" value={questionEditPage} onChange={e => setQuestionEditPage(e.target.value)} />
+                                    <Button size="sm" onClick={handleUpdateQuestion} disabled={!questionEditText.trim()}>Save</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => setEditingQuestionId(null)}>Cancel</Button>
                                   </div>
-                                ) : (
-                                  <div className="flex justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="text-sm text-[#1a1814] mb-1 leading-snug">{q.question}</p>
-                                      <p className="text-xs text-[#a09880]">Page {q.page || 2}</p>
-                                    </div>
-                                    <div className="flex shrink-0 gap-1 self-start">
-                                      <Button size="sm" variant="ghost" className="px-2" onClick={() => handleEditQuestion(q)}>Edit</Button>
-                                      <Button size="sm" variant="ghost" className="px-2 text-red-600" onClick={() => handleDeleteQuestion(q.id)}>Delete</Button>
-                                    </div>
+                                </div>
+                              ) : (
+                                <div className="flex justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-[#1a1814] mb-1 leading-snug">{q.question}</p>
+                                    <p className="text-xs text-[#a09880]">Page {q.page || 2}</p>
                                   </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="border-t border-[rgba(90,80,60,0.08)] pt-4">
-                            <h4 className="text-sm font-semibold text-[#1a1814] mb-2">Add Question</h4>
-                            <div className="space-y-2">
-                              <textarea className="input-field min-h-[76px] text-sm" placeholder="e.g. What do you want to learn about this topic?" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} />
-                              <div className="flex gap-2">
-                                <input type="number" className="input-field w-24 text-sm" placeholder="Page" min="1" max="4" value={newQuestionPage} onChange={e => setNewQuestionPage(e.target.value)} />
-                                <Button onClick={handleCreateQuestion} disabled={!newQuestionText.trim()} className="flex-1">Add Question</Button>
-                              </div>
+                                  <div className="flex shrink-0 gap-1 self-start">
+                                    <Button size="sm" variant="ghost" className="px-2" onClick={() => handleEditQuestion(q)}>Edit</Button>
+                                    <Button size="sm" variant="ghost" className="px-2 text-red-600" onClick={() => handleDeleteQuestion(q.id)}>Delete</Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mb-6 rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] px-4 py-5 text-sm text-[#a09880]">
+                          Select an existing topic above, or create a new topic first. After that this panel will save questions directly to that topic.
+                        </div>
                       )}
+
+                      <div className="border-t border-[rgba(90,80,60,0.08)] pt-4">
+                        <h4 className="text-sm font-semibold text-[#1a1814] mb-2">Add Question</h4>
+                        <div className="space-y-2">
+                          <textarea className="input-field min-h-[76px] text-sm" placeholder="e.g. What do you want to learn about this topic?" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} />
+                          <div className="flex gap-2">
+                            <input type="number" className="input-field w-24 text-sm" placeholder="Page" min="2" max="4" value={newQuestionPage} onChange={e => setNewQuestionPage(e.target.value)} />
+                            <Button onClick={handleCreateQuestion} disabled={!questionTopicId || !newQuestionText.trim()} className="flex-1">
+                              Add Question
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
