@@ -350,7 +350,7 @@ def save_selected_topics(
 
     # Insert fresh
     prefs = [
-        UserPreference(user_id=user.id, topic_id=tid)
+        UserPreference(user_id=user.id, topic_id=tid, answer="selected")
         for tid in payload.topic_ids
     ]
     db.add_all(prefs)
@@ -363,6 +363,32 @@ def save_selected_topics(
 
 
 # ────────────────── Preferences — Answers ────────────────────
+
+
+@router.post(
+    "/preferences/onboarding-complete",
+    response_model=UserPreferenceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def mark_onboarding_complete(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Mark onboarding complete when there is no configured topic/question to attach.
+    """
+    db.query(UserPreference).filter(
+        UserPreference.user_id == user.id,
+        UserPreference.topic_id.is_(None),
+        UserPreference.question_id.is_(None),
+        UserPreference.answer == "onboarding_completed",
+    ).delete(synchronize_session="fetch")
+
+    pref = UserPreference(user_id=user.id, answer="onboarding_completed")
+    db.add(pref)
+    db.commit()
+    db.refresh(pref)
+    return pref
 
 
 @router.post(

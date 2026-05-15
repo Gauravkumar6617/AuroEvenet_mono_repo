@@ -4,9 +4,24 @@ import { Link } from "react-router-dom";
 import Button from "./ui/Button";
 import { apiClient } from "../services/api";
 
+const fallbackGoalQuestions = [
+  {
+    id: "fallback_goal",
+    question: "What are you hoping to learn, build, or discover on Nexos?",
+  },
+];
+
+const fallbackExperienceQuestions = [
+  {
+    id: "fallback_experience",
+    question: "How deep should your recommendations go right now?",
+  },
+];
+
 export default function OnboardingModal({ onClose }) {
   const [step, setStep] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,23 +40,33 @@ export default function OnboardingModal({ onClose }) {
       .catch(error => {
         onboardingDebug("failed to load onboarding data", error);
         console.error(error);
+      })
+      .finally(() => {
+        setIsLoadingConfig(false);
       });
   }, []);
 
   const steps = ["Welcome", "Interests", "Goals", "Experience"];
   const totalSteps = steps.length;
 
-  const allTopics = categories.flatMap(c => c.topics) || [];
+  const configuredCategories = categories
+    .map(cat => ({ ...cat, topics: cat.topics || [] }))
+    .filter(cat => cat.topics.length > 0);
+  const allTopics = configuredCategories.flatMap(c => c.topics) || [];
+  const hasConfiguredTopics = allTopics.length > 0;
   const activeTopics = allTopics.filter(t => selectedTopicIds.includes(t.id));
   const dynamicQuestions = [...new Map(activeTopics.flatMap(t => t.questions || []).map(q => [q.id, q])).values()];
+  const questionTopicById = new Map(dynamicQuestions.map(q => [q.id, q.topic_id]));
   const step2Questions = dynamicQuestions.filter(q => q.page <= 2 || !q.page);
   const step3Questions = dynamicQuestions.filter(q => q.page >= 3);
+  const visibleStep2Questions = step2Questions.length > 0 ? step2Questions : fallbackGoalQuestions;
+  const visibleStep3Questions = step3Questions.length > 0 ? step3Questions : fallbackExperienceQuestions;
 
   const toggleTopic = (tId) => setSelectedTopicIds(prev => prev.includes(tId) ? prev.filter(x => x !== tId) : [...prev, tId]);
 
   const canProceed = () => {
-    if (step === 1) return selectedTopicIds.length >= 1;
-    if (step === 2) return step2Questions.length === 0 || step2Questions.some(q => answers[q.id]?.trim());
+    if (step === 1) return !isLoadingConfig && (!hasConfiguredTopics || selectedTopicIds.length >= 1);
+    if (step === 2) return visibleStep2Questions.some(q => answers[q.id]?.trim());
     return true;
   };
 
@@ -56,13 +81,24 @@ export default function OnboardingModal({ onClose }) {
         onboardingDebug("saving topics", selectedTopicIds);
         await apiClient.saveTopics({ topic_ids: selectedTopicIds });
       }
-      const payloadAnswers = Object.entries(answers).map(([qId, answer]) => ({
-        question_id: parseInt(qId),
-        answer: answer.trim()
-      })).filter(a => a.answer);
+      const payloadAnswers = Object.entries(answers)
+        .map(([qId, answer]) => {
+          const numericQuestionId = Number(qId);
+          if (!Number.isInteger(numericQuestionId) || numericQuestionId <= 0) return null;
+          return {
+            question_id: numericQuestionId,
+            topic_id: questionTopicById.get(numericQuestionId),
+            answer: answer.trim()
+          };
+        })
+        .filter(a => a?.answer);
       if (payloadAnswers.length > 0) {
         onboardingDebug("saving answers", payloadAnswers);
         await apiClient.saveAnswers({ answers: payloadAnswers });
+      }
+      if (selectedTopicIds.length === 0 && payloadAnswers.length === 0) {
+        onboardingDebug("marking onboarding complete without configured topics/questions");
+        await apiClient.markOnboardingComplete();
       }
       onboardingDebug("saved successfully, closing popup");
       onClose();
@@ -91,15 +127,13 @@ export default function OnboardingModal({ onClose }) {
             </div>
             <button onClick={onClose} className="text-xs text-[#a09880] hover:text-[#6b6358] transition-colors">Skip setup</button>
           </div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="grid grid-cols-4 gap-2 mb-2">
             {steps.map((s, i) => (
-              <div key={s} className="flex items-center gap-2">
+              <div key={s} className="min-w-0">
                 <div className={`step-indicator ${i < step ? "done" : i === step ? "active" : "pending"}`}>
                   {i < step ? "✓" : i + 1}
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`h-px flex-1 min-w-[1.5rem] transition-colors ${i < step ? "bg-[#e85d26]" : "bg-[rgba(90,80,60,0.12)]"}`} />
-                )}
+                <p className={`mt-1 truncate text-[10px] font-semibold ${i === step ? "text-[#e85d26]" : "text-[#a09880]"}`}>{s}</p>
               </div>
             ))}
           </div>
@@ -114,10 +148,10 @@ export default function OnboardingModal({ onClose }) {
               <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="text-4xl mb-4">👋</div>
                 <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Welcome to Nexos!</h2>
-                <p className="text-[#6b6358] text-sm leading-relaxed mb-4">Let's personalize your experience. It takes 60 seconds and unlocks a feed tailored to what you actually care about.</p>
+                <p className="text-[#6b6358] text-sm leading-relaxed mb-4">Answer a few quick prompts so Nexos can shape your feed around the topics, depth, and goals that matter to you.</p>
                 <div className="rounded-xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.15)] p-4">
-                  <p className="text-sm font-semibold text-[#e85d26] mb-2">What you'll get:</p>
-                  {["Personalized topic feed", "Recommended experts to follow", "Relevant discussions surfaced first"].map((item) => (
+                  <p className="text-sm font-semibold text-[#e85d26] mb-2">Your setup helps us tune:</p>
+                  {["Topics that show up first", "The level of detail in recommendations", "Communities and posts worth your time"].map((item) => (
                     <div key={item} className="flex items-center gap-2 text-sm text-[#6b6358] py-0.5">
                       <span className="text-[#e85d26]">✓</span>{item}
                     </div>
@@ -128,20 +162,29 @@ export default function OnboardingModal({ onClose }) {
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">What topics interest you?</h2>
-                <p className="text-[#a09880] text-sm mb-4">Pick at least 1 to personalize your feed.</p>
-                {categories.map((cat) => (
-                  <div key={cat.id} className="mb-4">
-                    <h3 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {cat.topics.map((t) => (
-                        <button key={t.id} onClick={() => toggleTopic(t.id)}
-                          className={`tag-pill transition-all ${selectedTopicIds.includes(t.id) ? "active" : ""}`}>
-                          {selectedTopicIds.includes(t.id) && <span>✓ </span>}{t.name}
-                        </button>
-                      ))}
+                <p className="text-[#a09880] text-sm mb-4">{hasConfiguredTopics ? "Pick at least 1 to personalize your feed." : "Topics are not configured yet, so we will start with your goals instead."}</p>
+                {isLoadingConfig ? (
+                  <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-4 text-sm text-[#a09880]">Loading topics...</div>
+                ) : hasConfiguredTopics ? (
+                  configuredCategories.map((cat) => (
+                    <div key={cat.id} className="mb-4">
+                      <h3 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {cat.topics.map((t) => (
+                          <button key={t.id} onClick={() => toggleTopic(t.id)}
+                            className={`tag-pill transition-all ${selectedTopicIds.includes(t.id) ? "active" : ""}`}>
+                            {selectedTopicIds.includes(t.id) && <span>✓ </span>}{t.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-[rgba(232,93,38,0.15)] bg-[#fdf0ea] p-4">
+                    <p className="text-sm font-semibold text-[#1a1814] mb-1">We can still personalize your start.</p>
+                    <p className="text-sm text-[#6b6358]">The admin topic list is empty right now, so Nexos will ask two broad questions and save those as your first preferences.</p>
                   </div>
-                ))}
+                )}
                 {selectedTopicIds.length > 0 && <p className="text-xs text-[#e85d26] mt-3">{selectedTopicIds.length} selected</p>}
               </motion.div>
             )}
@@ -150,22 +193,18 @@ export default function OnboardingModal({ onClose }) {
                 <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Your Goals</h2>
                 <p className="text-[#a09880] text-sm mb-4">Tell us about your objectives.</p>
                 <div className="space-y-4">
-                  {step2Questions.length === 0 ? (
-                    <p className="text-sm text-[#a09880] italic">No specific goal questions for the selected topics.</p>
-                  ) : (
-                    step2Questions.map((q) => (
-                      <div key={q.id}>
-                        <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
-                        <input
-                          type="text"
-                          className="input-field w-full text-sm"
-                          value={answers[q.id] || ""}
-                          onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          placeholder="Type your answer..."
-                        />
-                      </div>
-                    ))
-                  )}
+                  {visibleStep2Questions.map((q) => (
+                    <div key={q.id}>
+                      <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
+                      <input
+                        type="text"
+                        className="input-field w-full text-sm"
+                        value={answers[q.id] || ""}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder="Type your answer..."
+                      />
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
@@ -174,22 +213,18 @@ export default function OnboardingModal({ onClose }) {
                 <h2 className="font-display text-xl font-bold text-[#1a1814] mb-1">Your Experience</h2>
                 <p className="text-[#a09880] text-sm mb-4">Help us calibrate the depth of content to show you.</p>
                 <div className="space-y-4">
-                  {step3Questions.length === 0 ? (
-                    <p className="text-sm text-[#a09880] italic">No specific experience questions for the selected topics.</p>
-                  ) : (
-                    step3Questions.map((q) => (
-                      <div key={q.id}>
-                        <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
-                        <input
-                          type="text"
-                          className="input-field w-full text-sm"
-                          value={answers[q.id] || ""}
-                          onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                          placeholder="Type your answer..."
-                        />
-                      </div>
-                    ))
-                  )}
+                  {visibleStep3Questions.map((q) => (
+                    <div key={q.id}>
+                      <label className="block text-sm font-semibold text-[#1a1814] mb-1.5">{q.question}</label>
+                      <input
+                        type="text"
+                        className="input-field w-full text-sm"
+                        value={answers[q.id] || ""}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder="Type your answer..."
+                      />
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}

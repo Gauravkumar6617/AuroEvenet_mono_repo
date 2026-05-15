@@ -76,6 +76,15 @@ export const userApi = {
     );
   },
 
+  markOnboardingComplete() {
+    return apiClientCore.request<UserPreference>(
+      "/api/v1/preferences/onboarding-complete",
+      {
+        method: "POST",
+      },
+    );
+  },
+
   getPreferences() {
     return apiClientCore.request<UserPreference[]>("/api/v1/preferences", {
       method: "GET",
