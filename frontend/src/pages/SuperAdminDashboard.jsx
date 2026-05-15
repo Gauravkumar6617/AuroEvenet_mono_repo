@@ -5,6 +5,8 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { apiClientCore } from "../services/api/client";
 import { adminQuestionsApi } from "../services/api/adminQuestionsApi";
+import { adminCategoriesApi } from "../services/api/adminCategoriesApi";
+import { adminTopicsApi } from "../services/api/adminTopicsApi";
 import { userApi } from "../services/api/userApi";
 
 function timeAgo(dateStr) {
@@ -14,6 +16,17 @@ function timeAgo(dateStr) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const emptyCategoryForm = { name: "", slug: "", is_active: true };
+const emptyTopicForm = { name: "", slug: "", category_id: "", is_active: true };
 
 export default function SuperAdminDashboard() {
   const [section, setSection] = useState("overview");
@@ -33,11 +46,22 @@ export default function SuperAdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Onboarding
-  const [onboardingCategories, setOnboardingCategories] = useState([]);
+  const [adminCategories, setAdminCategories] = useState([]);
+  const [adminTopics, setAdminTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(null);
+  const [questionTopicId, setQuestionTopicId] = useState("");
   const [topicQuestions, setTopicQuestions] = useState([]);
+  const [loadingOnboarding, setLoadingOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editingTopicId, setEditingTopicId] = useState(null);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
+  const [topicForm, setTopicForm] = useState(emptyTopicForm);
   const [newQuestionText, setNewQuestionText] = useState("");
   const [newQuestionPage, setNewQuestionPage] = useState(2);
+  const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [questionEditText, setQuestionEditText] = useState("");
+  const [questionEditPage, setQuestionEditPage] = useState(2);
 
   // Topic interests
   const [interests, setInterests] = useState([]);
@@ -54,35 +78,220 @@ export default function SuperAdminDashboard() {
         .then(setUsers).catch(() => {}).finally(() => setLoadingUsers(false));
     }
     if (section === "onboarding") {
-      apiClientCore.request("/api/v1/onboarding", { method: "GET" })
-        .then(d => setOnboardingCategories(d?.categories || [])).catch(() => {});
+      loadAdminOnboarding();
     }
     if (section === "interests") {
       userApi.getMyInterests().then(setInterests).catch(() => {});
     }
   }, [section]);
 
+  const loadAdminOnboarding = async () => {
+    setLoadingOnboarding(true);
+    setOnboardingError("");
+    try {
+      const [categories, topics] = await Promise.all([
+        adminCategoriesApi.listCategories(),
+        adminTopicsApi.listTopics(),
+      ]);
+      setAdminCategories(categories);
+      setAdminTopics(topics);
+      if (selectedTopic && !topics.some(t => t.id === selectedTopic.id)) {
+        setSelectedTopic(null);
+        setQuestionTopicId("");
+        setTopicQuestions([]);
+      }
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to load onboarding configuration.");
+    } finally {
+      setLoadingOnboarding(false);
+    }
+  };
+
   const loadQuestions = (topicId) => {
-    adminQuestionsApi.getQuestionsByTopic(topicId).then(setTopicQuestions).catch(() => {});
+    adminQuestionsApi.getQuestionsByTopic(topicId).then(setTopicQuestions).catch(error => {
+      setOnboardingError(error?.message || "Unable to load questions.");
+    });
   };
 
   const handleSelectTopic = (topic) => {
     setSelectedTopic(topic);
+    setQuestionTopicId(String(topic.id));
     loadQuestions(topic.id);
   };
 
+  const handleQuestionTopicChange = (topicId) => {
+    setQuestionTopicId(topicId);
+    const topic = adminTopics.find(t => t.id === Number(topicId));
+    if (topic) {
+      handleSelectTopic(topic);
+    } else {
+      setSelectedTopic(null);
+      setTopicQuestions([]);
+    }
+  };
+
   const handleCreateQuestion = async () => {
-    if (!selectedTopic || !newQuestionText) return;
-    await adminQuestionsApi.createQuestion({ topic_id: selectedTopic.id, question: newQuestionText, page: parseInt(newQuestionPage) || 2 });
-    setNewQuestionText("");
-    loadQuestions(selectedTopic.id);
+    const topicId = selectedTopic?.id || Number(questionTopicId);
+    if (!topicId || !newQuestionText.trim()) return;
+    try {
+      await adminQuestionsApi.createQuestion({ topic_id: topicId, question: newQuestionText.trim(), page: parseInt(newQuestionPage) || 2 });
+      setNewQuestionText("");
+      const topic = adminTopics.find(t => t.id === topicId);
+      if (topic && !selectedTopic) setSelectedTopic(topic);
+      loadQuestions(topicId);
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to create question.");
+    }
   };
 
   const handleDeleteQuestion = async (qId) => {
     if (!confirm("Delete this question?")) return;
-    await adminQuestionsApi.deleteQuestion(qId);
-    loadQuestions(selectedTopic.id);
+    try {
+      await adminQuestionsApi.deleteQuestion(qId);
+      loadQuestions(selectedTopic.id);
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to delete question.");
+    }
   };
+
+  const handleCategoryNameChange = (name) => {
+    setCategoryForm(prev => ({
+      ...prev,
+      name,
+      slug: editingCategoryId ? prev.slug : slugify(name),
+    }));
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategoryId(null);
+    setCategoryForm(emptyCategoryForm);
+  };
+
+  const handleSubmitCategory = async () => {
+    if (!categoryForm.name.trim() || !categoryForm.slug.trim()) return;
+    setOnboardingError("");
+    const payload = {
+      name: categoryForm.name.trim(),
+      slug: categoryForm.slug.trim(),
+      is_active: Boolean(categoryForm.is_active),
+    };
+    try {
+      if (editingCategoryId) {
+        await adminCategoriesApi.updateCategory(editingCategoryId, payload);
+      } else {
+        await adminCategoriesApi.createCategory(payload);
+      }
+      resetCategoryForm();
+      await loadAdminOnboarding();
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to save category.");
+    }
+  };
+
+  const handleEditCategory = (category) => {
+    setEditingCategoryId(category.id);
+    setCategoryForm({ name: category.name, slug: category.slug, is_active: category.is_active });
+  };
+
+  const handleDeleteCategory = async (category) => {
+    if (!confirm(`Delete category "${category.name}"? Topics under it may no longer appear in onboarding.`)) return;
+    try {
+      await adminCategoriesApi.deleteCategory(category.id);
+      if (editingCategoryId === category.id) resetCategoryForm();
+      await loadAdminOnboarding();
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to delete category.");
+    }
+  };
+
+  const handleTopicNameChange = (name) => {
+    setTopicForm(prev => ({
+      ...prev,
+      name,
+      slug: editingTopicId ? prev.slug : slugify(name),
+    }));
+  };
+
+  const resetTopicForm = () => {
+    setEditingTopicId(null);
+    setTopicForm(emptyTopicForm);
+  };
+
+  const handleSubmitTopic = async () => {
+    if (!topicForm.name.trim() || !topicForm.slug.trim() || !topicForm.category_id) return;
+    setOnboardingError("");
+    const payload = {
+      name: topicForm.name.trim(),
+      slug: topicForm.slug.trim(),
+      category_id: Number(topicForm.category_id),
+      is_active: Boolean(topicForm.is_active),
+    };
+    try {
+      if (editingTopicId) {
+        const updated = await adminTopicsApi.updateTopic(editingTopicId, payload);
+        if (selectedTopic?.id === editingTopicId) {
+          setSelectedTopic(updated);
+          setQuestionTopicId(String(updated.id));
+        }
+      } else {
+        const created = await adminTopicsApi.createTopic(payload);
+        setSelectedTopic(created);
+        setQuestionTopicId(String(created.id));
+        setTopicQuestions([]);
+      }
+      resetTopicForm();
+      await loadAdminOnboarding();
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to save topic.");
+    }
+  };
+
+  const handleEditTopic = (topic) => {
+    setEditingTopicId(topic.id);
+    setTopicForm({ name: topic.name, slug: topic.slug, category_id: String(topic.category_id), is_active: topic.is_active });
+  };
+
+  const handleDeleteTopic = async (topic) => {
+    if (!confirm(`Delete topic "${topic.name}"? Its questions will stop appearing in onboarding.`)) return;
+    try {
+      await adminTopicsApi.deleteTopic(topic.id);
+      if (selectedTopic?.id === topic.id) {
+        setSelectedTopic(null);
+        setQuestionTopicId("");
+        setTopicQuestions([]);
+      }
+      if (editingTopicId === topic.id) resetTopicForm();
+      await loadAdminOnboarding();
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to delete topic.");
+    }
+  };
+
+  const handleEditQuestion = (question) => {
+    setEditingQuestionId(question.id);
+    setQuestionEditText(question.question);
+    setQuestionEditPage(question.page || 2);
+  };
+
+  const handleUpdateQuestion = async () => {
+    if (!editingQuestionId || !questionEditText.trim()) return;
+    try {
+      await adminQuestionsApi.updateQuestion(editingQuestionId, {
+        question: questionEditText.trim(),
+        page: parseInt(questionEditPage) || 2,
+      });
+      setEditingQuestionId(null);
+      setQuestionEditText("");
+      loadQuestions(selectedTopic.id);
+    } catch (error) {
+      setOnboardingError(error?.message || "Unable to update question.");
+    }
+  };
+
+  const topicsByCategory = adminCategories.map(category => ({
+    ...category,
+    topics: adminTopics.filter(topic => topic.category_id === category.id),
+  }));
 
   const handleRoleSave = async () => {
     if (!roleModal || !selectedRole) return;
@@ -228,51 +437,160 @@ export default function SuperAdminDashboard() {
 
               {/* ONBOARDING CONFIG */}
               {section === "onboarding" && (
-                <div className="surface rounded-2xl p-5">
-                  <h2 className="font-display text-xl font-bold text-[#1a1814] mb-4">Onboarding Configuration</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                      <h3 className="font-semibold text-sm text-[#1a1814]">1. Select a Topic</h3>
-                      {onboardingCategories.map(cat => (
-                        <div key={cat.id} className="mb-4">
-                          <h4 className="text-xs font-bold text-[#a09880] uppercase tracking-wider mb-2">{cat.name}</h4>
-                          <div className="space-y-1">
-                            {cat.topics.map(topic => (
-                              <button key={topic.id} onClick={() => handleSelectTopic(topic)}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedTopic?.id === topic.id ? "bg-[#e85d26] text-white" : "hover:bg-[rgba(90,80,60,0.05)] text-[#1a1814]"}`}>
-                                {topic.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                <div className="space-y-4">
+                  <div className="surface rounded-2xl p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                      <div>
+                        <h2 className="font-display text-xl font-bold text-[#1a1814]">Onboarding Configuration</h2>
+                        <p className="text-sm text-[#6b6358]">Create categories, topics, and questions used by the onboarding flow.</p>
+                      </div>
+                      <Button variant="secondary" size="sm" onClick={loadAdminOnboarding} disabled={loadingOnboarding}>
+                        {loadingOnboarding ? "Refreshing..." : "Refresh"}
+                      </Button>
                     </div>
-                    <div className="surface bg-[#faf9f7] rounded-xl p-4 border border-[rgba(90,80,60,0.08)]">
-                      <h3 className="font-semibold text-sm text-[#1a1814] mb-3">
-                        {selectedTopic ? `2. Questions for "${selectedTopic.name}"` : "2. Select a topic to manage questions"}
+                    {onboardingError && (
+                      <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {onboardingError}
+                      </div>
+                    )}
+
+                    <div className="grid gap-5 xl:grid-cols-2">
+                      <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-4">
+                        <h3 className="font-semibold text-sm text-[#1a1814] mb-3">{editingCategoryId ? "Edit Category" : "Add Category"}</h3>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input className="input-field text-sm" placeholder="Category name" value={categoryForm.name} onChange={e => handleCategoryNameChange(e.target.value)} />
+                          <input className="input-field text-sm" placeholder="category-slug" value={categoryForm.slug} onChange={e => setCategoryForm(prev => ({ ...prev, slug: slugify(e.target.value) }))} />
+                        </div>
+                        <label className="mt-3 flex items-center gap-2 text-sm text-[#6b6358]">
+                          <input type="checkbox" checked={categoryForm.is_active} onChange={e => setCategoryForm(prev => ({ ...prev, is_active: e.target.checked }))} />
+                          Active in onboarding
+                        </label>
+                        <div className="mt-3 flex gap-2">
+                          <Button size="sm" onClick={handleSubmitCategory} disabled={!categoryForm.name.trim() || !categoryForm.slug.trim()}>
+                            {editingCategoryId ? "Save Category" : "Create Category"}
+                          </Button>
+                          {editingCategoryId && <Button size="sm" variant="ghost" onClick={resetCategoryForm}>Cancel</Button>}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-4">
+                        <h3 className="font-semibold text-sm text-[#1a1814] mb-3">{editingTopicId ? "Edit Topic" : "Add Topic"}</h3>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input className="input-field text-sm" placeholder="Topic name" value={topicForm.name} onChange={e => handleTopicNameChange(e.target.value)} />
+                          <input className="input-field text-sm" placeholder="topic-slug" value={topicForm.slug} onChange={e => setTopicForm(prev => ({ ...prev, slug: slugify(e.target.value) }))} />
+                        </div>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
+                          <select className="input-field text-sm" value={topicForm.category_id} onChange={e => setTopicForm(prev => ({ ...prev, category_id: e.target.value }))}>
+                            <option value="">Select category</option>
+                            {adminCategories.map(category => (
+                              <option key={category.id} value={category.id}>{category.name}</option>
+                            ))}
+                          </select>
+                          <label className="flex items-center gap-2 rounded-xl border border-[rgba(90,80,60,0.1)] bg-white px-3 text-sm text-[#6b6358]">
+                            <input type="checkbox" checked={topicForm.is_active} onChange={e => setTopicForm(prev => ({ ...prev, is_active: e.target.checked }))} />
+                            Active
+                          </label>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <Button size="sm" onClick={handleSubmitTopic} disabled={!topicForm.name.trim() || !topicForm.slug.trim() || !topicForm.category_id}>
+                            {editingTopicId ? "Save Topic" : "Create Topic"}
+                          </Button>
+                          {editingTopicId && <Button size="sm" variant="ghost" onClick={resetTopicForm}>Cancel</Button>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,0.9fr)_1fr] gap-5">
+                    <div className="surface rounded-2xl p-5">
+                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-4">Categories & Topics</h3>
+                      {loadingOnboarding ? (
+                        <p className="text-sm text-[#a09880]">Loading onboarding records...</p>
+                      ) : topicsByCategory.length === 0 ? (
+                        <p className="text-sm text-[#a09880]">No categories yet.</p>
+                      ) : (
+                        <div className="space-y-4 max-h-[620px] overflow-y-auto pr-1">
+                          {topicsByCategory.map(category => (
+                            <div key={category.id} className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-white p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-semibold text-sm text-[#1a1814]">{category.name}</p>
+                                    <Badge tone={category.is_active ? "success" : "neutral"} dot>{category.is_active ? "active" : "inactive"}</Badge>
+                                  </div>
+                                  <p className="text-xs text-[#a09880] break-all">{category.slug}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="ghost" className="px-2" onClick={() => handleEditCategory(category)}>Edit</Button>
+                                  <Button size="sm" variant="ghost" className="px-2 text-red-600" onClick={() => handleDeleteCategory(category)}>Delete</Button>
+                                </div>
+                              </div>
+                              <div className="mt-3 space-y-1">
+                                {category.topics.length === 0 ? (
+                                  <p className="text-xs text-[#a09880]">No topics in this category.</p>
+                                ) : category.topics.map(topic => (
+                                  <div key={topic.id} className={`flex items-center justify-between gap-2 rounded-lg px-2 py-2 ${selectedTopic?.id === topic.id ? "bg-[#fdf0ea]" : "hover:bg-[rgba(90,80,60,0.04)]"}`}>
+                                    <button onClick={() => handleSelectTopic(topic)} className="min-w-0 flex-1 text-left">
+                                      <span className="block truncate text-sm font-medium text-[#1a1814]">{topic.name}</span>
+                                      <span className="block truncate text-xs text-[#a09880]">{topic.slug}</span>
+                                    </button>
+                                    <Badge tone={topic.is_active ? "info" : "neutral"}>{topic.is_active ? "active" : "inactive"}</Badge>
+                                    <Button size="sm" variant="ghost" className="px-2" onClick={() => handleEditTopic(topic)}>Edit</Button>
+                                    <Button size="sm" variant="ghost" className="px-2 text-red-600" onClick={() => handleDeleteTopic(topic)}>Delete</Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="surface rounded-2xl p-5">
+                      <h3 className="font-display text-lg font-bold text-[#1a1814] mb-1">
+                        {selectedTopic ? `Questions for "${selectedTopic.name}"` : "Questions"}
                       </h3>
+                      <p className="text-sm text-[#6b6358] mb-4">
+                        {selectedTopic ? "Manage prompts shown after the user chooses this topic." : "Select a topic to manage its onboarding questions."}
+                      </p>
                       {selectedTopic && (
                         <>
-                          <div className="space-y-3 mb-6 max-h-[250px] overflow-y-auto">
+                          <div className="space-y-3 mb-6 max-h-[360px] overflow-y-auto pr-1">
                             {topicQuestions.length === 0 ? (
-                              <p className="text-sm text-[#a09880] italic">No questions added yet.</p>
+                              <p className="text-sm text-[#a09880]">No questions added yet.</p>
                             ) : topicQuestions.map(q => (
-                              <div key={q.id} className="bg-white p-3 rounded-lg shadow-sm text-sm flex justify-between gap-3 border border-[rgba(90,80,60,0.08)]">
-                                <div className="min-w-0">
-                                  <p className="text-[#1a1814] mb-1 leading-snug">{q.question}</p>
-                                  <p className="text-xs text-[#a09880]">Page {q.page || 2}</p>
-                                </div>
-                                <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-700 text-xs shrink-0 self-start">Delete</button>
+                              <div key={q.id} className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-white p-3">
+                                {editingQuestionId === q.id ? (
+                                  <div className="space-y-2">
+                                    <textarea className="input-field min-h-[70px] text-sm" value={questionEditText} onChange={e => setQuestionEditText(e.target.value)} />
+                                    <div className="flex flex-wrap gap-2">
+                                      <input type="number" className="input-field w-24 text-sm" min="1" max="4" value={questionEditPage} onChange={e => setQuestionEditPage(e.target.value)} />
+                                      <Button size="sm" onClick={handleUpdateQuestion} disabled={!questionEditText.trim()}>Save</Button>
+                                      <Button size="sm" variant="ghost" onClick={() => setEditingQuestionId(null)}>Cancel</Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="text-sm text-[#1a1814] mb-1 leading-snug">{q.question}</p>
+                                      <p className="text-xs text-[#a09880]">Page {q.page || 2}</p>
+                                    </div>
+                                    <div className="flex shrink-0 gap-1 self-start">
+                                      <Button size="sm" variant="ghost" className="px-2" onClick={() => handleEditQuestion(q)}>Edit</Button>
+                                      <Button size="sm" variant="ghost" className="px-2 text-red-600" onClick={() => handleDeleteQuestion(q.id)}>Delete</Button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
-                          <div className="pt-4 border-t border-[rgba(90,80,60,0.08)]">
-                            <h4 className="text-xs font-semibold text-[#1a1814] mb-2">Add New Question</h4>
+                          <div className="border-t border-[rgba(90,80,60,0.08)] pt-4">
+                            <h4 className="text-sm font-semibold text-[#1a1814] mb-2">Add Question</h4>
                             <div className="space-y-2">
-                              <textarea className="input-field min-h-[60px] text-sm" placeholder="e.g. What is your primary language?" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} />
+                              <textarea className="input-field min-h-[76px] text-sm" placeholder="e.g. What do you want to learn about this topic?" value={newQuestionText} onChange={e => setNewQuestionText(e.target.value)} />
                               <div className="flex gap-2">
-                                <input type="number" className="input-field w-20 text-sm" placeholder="Page" min="2" max="4" value={newQuestionPage} onChange={e => setNewQuestionPage(e.target.value)} />
-                                <Button onClick={handleCreateQuestion} disabled={!newQuestionText} className="flex-1">Add Question</Button>
+                                <input type="number" className="input-field w-24 text-sm" placeholder="Page" min="1" max="4" value={newQuestionPage} onChange={e => setNewQuestionPage(e.target.value)} />
+                                <Button onClick={handleCreateQuestion} disabled={!newQuestionText.trim()} className="flex-1">Add Question</Button>
                               </div>
                             </div>
                           </div>

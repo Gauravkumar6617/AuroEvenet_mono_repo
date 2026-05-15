@@ -42,7 +42,7 @@ class UserStats(BaseModel):
 
 class UserWithStats(UserResponse):
     role: str
-    auth_provider: str
+    auth_provider: str = "email"
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     stats: Optional[UserStats] = None
@@ -74,7 +74,8 @@ def list_users(
             "username": user.username,
             "is_active": user.is_active,
             "is_verified": user.is_verified,
-            "oauth_provider": user.auth_provider or "email",
+            "oauth_provider": "none",
+            "auth_provider": user.auth_provider or "email",
             "role": user.role or "user",
             "created_at": str(user.created_at) if hasattr(user, "created_at") and user.created_at else None,
             "updated_at": str(user.updated_at) if hasattr(user, "updated_at") and user.updated_at else None,
@@ -98,7 +99,11 @@ def update_user_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.role = payload.get("role", user.role)
+    next_role = payload.get("role", user.role)
+    allowed_roles = {"user", "admin", "super_admin"}
+    if next_role not in allowed_roles:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    user.role = next_role
     db.commit()
     return {"detail": "Role updated"}
 
@@ -140,7 +145,8 @@ def get_user_detail(
         "username": user.username,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
-        "oauth_provider": user.auth_provider or "email",
+        "oauth_provider": "none",
+        "auth_provider": user.auth_provider or "email",
         "role": user.role or "user",
         "created_at": str(user.created_at) if hasattr(user, "created_at") and user.created_at else None,
         "updated_at": str(user.updated_at) if hasattr(user, "updated_at") and user.updated_at else None,

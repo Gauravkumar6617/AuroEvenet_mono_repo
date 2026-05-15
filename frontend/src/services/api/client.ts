@@ -79,7 +79,12 @@ export class ApiClient {
         throw new Error(message);
       }
 
-      return await response.json();
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      const text = await response.text();
+      return (text ? JSON.parse(text) : undefined) as T;
     } catch (error) {
       throw error;
     }
