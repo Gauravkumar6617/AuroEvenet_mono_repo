@@ -79,6 +79,7 @@ export default function Home() {
   const [likeCounts, setLikeCounts] = useState({});
   const [userLikes, setUserLikes] = useState({});
   const onboardingStorageKey = user?.id ? `nexos_onboarding_skipped_${user.id}` : null;
+  const onboardingDebug = (...args) => console.info("[OnboardingDebug:Home]", ...args);
 
   useEffect(() => {
     fetchPosts().catch(() => showToast("Failed to load posts", "error"));
@@ -86,9 +87,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    onboardingDebug("auth check", {
+      authLoading,
+      hasUser: Boolean(user),
+      userId: user?.id,
+      onboardingStorageKey,
+    });
+
     if (authLoading) return;
 
     if (!user) {
+      onboardingDebug("not showing popup because user is not authenticated");
       setShowOnboarding(false);
       return;
     }
@@ -96,19 +105,36 @@ export default function Home() {
     let cancelled = false;
     const checkOnboarding = async () => {
       const skipped = onboardingStorageKey ? localStorage.getItem(onboardingStorageKey) : null;
-      if (skipped) return;
+      onboardingDebug("skip flag", { onboardingStorageKey, skipped });
+      if (skipped) {
+        onboardingDebug("not showing popup because skip flag exists");
+        return;
+      }
 
       try {
         const preferences = await userApi.getPreferences();
+        onboardingDebug("preferences loaded", {
+          count: preferences.length,
+          preferences,
+        });
         if (!cancelled && preferences.length === 0) {
           setTimeout(() => {
-            if (!cancelled) setShowOnboarding(true);
+            if (!cancelled) {
+              onboardingDebug("opening popup because preferences are empty");
+              setShowOnboarding(true);
+            }
           }, 700);
+        } else if (!cancelled) {
+          onboardingDebug("not showing popup because preferences already exist");
         }
       } catch (error) {
+        onboardingDebug("preferences request failed, opening popup as fallback", error);
         if (!cancelled) {
           setTimeout(() => {
-            if (!cancelled) setShowOnboarding(true);
+            if (!cancelled) {
+              onboardingDebug("opening popup after preferences fallback");
+              setShowOnboarding(true);
+            }
           }, 700);
         }
       }
@@ -178,7 +204,7 @@ export default function Home() {
 
   return (
     <div className="pb-20">
-      {showOnboarding && <OnboardingModal onClose={() => { setShowOnboarding(false); if (onboardingStorageKey) localStorage.setItem(onboardingStorageKey, "1"); }} />}
+      {showOnboarding && <OnboardingModal onClose={() => { onboardingDebug("popup closed", { onboardingStorageKey }); setShowOnboarding(false); if (onboardingStorageKey) localStorage.setItem(onboardingStorageKey, "1"); }} />}
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-12 pb-16">

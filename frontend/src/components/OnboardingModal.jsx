@@ -10,11 +10,22 @@ export default function OnboardingModal({ onClose }) {
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const onboardingDebug = (...args) => console.info("[OnboardingDebug:Modal]", ...args);
 
   useEffect(() => {
+    onboardingDebug("mounted, loading onboarding data");
     apiClient.getOnboardingData()
-      .then(data => setCategories(data?.categories || []))
-      .catch(console.error);
+      .then(data => {
+        onboardingDebug("onboarding data loaded", {
+          categoryCount: data?.categories?.length || 0,
+          categories: data?.categories || [],
+        });
+        setCategories(data?.categories || []);
+      })
+      .catch(error => {
+        onboardingDebug("failed to load onboarding data", error);
+        console.error(error);
+      });
   }, []);
 
   const steps = ["Welcome", "Interests", "Goals", "Experience"];
@@ -35,9 +46,14 @@ export default function OnboardingModal({ onClose }) {
   };
 
   const handleFinish = async () => {
+    onboardingDebug("finish clicked", {
+      selectedTopicIds,
+      answers,
+    });
     setIsSubmitting(true);
     try {
       if (selectedTopicIds.length > 0) {
+        onboardingDebug("saving topics", selectedTopicIds);
         await apiClient.saveTopics({ topic_ids: selectedTopicIds });
       }
       const payloadAnswers = Object.entries(answers).map(([qId, answer]) => ({
@@ -45,10 +61,13 @@ export default function OnboardingModal({ onClose }) {
         answer: answer.trim()
       })).filter(a => a.answer);
       if (payloadAnswers.length > 0) {
+        onboardingDebug("saving answers", payloadAnswers);
         await apiClient.saveAnswers({ answers: payloadAnswers });
       }
+      onboardingDebug("saved successfully, closing popup");
       onClose();
     } catch (e) {
+      onboardingDebug("save failed", e);
       console.error(e);
       setIsSubmitting(false);
     }

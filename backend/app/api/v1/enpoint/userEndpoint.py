@@ -241,6 +241,16 @@ def get_onboarding_data(
         .all()
     )
 
+    print(
+        "[OnboardingDebug:API] active categories loaded",
+        {
+            "category_count": len(categories),
+            "topic_count": sum(len(cat.topics) for cat in categories),
+            "question_count": sum(len(topic.questions) for cat in categories for topic in cat.topics),
+        },
+        flush=True,
+    )
+
     result: list[OnboardingCategoryResponse] = []
     for cat in categories:
         active_topics: list[OnboardingTopicResponse] = []
@@ -264,6 +274,16 @@ def get_onboarding_data(
                 topics=active_topics,
             )
         )
+
+    print(
+        "[OnboardingDebug:API] onboarding response",
+        {
+            "category_count": len(result),
+            "topic_count": sum(len(cat.topics) for cat in result),
+            "question_count": sum(len(topic.questions) for cat in result for topic in cat.topics),
+        },
+        flush=True,
+    )
 
     return OnboardingResponse(categories=result)
 
