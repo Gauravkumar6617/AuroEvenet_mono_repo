@@ -4,5 +4,10 @@
             "source": "/(.*)",
             "destination": "/"
         }
-    ]
+    ],
+    "functions": {
+        "api/**": {
+            "runtime": "edge"
+        }
+    }
 }

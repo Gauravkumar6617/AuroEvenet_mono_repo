@@ -56,7 +56,7 @@ export default function ForYou() {
 
   useEffect(() => {
     fetchPersonalizedFeed().catch(() => showToast("Failed to load your personalized feed", "error"));
-  }, [fetchPersonalizedFeed, showToast]);
+  }, []);
 
   useEffect(() => {
     if (posts && posts.length > 0) {

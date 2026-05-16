@@ -155,7 +155,7 @@ def get_my_interests(
 ):
     """Return tag names the user has interacted with (interests)."""
     rows = (
-        db.query(Tag.name)
+        db.query(Tag.name, UserInterest.score)
         .join(UserInterest, UserInterest.tag_id == Tag.id)
         .filter(UserInterest.user_id == user.id)
         .order_by(UserInterest.score.desc())
@@ -163,6 +163,82 @@ def get_my_interests(
         .all()
     )
     return [r.name for r in rows]
+
+
+@router.get("/user/interests/full")
+def get_my_interests_full(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return full interest objects with tag id, name, score."""
+    rows = (
+        db.query(Tag.id, Tag.name, Tag.slug, UserInterest.score)
+        .join(UserInterest, UserInterest.tag_id == Tag.id)
+        .filter(UserInterest.user_id == user.id)
+        .order_by(UserInterest.score.desc())
+        .all()
+    )
+    return [{"tag_id": r.id, "tag_name": r.name, "slug": r.slug, "score": round(float(r.score or 0), 2)} for r in rows]
+
+
+@router.post("/user/interests")
+def upsert_interest(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Set a specific tag interest score. Creates or updates."""
+    tag_name = payload.get("tag_name", "").lower().strip()
+    score = float(payload.get("score", 5.0))
+    if not tag_name:
+        raise HTTPException(status_code=400, detail="tag_name required")
+
+    tag = db.query(Tag).filter(Tag.name == tag_name).first()
+    if not tag:
+        from slugify import slugify
+        tag = Tag(name=tag_name, slug=slugify(tag_name))
+        db.add(tag)
+        db.flush()
+
+    interest = db.query(UserInterest).filter(
+        UserInterest.user_id == user.id, UserInterest.tag_id == tag.id
+    ).first()
+    if interest:
+        interest.score = score
+    else:
+        db.add(UserInterest(user_id=user.id, tag_id=tag.id, score=score))
+    db.commit()
+    return {"tag_name": tag_name, "score": score}
+
+
+@router.post("/user/interests/bulk")
+def bulk_upsert_interests(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Bulk set interest scores. payload: {interests: [{tag_name, score}]}"""
+    from slugify import slugify
+    items = payload.get("interests", [])
+    for item in items:
+        tag_name = item.get("tag_name", "").lower().strip()
+        score = float(item.get("score", 5.0))
+        if not tag_name:
+            continue
+        tag = db.query(Tag).filter(Tag.name == tag_name).first()
+        if not tag:
+            tag = Tag(name=tag_name, slug=slugify(tag_name))
+            db.add(tag)
+            db.flush()
+        interest = db.query(UserInterest).filter(
+            UserInterest.user_id == user.id, UserInterest.tag_id == tag.id
+        ).first()
+        if interest:
+            interest.score = score
+        else:
+            db.add(UserInterest(user_id=user.id, tag_id=tag.id, score=score))
+    db.commit()
+    return {"saved": len(items)}
 
 
 @router.get("/user/public/{username}")

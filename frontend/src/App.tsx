@@ -44,185 +44,190 @@ import { AnimatePresence } from "framer-motion";
 import ToastViewport from "./components/ui/ToastViewport";
 import { ToastProvider } from "./contexts/ToastContext";
 import SearchPage from "./pages/SearchPage";
+import BasicAuth from "./components/BasicAuth";
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <PostsProvider>
-          <CategoriesProvider>
-            <CommunityProvider>
-              <Router>
-                <div
-                  className="min-h-screen flex flex-col"
-                  style={{
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
-                    background: "#f5f4f0",
-                  }}
-                >
-                  <Navbar />
-                  <ToastViewport />
-                  <main className="flex-grow">
-                    <AnimatePresence mode="wait">
-                      <Routes>
-                        {/* Public */}
-                        <Route path="/" element={<Home />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/features" element={<Features />} />
-                        <Route path="/blog" element={<Blog />} />
-                        <Route path="/blog/:id" element={<BlogDetail />} />
-                        <Route
-                          path="/for-you"
-                          element={
-                            <ProtectedRoute>
-                              <ForYou />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route path="/search" element={<SearchPage />} />
-                        <Route
-                          path="/communities"
-                          element={<CommunityList />}
-                        />
-                        <Route
-                          path="/communities/:slug"
-                          element={<CommunityDetail />}
-                        />
-                        <Route
-                          path="/communities/:slug/rules"
-                          element={<CommunityRules />}
-                        />
-                        <Route path="/privacy" element={<PrivacyPolicy />} />
-                        <Route
-                          path="/community/:id"
-                          element={<CommunityDetails />}
-                        />
+    <BasicAuth>
+      <ToastProvider>
+        <AuthProvider>
+          <PostsProvider>
+            <CategoriesProvider>
+              <CommunityProvider>
+                <Router>
+                  <div
+                    className="min-h-screen flex flex-col"
+                    style={{
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                      background: "#f5f4f0",
+                    }}
+                  >
+                    <Navbar />
+                    <ToastViewport />
+                    <main className="flex-grow">
+                      <AnimatePresence mode="wait">
+                        <Routes>
+                          {/* Public */}
+                          <Route path="/" element={<Home />} />
+                          <Route path="/about" element={<About />} />
+                          <Route path="/contact" element={<Contact />} />
+                          <Route path="/features" element={<Features />} />
+                          <Route path="/blog" element={<Blog />} />
+                          <Route path="/blog/:id" element={<BlogDetail />} />
+                          <Route
+                            path="/for-you"
+                            element={
+                              <ProtectedRoute>
+                                <ForYou />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route path="/search" element={<SearchPage />} />
+                          <Route
+                            path="/communities"
+                            element={<CommunityList />}
+                          />
+                          <Route
+                            path="/communities/:slug"
+                            element={<CommunityDetail />}
+                          />
+                          <Route
+                            path="/communities/:slug/rules"
+                            element={<CommunityRules />}
+                          />
+                          <Route path="/privacy" element={<PrivacyPolicy />} />
+                          <Route
+                            path="/community/:id"
+                            element={<CommunityDetails />}
+                          />
 
-                        {/* Auth callbacks — public but state-aware */}
-                        <Route
-                          path="/oauth/callback"
-                          element={<OAuthCallback />}
-                        />
+                          {/* Auth callbacks — public but state-aware */}
+                          <Route
+                            path="/oauth/callback"
+                            element={<OAuthCallback />}
+                          />
 
-                        {/* Guest-only (redirect to home if already logged in) */}
-                        <Route
-                          path="/login"
-                          element={
-                            <GuestRoute>
-                              <Login />
-                            </GuestRoute>
-                          }
-                        />
-                        <Route
-                          path="/signup"
-                          element={
-                            <GuestRoute>
-                              <Signup />
-                            </GuestRoute>
-                          }
-                        />
-                        <Route
-                          path="/verify-otp"
-                          element={
-                            <GuestRoute>
-                              <VerifyOtp />
-                            </GuestRoute>
-                          }
-                        />
-                        <Route
-                          path="/forgot-password"
-                          element={
-                            <GuestRoute>
-                              <ForgotPassword />
-                            </GuestRoute>
-                          }
-                        />
+                          {/* Guest-only (redirect to home if already logged in) */}
+                          <Route
+                            path="/login"
+                            element={
+                              <GuestRoute>
+                                <Login />
+                              </GuestRoute>
+                            }
+                          />
+                          <Route
+                            path="/signup"
+                            element={
+                              <GuestRoute>
+                                <Signup />
+                              </GuestRoute>
+                            }
+                          />
+                          <Route
+                            path="/verify-otp"
+                            element={
+                              <GuestRoute>
+                                <VerifyOtp />
+                              </GuestRoute>
+                            }
+                          />
+                          <Route
+                            path="/forgot-password"
+                            element={
+                              <GuestRoute>
+                                <ForgotPassword />
+                              </GuestRoute>
+                            }
+                          />
 
-                        {/* Authenticated only */}
-                        <Route
-                          path="/dashboard"
-                          element={
-                            <ProtectedRoute>
-                              <UserDashboard />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/create-post"
-                          element={
-                            <ProtectedRoute>
-                              <CreatePost />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/u/:username"
-                          element={
-                            <ProtectedRoute>
-                              <UserProfile />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/edit-profile"
-                          element={
-                            <ProtectedRoute>
-                              <EditProfile />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/settings/topics"
-                          element={
-                            <ProtectedRoute>
-                              <SettingsTopics />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/communities/:slug/create-post"
-                          element={
-                            <ProtectedRoute>
-                              <CommunityCreatePost />
-                            </ProtectedRoute>
-                          }
-                        />
+                          {/* Authenticated only */}
+                          <Route
+                            path="/dashboard"
+                            element={
+                              <ProtectedRoute>
+                                <UserDashboard />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/create-post"
+                            element={
+                              <ProtectedRoute>
+                                <CreatePost />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/u/:username"
+                            element={
+                              <ProtectedRoute>
+                                <UserProfile />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/edit-profile"
+                            element={
+                              <ProtectedRoute>
+                                <EditProfile />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/settings/topics"
+                            element={
+                              <ProtectedRoute>
+                                <SettingsTopics />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/communities/:slug/create-post"
+                            element={
+                              <ProtectedRoute>
+                                <CommunityCreatePost />
+                              </ProtectedRoute>
+                            }
+                          />
 
-                        {/* Admin only */}
-                        <Route
-                          path="/admin"
-                          element={
-                            <RoleGuard allowedRoles={["admin", "super_admin"]}>
-                              <AdminDashboard />
-                            </RoleGuard>
-                          }
-                        />
+                          {/* Admin only */}
+                          <Route
+                            path="/admin"
+                            element={
+                              <RoleGuard
+                                allowedRoles={["admin", "super_admin"]}
+                              >
+                                <AdminDashboard />
+                              </RoleGuard>
+                            }
+                          />
 
-                        {/* Super-admin only */}
-                        <Route
-                          path="/super-admin"
-                          element={
-                            <RoleGuard allowedRoles={["super_admin"]}>
-                              <SuperAdminDashboard />
-                            </RoleGuard>
-                          }
-                        />
+                          {/* Super-admin only */}
+                          <Route
+                            path="/super-admin"
+                            element={
+                              <RoleGuard allowedRoles={["super_admin"]}>
+                                <SuperAdminDashboard />
+                              </RoleGuard>
+                            }
+                          />
 
-                        {/* 404 fallback */}
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </AnimatePresence>
-                  </main>
-                  <Footer />
-                  <ConsentBanner />
-                </div>
-              </Router>
-            </CommunityProvider>
-          </CategoriesProvider>
-        </PostsProvider>
-      </AuthProvider>
-    </ToastProvider>
+                          {/* 404 fallback */}
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </AnimatePresence>
+                    </main>
+                    <Footer />
+                    <ConsentBanner />
+                  </div>
+                </Router>
+              </CommunityProvider>
+            </CategoriesProvider>
+          </PostsProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </BasicAuth>
   );
 };
 

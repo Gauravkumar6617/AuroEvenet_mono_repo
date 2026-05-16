@@ -97,4 +97,17 @@ export const userApi = {
       method: "GET",
     });
   },
+
+  getMyInterestsFull() {
+    return apiClientCore.request<Array<{tag_id: number; tag_name: string; slug: string; score: number}>>("/api/v1/user/interests/full", {
+      method: "GET",
+    });
+  },
+
+  bulkUpsertInterests(interests: Array<{tag_name: string; score: number}>) {
+    return apiClientCore.request<{saved: number}>("/api/v1/user/interests/bulk", {
+      method: "POST",
+      body: JSON.stringify({ interests }),
+    });
+  },
 };
