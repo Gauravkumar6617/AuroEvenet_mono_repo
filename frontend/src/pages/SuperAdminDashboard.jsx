@@ -49,6 +49,8 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userPreferences, setUserPreferences] = useState([]);
+  const [loadingPreferences, setLoadingPreferences] = useState(false);
 
   // Onboarding
   const [adminCategories, setAdminCategories] = useState([]);
@@ -96,7 +98,24 @@ export default function SuperAdminDashboard() {
         .then(setInterests)
         .catch(() => {});
     }
+    if (section === "preferences" && userPreferences.length === 0) {
+      loadUserPreferences();
+    }
   }, [section]);
+
+  const loadUserPreferences = async () => {
+    setLoadingPreferences(true);
+    try {
+      const data = await apiClientCore.request("/api/v1/admin/users/preferences", {
+        method: "GET",
+      });
+      setUserPreferences(data);
+    } catch (error) {
+      console.error("Unable to load user preferences", error);
+    } finally {
+      setLoadingPreferences(false);
+    }
+  };
 
   const loadAdminOnboarding = async () => {
     setLoadingOnboarding(true);
@@ -380,6 +399,7 @@ export default function SuperAdminDashboard() {
   const navItems = [
     { key: "overview", label: "Platform Overview", icon: "📊" },
     { key: "users", label: "All Users", icon: "👥" },
+    { key: "preferences", label: "User Preferences", icon: "🎯" },
     { key: "onboarding", label: "Onboarding Config", icon: "🚀" },
     { key: "config", label: "Site Config", icon: "⚙️" },
     { key: "danger", label: "Danger Zone", icon: "⚠️" },
@@ -607,12 +627,141 @@ export default function SuperAdminDashboard() {
                                       Ban
                                     </Button>
                                   )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs px-2"
+                                    onClick={() => setSection("preferences")}
+                                  >
+                                    Preferences
+                                  </Button>
                                 </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* USER PREFERENCES */}
+              {section === "preferences" && (
+                <div className="surface rounded-2xl p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-[#1a1814]">
+                        User Preferences
+                      </h2>
+                      <p className="text-sm text-[#6b6358]">
+                        Selected topics, onboarding answers, and learned interest scores.
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={loadUserPreferences}
+                      disabled={loadingPreferences}
+                    >
+                      {loadingPreferences ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+
+                  {loadingPreferences ? (
+                    <p className="text-sm text-[#a09880]">Loading preferences...</p>
+                  ) : userPreferences.length === 0 ? (
+                    <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-5 text-sm text-[#6b6358]">
+                      No user preferences have been saved yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {userPreferences.map((entry) => (
+                        <div
+                          key={entry.user.id}
+                          className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-white p-4"
+                        >
+                          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="avatar h-8 w-8 text-xs">
+                                {(entry.user.username || "U")[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-[#1a1814]">
+                                  @{entry.user.username}
+                                </p>
+                                <p className="text-xs text-[#a09880]">
+                                  {entry.user.email}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge tone="brand">{entry.summary.topic_count} topics</Badge>
+                              <Badge tone="info">{entry.summary.answer_count} answers</Badge>
+                              <Badge tone="success">{entry.summary.interest_count} interests</Badge>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4 xl:grid-cols-3">
+                            <div>
+                              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#a09880]">
+                                Selected Topics
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {entry.selected_topics.length > 0 ? (
+                                  entry.selected_topics.map((topic) => (
+                                    <span key={topic.id} className="tag-pill">
+                                      {topic.name}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-[#a09880]">No topics selected</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#a09880]">
+                                Learned Interests
+                              </p>
+                              <div className="space-y-1.5">
+                                {entry.interests.length > 0 ? (
+                                  entry.interests.slice(0, 5).map((interest) => (
+                                    <div key={interest.name} className="flex items-center justify-between gap-2 text-xs">
+                                      <span className="text-[#6b6358]">{interest.name}</span>
+                                      <span className="font-semibold text-[#1a1814]">{interest.score}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-[#a09880]">No reading signals yet</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#a09880]">
+                                Onboarding Answers
+                              </p>
+                              <div className="space-y-2">
+                                {entry.answers.length > 0 ? (
+                                  entry.answers.slice(0, 3).map((answer) => (
+                                    <div key={answer.id} className="rounded-lg bg-[#faf9f7] p-2">
+                                      <p className="line-clamp-1 text-xs font-medium text-[#1a1814]">
+                                        {answer.question || answer.topic || "Preference"}
+                                      </p>
+                                      <p className="line-clamp-2 text-xs text-[#6b6358]">
+                                        {answer.answer}
+                                      </p>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-[#a09880]">No answers saved</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

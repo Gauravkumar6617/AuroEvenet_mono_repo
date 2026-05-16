@@ -79,40 +79,22 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   } = usePostsStore();
 
   const fetchPosts = useCallback(
-    async (params?: {
-      skip?: number;
-      limit?: number;
-      category_id?: number;
-    }) => {
+    async (params?: { skip?: number; limit?: number; category_id?: number }) => {
       setLoading(true);
       try {
         const response = await apiClient.getAllPosts(params);
         const postsData = Array.isArray(response)
           ? (response as Post[])
           : (response as any).posts || [];
-        if (postsData.length === 0) {
-          console.info("[FeedDebug] personalized feed empty, falling back to public posts", {
-            skip: params?.skip || 0,
-            limit: params?.limit || 20,
-          });
-          const fallbackResponse = await apiClient.getAllPosts(params);
-          const fallbackPosts = Array.isArray(fallbackResponse)
-            ? (fallbackResponse as Post[])
-            : (fallbackResponse as any).posts || [];
-          setPosts(fallbackPosts, (fallbackResponse as any)?.total || fallbackPosts.length);
-          return;
-        }
-        const total = (response as any)?.total || postsData.length;
-
-        setPosts(postsData, total);
+        setPosts(postsData, (response as any)?.total || postsData.length);
         if (params?.skip !== undefined || params?.limit !== undefined) {
-          setPagination({ skip: params.skip || 0, limit: params.limit || 10 });
+          setPagination({ skip: params.skip || 0, limit: params.limit || 20 });
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to fetch posts";
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch posts";
         setError(errorMessage);
-        throw error;
+      } finally {
+        setLoading(false);
       }
     },
     [setPosts, setLoading, setError, setPagination],

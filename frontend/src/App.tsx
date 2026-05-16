@@ -23,6 +23,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Features from "./pages/Features";
 import Blog from "./pages/Blog";
+import ForYou from "./pages/ForYou";
 import BlogDetail from "./pages/BlogDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -71,6 +72,14 @@ const App: React.FC = () => {
                         <Route path="/features" element={<Features />} />
                         <Route path="/blog" element={<Blog />} />
                         <Route path="/blog/:id" element={<BlogDetail />} />
+                        <Route
+                          path="/for-you"
+                          element={
+                            <ProtectedRoute>
+                              <ForYou />
+                            </ProtectedRoute>
+                          }
+                        />
                         <Route path="/search" element={<SearchPage />} />
                         <Route
                           path="/communities"

@@ -292,7 +292,7 @@ export default function Home() {
         <PageContainer>
           <div className="mb-8 flex items-end justify-between">
             <SectionHeader eyebrow={user ? "For You" : "Trending Now"} title={user ? "Recommended discussions" : "Top discussions"} description={user ? "Posts ranked from your interests and reading activity." : "High-signal posts from top contributors this week."} className="mb-0" />
-            <Link to="/blog" className="hidden text-sm font-semibold text-[#e85d26] hover:underline md:block">View all →</Link>
+            <Link to={user ? "/for-you" : "/blog"} className="hidden text-sm font-semibold text-[#e85d26] hover:underline md:block">View all →</Link>
           </div>
           <div className="space-y-3">
             {postsLoading ? (
@@ -316,7 +316,7 @@ export default function Home() {
             )}
           </div>
           <div className="mt-6 text-center">
-            <Link to="/blog"><Button variant="secondary" size="lg">Load more discussions</Button></Link>
+            <Link to={user ? "/for-you" : "/blog"}><Button variant="secondary" size="lg">Load more discussions</Button></Link>
           </div>
         </PageContainer>
       </section>

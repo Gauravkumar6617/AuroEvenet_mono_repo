@@ -37,7 +37,7 @@ def _post_cache_key(post_id: int) -> str:
 
 
 def _post_list_cache_key(skip: int, limit: int) -> str:
-    return f"posts:list:{skip}:{limit}"
+    return f"posts:list:v2:{skip}:{limit}"
 
 
 def _invalidate_post_cache(post_id: int | None = None, include_lists: bool = True) -> None:
@@ -187,6 +187,8 @@ class PostRepository:
                 joinedload(Post.category),
                 selectinload(Post.post_tags),
             )
+            .filter(Post.is_deleted.isnot(True), Post.is_active.isnot(False))
+            .order_by(Post.created_at.desc())
             .offset(skip)
             .limit(limit)
             .all()
@@ -307,7 +309,7 @@ class PostRepository:
             .outerjoin(recently_read, recently_read.c.post_id == Post.id)
             .filter(
                 Post.is_deleted == False,
-                func.coalesce(interest_score.c.score, 0) > 0,
+                Post.is_active == True,
             )
             .order_by(
                 func.coalesce(interest_score.c.score, 0).desc(),

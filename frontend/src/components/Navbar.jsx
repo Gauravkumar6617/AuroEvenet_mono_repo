@@ -31,6 +31,7 @@ export default function Navbar() {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/blog", label: "Feed" },
+    ...(user ? [{ to: "/for-you", label: "For You" }] : []),
     { to: "/communities", label: "Communities" },
     { to: "/features", label: "Features" },
     { to: "/about", label: "About" },
@@ -182,6 +183,7 @@ export default function Navbar() {
                           </div>
                           {[
                             { label: "Public profile", to: `/u/${user?.username || "user"}`, icon: "👤" },
+                            { label: "For You", to: "/for-you", icon: "🎯" },
                             { label: "Dashboard", to: "/dashboard", icon: "⚡" },
                             { label: "My Posts", to: "/dashboard", icon: "📝" },
                             { label: "Communities", to: "/communities", icon: "🌐" },

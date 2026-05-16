@@ -58,29 +58,19 @@ function normalizePost(raw) {
 }
 
 export default function Blog() {
-  const { posts, loading, error, fetchPosts, fetchPersonalizedFeed } = usePosts();
+  const { posts, loading, error, fetchPosts } = usePosts();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState(user ? "For You" : "Hot");
+  const [sort, setSort] = useState("Hot");
   const [activeTag, setActiveTag] = useState("All");
   const [likeCounts, setLikeCounts] = useState({});
   const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
-    setSort(user ? "For You" : "Hot");
-  }, [user]);
-
-  useEffect(() => {
-    const shouldUsePersonalizedFeed = Boolean(user) && sort === "For You";
-    const loadFeed = shouldUsePersonalizedFeed ? fetchPersonalizedFeed : fetchPosts;
-    console.info("[FeedDebug] loading feed", {
-      mode: shouldUsePersonalizedFeed ? "personalized" : "public",
-      sort,
-      userId: user?.id,
-    });
-    loadFeed();
-  }, [user, sort, fetchPosts, fetchPersonalizedFeed]);
+    console.info("[FeedDebug] loading public discovery feed", { sort, userId: user?.id });
+    fetchPosts();
+  }, [user, fetchPosts]);
 
   useEffect(() => {
     if (posts && posts.length > 0) {
@@ -173,7 +163,17 @@ export default function Blog() {
               </div>
               {/* Sort tabs */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <Tabs items={user ? ["For You", "Hot", "Top", "New", "Unanswered"] : ["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Tabs items={["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
+                  {user && (
+                    <Link
+                      to="/for-you"
+                      className="rounded-lg border border-[rgba(90,80,60,0.12)] bg-white px-3 py-2 text-sm font-semibold text-[#6b6358] transition-all hover:border-[#e85d26] hover:bg-[#fdf0ea] hover:text-[#e85d26]"
+                    >
+                      For You
+                    </Link>
+                  )}
+                </div>
                 <p className="text-xs text-[#a09880] font-medium">{filtered.length} posts</p>
               </div>
               {/* Tag filter */}
