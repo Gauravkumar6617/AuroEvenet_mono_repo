@@ -305,7 +305,10 @@ class PostRepository:
             db.query(Post)
             .outerjoin(interest_score, interest_score.c.id == Post.id)
             .outerjoin(recently_read, recently_read.c.post_id == Post.id)
-            .filter(Post.is_deleted == False)
+            .filter(
+                Post.is_deleted == False,
+                func.coalesce(interest_score.c.score, 0) > 0,
+            )
             .order_by(
                 func.coalesce(interest_score.c.score, 0).desc(),
                 case(
@@ -317,6 +320,11 @@ class PostRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+        print(
+            "[FeedDebug:API] personalized feed",
+            {"user_id": user_id, "returned_posts": len(posts), "skip": skip, "limit": limit},
+            flush=True,
         )
         return posts
 

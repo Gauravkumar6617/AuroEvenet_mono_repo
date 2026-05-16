@@ -62,15 +62,25 @@ export default function Blog() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("Hot");
+  const [sort, setSort] = useState(user ? "For You" : "Hot");
   const [activeTag, setActiveTag] = useState("All");
   const [likeCounts, setLikeCounts] = useState({});
   const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
-    const loadFeed = user ? fetchPersonalizedFeed : fetchPosts;
+    setSort(user ? "For You" : "Hot");
+  }, [user]);
+
+  useEffect(() => {
+    const shouldUsePersonalizedFeed = Boolean(user) && sort === "For You";
+    const loadFeed = shouldUsePersonalizedFeed ? fetchPersonalizedFeed : fetchPosts;
+    console.info("[FeedDebug] loading feed", {
+      mode: shouldUsePersonalizedFeed ? "personalized" : "public",
+      sort,
+      userId: user?.id,
+    });
     loadFeed();
-  }, [user, fetchPosts, fetchPersonalizedFeed]);
+  }, [user, sort, fetchPosts, fetchPersonalizedFeed]);
 
   useEffect(() => {
     if (posts && posts.length > 0) {
