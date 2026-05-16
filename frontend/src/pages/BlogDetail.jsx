@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import BlogDetailSkeleton from "../components/skeletons/BlogDetailSkeleton";
 import { commentsApi } from "../services/api/commentsApi";
 import { likesApi } from "../services/api/likesApi";
+import { readingHistoryApi } from "../services/api/readingHistoryApi";
 import { useToast } from "../contexts/ToastContext";
 
 function CommentCard({ comment, depth = 0 }) {
@@ -78,13 +79,48 @@ export default function BlogDetail() {
   const [sortAnswers, setSortAnswers] = useState("Top");
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const readStartedAt = useRef(Date.now());
+  const scrolledToBottom = useRef(false);
+  const likedPost = useRef(false);
 
   useEffect(() => {
     if (id) {
+      readStartedAt.current = Date.now();
+      scrolledToBottom.current = false;
+      likedPost.current = false;
       fetchPostById(Number(id));
       fetchComments(Number(id));
     }
   }, [id, fetchPostById]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+
+    const markScrollDepth = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 160;
+      if (scrollBottom >= threshold) scrolledToBottom.current = true;
+    };
+
+    const trackReading = () => {
+      const durationSeconds = Math.max(1, Math.round((Date.now() - readStartedAt.current) / 1000));
+      readingHistoryApi.trackReading({
+        post_id: Number(id),
+        duration_seconds: durationSeconds,
+        scrolled_to_bottom: scrolledToBottom.current,
+        liked: likedPost.current,
+      }).catch(() => {});
+    };
+
+    window.addEventListener("scroll", markScrollDepth, { passive: true });
+    const timer = window.setTimeout(trackReading, 8000);
+
+    return () => {
+      window.removeEventListener("scroll", markScrollDepth);
+      window.clearTimeout(timer);
+      trackReading();
+    };
+  }, [id, isAuthenticated]);
 
   const fetchComments = async (postId) => {
     setCommentsLoading(true);
@@ -106,6 +142,7 @@ export default function BlogDetail() {
     }
     try {
       await likesApi.createLike({ post_id: Number(id) });
+      likedPost.current = true;
       setPostVote(v => v === "up" ? null : "up");
       showToast("Post liked!", "success");
     } catch (err) {

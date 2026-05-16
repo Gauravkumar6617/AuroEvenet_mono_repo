@@ -73,7 +73,7 @@ function normalizePost(raw) {
 export default function Home() {
   const { showToast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { posts, loading: postsLoading, fetchPosts } = usePosts();
+  const { posts, loading: postsLoading, fetchPosts, fetchPersonalizedFeed } = usePosts();
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [likeCounts, setLikeCounts] = useState({});
@@ -82,9 +82,10 @@ export default function Home() {
   const onboardingDebug = (...args) => console.info("[OnboardingDebug:Home]", ...args);
 
   useEffect(() => {
-    fetchPosts().catch(() => showToast("Failed to load posts", "error"));
+    const loadFeed = user ? fetchPersonalizedFeed : fetchPosts;
+    loadFeed().catch(() => showToast("Failed to load posts", "error"));
     setTimeout(() => setIsLoading(false), 800);
-  }, []);
+  }, [user, fetchPosts, fetchPersonalizedFeed]);
 
   useEffect(() => {
     onboardingDebug("auth check", {
@@ -290,7 +291,7 @@ export default function Home() {
       <section className="py-16">
         <PageContainer>
           <div className="mb-8 flex items-end justify-between">
-            <SectionHeader eyebrow="Trending Now" title="Top discussions" description="High-signal posts from top contributors this week." className="mb-0" />
+            <SectionHeader eyebrow={user ? "For You" : "Trending Now"} title={user ? "Recommended discussions" : "Top discussions"} description={user ? "Posts ranked from your interests and reading activity." : "High-signal posts from top contributors this week."} className="mb-0" />
             <Link to="/blog" className="hidden text-sm font-semibold text-[#e85d26] hover:underline md:block">View all →</Link>
           </div>
           <div className="space-y-3">

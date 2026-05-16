@@ -58,7 +58,7 @@ function normalizePost(raw) {
 }
 
 export default function Blog() {
-  const { posts, loading, error, fetchPosts } = usePosts();
+  const { posts, loading, error, fetchPosts, fetchPersonalizedFeed } = usePosts();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [query, setQuery] = useState("");
@@ -68,8 +68,9 @@ export default function Blog() {
   const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    const loadFeed = user ? fetchPersonalizedFeed : fetchPosts;
+    loadFeed();
+  }, [user, fetchPosts, fetchPersonalizedFeed]);
 
   useEffect(() => {
     if (posts && posts.length > 0) {
@@ -162,7 +163,7 @@ export default function Blog() {
               </div>
               {/* Sort tabs */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <Tabs items={["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
+                <Tabs items={user ? ["For You", "Hot", "Top", "New", "Unanswered"] : ["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
                 <p className="text-xs text-[#a09880] font-medium">{filtered.length} posts</p>
               </div>
               {/* Tag filter */}

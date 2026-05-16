@@ -13,7 +13,7 @@ class ReadingHistoryRepository:
         try:
             existing = db.query(ReadingHistory).filter(ReadingHistory.user_id == user_id, ReadingHistory.post_id == post_id).first()
             if existing:
-                existing.duration_seconds = duration_seconds
+                existing.duration = duration_seconds
                 existing.scrolled_to_bottom = scrolled_to_bottom
                 existing.liked = liked
                 existing.updated_at = datetime.utcnow()
@@ -21,7 +21,7 @@ class ReadingHistoryRepository:
                 existing = ReadingHistory(
                     user_id=user_id,
                     post_id=post_id,
-                    duration_seconds=duration_seconds,
+                    duration=duration_seconds,
                     scrolled_to_bottom=scrolled_to_bottom,
                     liked=liked
                 )
