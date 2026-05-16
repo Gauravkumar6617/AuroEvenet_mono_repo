@@ -90,6 +90,18 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
         const postsData = Array.isArray(response)
           ? (response as Post[])
           : (response as any).posts || [];
+        if (postsData.length === 0) {
+          console.info("[FeedDebug] personalized feed empty, falling back to public posts", {
+            skip: params?.skip || 0,
+            limit: params?.limit || 20,
+          });
+          const fallbackResponse = await apiClient.getAllPosts(params);
+          const fallbackPosts = Array.isArray(fallbackResponse)
+            ? (fallbackResponse as Post[])
+            : (fallbackResponse as any).posts || [];
+          setPosts(fallbackPosts, (fallbackResponse as any)?.total || fallbackPosts.length);
+          return;
+        }
         const total = (response as any)?.total || postsData.length;
 
         setPosts(postsData, total);

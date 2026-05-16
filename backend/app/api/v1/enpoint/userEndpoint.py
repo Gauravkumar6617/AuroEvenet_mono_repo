@@ -5,6 +5,8 @@ All routes require an authenticated user (`get_current_user`).
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from slugify import slugify
 from pydantic import BaseModel
 from typing import Optional
 
@@ -17,6 +19,8 @@ from app.models.onboardingQuestionModel import OnboardingQuestion
 from app.models.userPreferenceModel import UserPreference
 from app.models.userInterestModel import UserInterest
 from app.models.tagModel import Tag
+from app.models.postModel import Post
+from app.models.postTagModel import PostTag
 
 from app.schemas.onboarding import (
     OnboardingResponse,
@@ -40,6 +44,64 @@ class ProfileUpdateRequest(BaseModel):
     location: Optional[str] = None
     website: Optional[str] = None
     avatar_url: Optional[str] = None
+
+
+def _topic_tag_names(topic: Topic) -> set[str]:
+    """Possible tag values that should map to this onboarding topic."""
+    values = {topic.name, topic.slug, slugify(topic.name or "")}
+    return {v.strip().lower() for v in values if v and v.strip()}
+
+
+def _topic_post_count(db: Session, topic: Topic) -> int:
+    tag_names = _topic_tag_names(topic)
+    if not tag_names:
+        return 0
+    return (
+        db.query(func.count(func.distinct(Post.id)))
+        .join(PostTag, PostTag.post_id == Post.id)
+        .filter(
+            Post.is_active == True,
+            func.lower(PostTag.tag).in_(tag_names),
+        )
+        .scalar()
+        or 0
+    )
+
+
+def _seed_user_interest_from_topic(db: Session, user_id: int, topic: Topic) -> tuple[str | None, int]:
+    tag_names = _topic_tag_names(topic)
+    if not tag_names:
+        return None, 0
+
+    tag = (
+        db.query(Tag)
+        .filter(
+            (func.lower(Tag.name).in_(tag_names))
+            | (func.lower(Tag.slug).in_(tag_names))
+        )
+        .first()
+    )
+    if not tag:
+        return None, 0
+
+    interest = (
+        db.query(UserInterest)
+        .filter(UserInterest.user_id == user_id, UserInterest.tag_id == tag.id)
+        .first()
+    )
+    if interest:
+        interest.score = max(interest.score, 3.0)
+    else:
+        db.add(UserInterest(user_id=user_id, tag_id=tag.id, score=3.0))
+
+    post_count = (
+        db.query(func.count(func.distinct(Post.id)))
+        .join(PostTag, PostTag.post_id == Post.id)
+        .filter(Post.is_active == True, func.lower(PostTag.tag) == tag.name.lower())
+        .scalar()
+        or 0
+    )
+    return tag.name, post_count
 
 
 @router.get("/user/profile", response_model=UserResponse)
@@ -265,6 +327,7 @@ def get_onboarding_data(
             active_topics.append(
                 OnboardingTopicResponse(
                     **TopicResponseFields(topic),
+                    post_count=_topic_post_count(db, topic),
                     questions=questions,
                 )
             )
@@ -347,6 +410,30 @@ def save_selected_topics(
         UserPreference.user_id == user.id,
         UserPreference.question_id.is_(None),
     ).delete(synchronize_session="fetch")
+
+    selected_topics = (
+        db.query(Topic)
+        .filter(Topic.id.in_(payload.topic_ids), Topic.is_deleted == False)
+        .all()
+    )
+
+    topic_debug = []
+    for topic in selected_topics:
+        matched_tag, post_count = _seed_user_interest_from_topic(db, user.id, topic)
+        topic_debug.append(
+            {
+                "topic_id": topic.id,
+                "topic_name": topic.name,
+                "matched_tag": matched_tag,
+                "available_posts": post_count,
+            }
+        )
+
+    print(
+        "[OnboardingDebug:API] user selected topics",
+        {"user_id": user.id, "topics": topic_debug},
+        flush=True,
+    )
 
     # Insert fresh
     prefs = [

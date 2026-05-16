@@ -14,6 +14,7 @@ export interface OnboardingTopic {
   slug: string;
   category_id: number;
   is_active: boolean;
+  post_count?: number;
   questions: OnboardingQuestion[];
 }
 

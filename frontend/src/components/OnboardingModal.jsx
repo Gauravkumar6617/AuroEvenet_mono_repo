@@ -33,6 +33,14 @@ export default function OnboardingModal({ onClose }) {
       .then(data => {
         onboardingDebug("onboarding data loaded", {
           categoryCount: data?.categories?.length || 0,
+          topicCounts: (data?.categories || []).flatMap(cat =>
+            (cat.topics || []).map(topic => ({
+              category: cat.name,
+              topicId: topic.id,
+              topicName: topic.name,
+              availablePosts: topic.post_count ?? 0,
+            }))
+          ),
           categories: data?.categories || [],
         });
         setCategories(data?.categories || []);
@@ -55,6 +63,12 @@ export default function OnboardingModal({ onClose }) {
   const allTopics = configuredCategories.flatMap(c => c.topics) || [];
   const hasConfiguredTopics = allTopics.length > 0;
   const activeTopics = allTopics.filter(t => selectedTopicIds.includes(t.id));
+  const selectedTopicDebug = activeTopics.map(t => ({
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    availablePosts: t.post_count ?? 0,
+  }));
   const dynamicQuestions = [...new Map(activeTopics.flatMap(t => t.questions || []).map(q => [q.id, q])).values()];
   const questionTopicById = new Map(dynamicQuestions.map(q => [q.id, q.topic_id]));
   const step2Questions = dynamicQuestions.filter(q => q.page <= 2 || !q.page);
@@ -62,7 +76,26 @@ export default function OnboardingModal({ onClose }) {
   const visibleStep2Questions = step2Questions.length > 0 ? step2Questions : fallbackGoalQuestions;
   const visibleStep3Questions = step3Questions.length > 0 ? step3Questions : fallbackExperienceQuestions;
 
-  const toggleTopic = (tId) => setSelectedTopicIds(prev => prev.includes(tId) ? prev.filter(x => x !== tId) : [...prev, tId]);
+  const toggleTopic = (tId) => {
+    const topic = allTopics.find(t => t.id === tId);
+    setSelectedTopicIds(prev => {
+      const wasSelected = prev.includes(tId);
+      const next = wasSelected ? prev.filter(x => x !== tId) : [...prev, tId];
+      onboardingDebug(wasSelected ? "topic deselected" : "topic selected", {
+        topic: topic ? {
+          id: topic.id,
+          name: topic.name,
+          slug: topic.slug,
+          availablePosts: topic.post_count ?? 0,
+        } : { id: tId },
+        selectedTopicIds: next,
+        selectedTopics: allTopics
+          .filter(t => next.includes(t.id))
+          .map(t => ({ id: t.id, name: t.name, availablePosts: t.post_count ?? 0 })),
+      });
+      return next;
+    });
+  };
 
   const canProceed = () => {
     if (step === 1) return !isLoadingConfig && (!hasConfiguredTopics || selectedTopicIds.length >= 1);
@@ -73,12 +106,18 @@ export default function OnboardingModal({ onClose }) {
   const handleFinish = async () => {
     onboardingDebug("finish clicked", {
       selectedTopicIds,
+      selectedTopics: selectedTopicDebug,
+      totalAvailablePostsForSelection: selectedTopicDebug.reduce((sum, t) => sum + t.availablePosts, 0),
       answers,
     });
     setIsSubmitting(true);
     try {
       if (selectedTopicIds.length > 0) {
-        onboardingDebug("saving topics", selectedTopicIds);
+        onboardingDebug("saving topics", {
+          selectedTopicIds,
+          selectedTopics: selectedTopicDebug,
+          topicsWithNoPosts: selectedTopicDebug.filter(t => t.availablePosts === 0),
+        });
         await apiClient.saveTopics({ topic_ids: selectedTopicIds });
       }
       const payloadAnswers = Object.entries(answers)
@@ -174,6 +213,7 @@ export default function OnboardingModal({ onClose }) {
                           <button key={t.id} onClick={() => toggleTopic(t.id)}
                             className={`tag-pill transition-all ${selectedTopicIds.includes(t.id) ? "active" : ""}`}>
                             {selectedTopicIds.includes(t.id) && <span>✓ </span>}{t.name}
+                            <span className="ml-1 text-[10px] opacity-70">{t.post_count ?? 0} posts</span>
                           </button>
                         ))}
                       </div>
@@ -185,7 +225,20 @@ export default function OnboardingModal({ onClose }) {
                     <p className="text-sm text-[#6b6358]">The admin topic list is empty right now, so Nexos will ask two broad questions and save those as your first preferences.</p>
                   </div>
                 )}
-                {selectedTopicIds.length > 0 && <p className="text-xs text-[#e85d26] mt-3">{selectedTopicIds.length} selected</p>}
+                {selectedTopicIds.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-[rgba(232,93,38,0.15)] bg-[#fdf0ea] p-3">
+                    <p className="text-xs font-semibold text-[#e85d26]">
+                      {selectedTopicIds.length} selected · {selectedTopicDebug.reduce((sum, t) => sum + t.availablePosts, 0)} matching posts
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {selectedTopicDebug.map(topic => (
+                        <span key={topic.id} className="rounded-full bg-white px-2 py-1 text-[11px] text-[#6b6358]">
+                          {topic.name}: {topic.availablePosts}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
             {step === 2 && (
