@@ -18,7 +18,7 @@ class Post(BaseModel):
     summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # VISIBILITY
-    is_active = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)
 
     # COUNTERS

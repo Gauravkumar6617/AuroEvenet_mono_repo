@@ -133,6 +133,7 @@ class PostRepository:
             category_id=category_id,
             community_id=community_id,
             thumbnail_url=image_url,
+            is_active=True,
         )
         db.add(new_post)
         db.flush()  # get new_post.id
@@ -286,7 +287,7 @@ class PostRepository:
                 UserInterest,
                 (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
             )
-            .filter(Post.is_active == True)
+            .filter(Post.is_deleted == False)
             .group_by(Post.id)
             .subquery()
         )
@@ -304,7 +305,7 @@ class PostRepository:
             db.query(Post)
             .outerjoin(interest_score, interest_score.c.id == Post.id)
             .outerjoin(recently_read, recently_read.c.post_id == Post.id)
-            .filter(Post.is_active == True)
+            .filter(Post.is_deleted == False)
             .order_by(
                 func.coalesce(interest_score.c.score, 0).desc(),
                 case(

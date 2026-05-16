@@ -60,7 +60,7 @@ def _topic_post_count(db: Session, topic: Topic) -> int:
         db.query(func.count(func.distinct(Post.id)))
         .join(PostTag, PostTag.post_id == Post.id)
         .filter(
-            Post.is_active == True,
+            Post.is_deleted == False,
             func.lower(PostTag.tag).in_(tag_names),
         )
         .scalar()
@@ -97,7 +97,7 @@ def _seed_user_interest_from_topic(db: Session, user_id: int, topic: Topic) -> t
     post_count = (
         db.query(func.count(func.distinct(Post.id)))
         .join(PostTag, PostTag.post_id == Post.id)
-        .filter(Post.is_active == True, func.lower(PostTag.tag) == tag.name.lower())
+        .filter(Post.is_deleted == False, func.lower(PostTag.tag) == tag.name.lower())
         .scalar()
         or 0
     )
