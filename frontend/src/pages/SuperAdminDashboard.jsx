@@ -33,9 +33,40 @@ function onboardingQuestionPage(value) {
 const emptyCategoryForm = { name: "", slug: "", is_active: true };
 const emptyTopicForm = { name: "", slug: "", category_id: "", is_active: true };
 
+function DangerAction({ item }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState("");
+  const run = async () => {
+    if (!confirm(`Run "${item.action}"? This cannot be undone.`)) return;
+    setLoading(true);
+    setResult("");
+    try {
+      const res = await apiClientCore.request(item.endpoint, { method: "POST" });
+      setResult(res.detail || "Done");
+    } catch (e) {
+      setResult("Error: " + (e.message || "failed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-red-100 bg-red-50/30 p-4">
+      <div>
+        <p className="font-semibold text-sm text-[#1a1814]">{item.icon} {item.action}</p>
+        <p className="text-xs text-[#a09880]">{item.desc}</p>
+        {result && <p className="text-xs text-emerald-600 mt-1">{result}</p>}
+      </div>
+      <Button variant="danger" size="sm" disabled={loading} onClick={run}>
+        {loading ? "Running…" : item.action}
+      </Button>
+    </div>
+  );
+}
+
 export default function SuperAdminDashboard() {
   const [section, setSection] = useState("overview");
   const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [banModal, setBanModal] = useState(null);
   const [roleModal, setRoleModal] = useState(null);
   const [selectedRole, setSelectedRole] = useState("");
@@ -77,6 +108,10 @@ export default function SuperAdminDashboard() {
     apiClientCore
       .request("/api/v1/admin/users/stats", { method: "GET" })
       .then(setStats)
+      .catch(() => {});
+    apiClientCore
+      .request("/api/v1/admin/system/maintenance", { method: "GET" })
+      .then((r) => setMaintenance(r.enabled))
       .catch(() => {});
   }, []);
 
@@ -1285,9 +1320,19 @@ export default function SuperAdminDashboard() {
                       <Button
                         variant={maintenance ? "danger" : "secondary"}
                         size="sm"
-                        onClick={() => setMaintenance(!maintenance)}
+                        disabled={maintenanceLoading}
+                        onClick={async () => {
+                          setMaintenanceLoading(true);
+                          const next = !maintenance;
+                          await apiClientCore.request("/api/v1/admin/system/maintenance", {
+                            method: "POST",
+                            body: JSON.stringify({ enabled: next }),
+                          }).catch(() => {});
+                          setMaintenance(next);
+                          setMaintenanceLoading(false);
+                        }}
                       >
-                        {maintenance ? "Disable" : "Enable"} maintenance
+                        {maintenanceLoading ? "…" : maintenance ? "Disable" : "Enable"} maintenance
                       </Button>
                     </div>
                   </div>
@@ -1310,33 +1355,23 @@ export default function SuperAdminDashboard() {
                         action: "Flush Cache",
                         desc: "Clears all cached data — may cause brief slowdowns",
                         icon: "🗑️",
+                        endpoint: "/api/v1/admin/system/cache/flush",
                       },
                       {
                         action: "Reset All Sessions",
                         desc: "Force logout all users platform-wide",
                         icon: "🔓",
+                        endpoint: "/api/v1/admin/system/sessions/reset",
                       },
                       {
                         action: "Run DB Cleanup",
                         desc: "Remove soft-deleted content and orphaned records",
                         icon: "🧹",
+                        endpoint: "/api/v1/admin/system/db/cleanup",
                       },
                     ].map((item) => (
-                      <div
-                        key={item.action}
-                        className="flex items-center justify-between rounded-xl border border-red-100 bg-red-50/30 p-4"
-                      >
-                        <div>
-                          <p className="font-semibold text-sm text-[#1a1814]">
-                            {item.icon} {item.action}
-                          </p>
-                          <p className="text-xs text-[#a09880]">{item.desc}</p>
-                        </div>
-                        <Button variant="danger" size="sm">
-                          {item.action}
-                        </Button>
-                      </div>
-                    ))}
+                      <DangerAction key={item.action} item={item} />)
+                    )}
                   </div>
                 </div>
               )}
