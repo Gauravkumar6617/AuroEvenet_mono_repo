@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { usePosts } from "../contexts/PostsContext";
 import { useCategories } from "../contexts/CategoriesContext";
 import { useCommunities } from "../contexts/CommunityContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { apiClient } from "../services/api";
+import { aiApi } from "../services/api/aiApi";
 import PageContainer from "../components/layout/PageContainer";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
@@ -24,11 +25,17 @@ export default function CreatePost() {
   const [mode, setMode] = useState("Question");
   const [saving, setSaving] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const [aiTagSuggestions, setAiTagSuggestions] = useState([]);
+  const [aiImprovements, setAiImprovements] = useState([]);
   const [form, setForm] = useState({ title: "", content: "", category_id: "", community_id: "", tags: [], thumbnail: null });
   const [onboardingCategories, setOnboardingCategories] = useState([]);
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [preview, setPreview] = useState(false);
+  const [similarPosts, setSimilarPosts] = useState([]);
+  const [checkingSimilar, setCheckingSimilar] = useState(false);
+  const similarCheckTimer = useRef(null);
+  const tagSuggestTimer = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated) navigate("/login");
@@ -57,25 +64,57 @@ export default function CreatePost() {
       });
   }, [isAuthenticated, navigate, fetchCategories, fetchCommunities]);
 
-  // Auto-suggest tags as title is typed
+  // Real AI tag suggestions, debounced as the title is typed
   useEffect(() => {
-    if (form.title.length > 8) {
-      const lower = form.title.toLowerCase();
-      const matches = SUGGESTED_TAGS.filter(t => lower.includes(t) || t.includes(lower.split(" ")[0])).slice(0, 4);
-      setAiTagSuggestions(matches);
-    } else {
+    if (tagSuggestTimer.current) clearTimeout(tagSuggestTimer.current);
+    if (form.title.trim().length < 8) {
       setAiTagSuggestions([]);
+      return;
     }
-  }, [form.title]);
+    tagSuggestTimer.current = setTimeout(() => {
+      aiApi.suggestTags({ title: form.title, preview: form.content.slice(0, 200) })
+        .then((res) => setAiTagSuggestions((res.suggested_tags || []).map((t) => t.toLowerCase())))
+        .catch(() => {});
+    }, 700);
+    return () => clearTimeout(tagSuggestTimer.current);
+  }, [form.title, form.content]);
+
+  // Real AI duplicate-post check, debounced as the title is typed
+  useEffect(() => {
+    if (similarCheckTimer.current) clearTimeout(similarCheckTimer.current);
+    if (form.title.trim().length < 8) {
+      setSimilarPosts([]);
+      return;
+    }
+    similarCheckTimer.current = setTimeout(() => {
+      setCheckingSimilar(true);
+      aiApi.checkSimilar({ title: form.title, category_id: form.category_id ? Number(form.category_id) : null })
+        .then((res) => setSimilarPosts(res.matches || []))
+        .catch(() => {})
+        .finally(() => setCheckingSimilar(false));
+    }, 900);
+    return () => clearTimeout(similarCheckTimer.current);
+  }, [form.title, form.category_id]);
 
   const readingTime = useMemo(() => Math.max(1, Math.ceil(form.content.trim().split(/\s+/).filter(Boolean).length / 180)), [form.content]);
 
-  const handleEnhance = () => {
-    if (!form.title) return;
-    setEnhanced(true);
-    setTimeout(() => {
-      setForm(f => ({ ...f, title: f.title.trim().endsWith("?") ? f.title : f.title + " — detailed explanation needed" }));
-    }, 500);
+  const handleEnhance = async () => {
+    if (!form.title || enhancing) return;
+    setEnhancing(true);
+    try {
+      const res = await aiApi.enhanceDraft({ title: form.title, content: form.content });
+      setForm((f) => ({ ...f, title: res.title || f.title, content: res.content || f.content }));
+      if (res.suggested_tags?.length) {
+        setAiTagSuggestions(res.suggested_tags.map((t) => t.toLowerCase()));
+      }
+      setAiImprovements(res.improvements || []);
+      setEnhanced(true);
+      showToast("Draft enhanced by AI", "success");
+    } catch (err) {
+      showToast("AI enhance failed. Please try again.", "error");
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   const normalizeTag = (tag) => tag.trim().replace(/^#/, "").toLowerCase();
@@ -152,18 +191,43 @@ export default function CreatePost() {
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-sm font-bold text-[#1a1814]">Title <span className="text-red-500">*</span></label>
-                  <button type="button" onClick={handleEnhance}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all ${enhanced ? "bg-emerald-100 text-emerald-700" : "bg-[#fdf0ea] text-[#e85d26] hover:bg-[#f0ddd1]"}`}>
-                    {enhanced ? "✓ Enhanced" : "✨ AI Enhance"}
+                  <button type="button" onClick={handleEnhance} disabled={!form.title || enhancing}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg transition-all disabled:opacity-50 ${enhanced ? "bg-emerald-100 text-emerald-700" : "bg-[#fdf0ea] text-[#e85d26] hover:bg-[#f0ddd1]"}`}>
+                    {enhancing ? "✨ Enhancing..." : enhanced ? "✓ Enhanced" : "✨ AI Enhance"}
                   </button>
                 </div>
-                <input className="input-field text-base" placeholder={mode === "Question" ? "What is the best way to...?" : mode === "Discussion" ? "A topic I've been thinking about..." : "Title of your article..."} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                <input className="input-field text-base" placeholder={mode === "Question" ? "What is the best way to...?" : mode === "Discussion" ? "A topic I've been thinking about..." : "Title of your article..."} value={form.title} onChange={(e) => { setForm({ ...form, title: e.target.value }); setEnhanced(false); }} required />
+                {aiImprovements.length > 0 && (
+                  <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
+                    <p className="text-xs font-semibold text-emerald-700 mb-1">✨ AI improvements applied:</p>
+                    <ul className="text-xs text-emerald-700 space-y-0.5">
+                      {aiImprovements.map((imp, i) => <li key={i}>• {imp}</li>)}
+                    </ul>
+                  </div>
+                )}
                 {aiTagSuggestions.length > 0 && (
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-[#a09880]">🤖 Suggested tags:</span>
+                    <span className="text-xs text-[#a09880]">🤖 AI-suggested tags:</span>
                     {aiTagSuggestions.map(t => (
                       <button key={t} type="button" onClick={() => addTag(t)} className="tag-pill py-0.5 text-xs">+ #{t}</button>
                     ))}
+                  </div>
+                )}
+                {checkingSimilar && (
+                  <p className="mt-2 text-xs text-[#a09880]">🔍 Checking for similar posts...</p>
+                )}
+                {similarPosts.length > 0 && (
+                  <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                    <p className="text-xs font-semibold text-amber-800 mb-1.5">⚠️ Similar posts already exist — check before publishing:</p>
+                    <ul className="space-y-1">
+                      {similarPosts.map((m) => (
+                        <li key={m.id}>
+                          <Link to={`/blog/${m.id}`} target="_blank" className="text-xs text-amber-800 underline hover:text-amber-900">
+                            {m.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
@@ -223,18 +287,9 @@ export default function CreatePost() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-semibold text-[#1a1814] block mb-1.5">Community / Category <span className="text-red-500">*</span></label>
-                  <select className="input-field" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
-                    <option value="">Select a community...</option>
+                  <select className="input-field" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required disabled={categories.length === 0}>
+                    <option value="">{categories.length === 0 ? "No categories available" : "Select a community..."}</option>
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    {categories.length === 0 && (
-                      <>
-                        <option value="1">Engineering</option>
-                        <option value="2">Frontend</option>
-                        <option value="3">Backend</option>
-                        <option value="4">DevOps</option>
-                        <option value="5">AI & ML</option>
-                      </>
-                    )}
                   </select>
                 </div>
                 <div>

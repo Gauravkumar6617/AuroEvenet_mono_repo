@@ -7,6 +7,7 @@ import Badge from "../components/ui/Badge";
 import { apiClientCore } from "../services/api/client";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import { adminActivityApi } from "../services/api/adminActivityApi";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -28,6 +29,10 @@ export default function AdminDashboard() {
   const [posts, setPosts] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [subscribers, setSubscribers] = useState([]);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(false);
+  const [activity, setActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   // Modals
   const [banModal, setBanModal] = useState(null);
@@ -48,6 +53,15 @@ export default function AdminDashboard() {
       setLoadingPosts(true);
       apiClientCore.request("/api/v1/posts/?skip=0&limit=50", { method: "GET" }, false, null, false, false)
         .then((data) => setPosts(Array.isArray(data) ? data : [])).catch(() => {}).finally(() => setLoadingPosts(false));
+    }
+    if (section === "newsletter" && subscribers.length === 0) {
+      setLoadingSubscribers(true);
+      apiClientCore.request("/api/v1/newsletter/subscribers", { method: "GET" })
+        .then(setSubscribers).catch(() => {}).finally(() => setLoadingSubscribers(false));
+    }
+    if (section === "activity" && activity.length === 0) {
+      setLoadingActivity(true);
+      adminActivityApi.list().then(setActivity).catch(() => {}).finally(() => setLoadingActivity(false));
     }
   }, [section]);
 
@@ -74,6 +88,8 @@ export default function AdminDashboard() {
     { key: "overview", label: "Overview", icon: "📊" },
     { key: "members", label: "Members", icon: "👥" },
     { key: "content", label: "All Posts", icon: "📝" },
+    { key: "newsletter", label: "Newsletter", icon: "📧" },
+    { key: "activity", label: "Activity Feed", icon: "🔔" },
     { key: "preferences", label: "User Preferences", icon: "🎯" },
   ];
 
@@ -108,6 +124,7 @@ export default function AdminDashboard() {
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {[
                     { label: "Total users", value: stats?.total_users ?? "—", icon: "👥", color: "text-blue-600 bg-blue-50" },
+                    { label: "Newsletter subscribers", value: stats?.newsletter_subscribers ?? "—", icon: "📧", color: "text-pink-600 bg-pink-50" },
                     { label: "Total posts", value: stats?.total_posts ?? "—", icon: "📝", color: "text-emerald-600 bg-emerald-50" },
                     { label: "Total comments", value: stats?.total_comments ?? "—", icon: "💬", color: "text-purple-600 bg-purple-50" },
                     { label: "Communities", value: stats?.total_communities ?? "—", icon: "🌐", color: "text-amber-600 bg-amber-50" },
@@ -198,6 +215,108 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                       {posts.length === 0 && <p className="text-sm text-[#a09880]">No posts found.</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* NEWSLETTER */}
+              {section === "newsletter" && (
+                <div className="surface rounded-2xl p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-[#1a1814]">Newsletter Subscribers</h2>
+                      <p className="text-sm text-[#6b6358]">{subscribers.length} active subscriber{subscribers.length === 1 ? "" : "s"}</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSubscribers([]);
+                        setLoadingSubscribers(true);
+                        apiClientCore.request("/api/v1/newsletter/subscribers", { method: "GET" })
+                          .then(setSubscribers).catch(() => {}).finally(() => setLoadingSubscribers(false));
+                      }}
+                      disabled={loadingSubscribers}
+                    >
+                      {loadingSubscribers ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+                  {loadingSubscribers ? (
+                    <p className="text-sm text-[#a09880]">Loading…</p>
+                  ) : subscribers.length === 0 ? (
+                    <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-5 text-sm text-[#6b6358]">
+                      No newsletter subscribers yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[400px]">
+                        <thead>
+                          <tr className="border-b border-[rgba(90,80,60,0.1)]">
+                            {["Email", "Subscribed"].map((h) => (
+                              <th key={h} className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-[#a09880]">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subscribers.map((s) => (
+                            <tr key={s.id} className="border-b border-[rgba(90,80,60,0.05)] hover:bg-[rgba(90,80,60,0.02)]">
+                              <td className="py-3 px-3 text-[#1a1814]">{s.email}</td>
+                              <td className="py-3 px-3 text-xs text-[#a09880]">{s.created_at ? new Date(s.created_at).toLocaleDateString() : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ACTIVITY FEED */}
+              {section === "activity" && (
+                <div className="surface rounded-2xl p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-[#1a1814]">Platform Activity</h2>
+                      <p className="text-sm text-[#6b6358]">Recent likes and follows across the whole platform.</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setActivity([]);
+                        setLoadingActivity(true);
+                        adminActivityApi.list().then(setActivity).catch(() => {}).finally(() => setLoadingActivity(false));
+                      }}
+                      disabled={loadingActivity}
+                    >
+                      {loadingActivity ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+                  {loadingActivity ? (
+                    <p className="text-sm text-[#a09880]">Loading…</p>
+                  ) : activity.length === 0 ? (
+                    <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-5 text-sm text-[#6b6358]">
+                      No activity yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {activity.map((a) => (
+                        <div key={a.id} className="flex items-start gap-3 rounded-xl border border-[rgba(90,80,60,0.08)] p-3">
+                          <span className="text-lg shrink-0">{a.type === "follow" ? "👤" : "❤️"}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-[#1a1814]">
+                              <span className="font-semibold">@{a.actor_username}</span>{" "}
+                              {a.type === "follow" ? (
+                                <>started following <span className="font-semibold">@{a.recipient_username}</span></>
+                              ) : (
+                                <>liked <span className="font-semibold">@{a.recipient_username}</span>'s post "{a.post_title}"</>
+                              )}
+                            </p>
+                            <p className="text-xs text-[#a09880] mt-0.5">{timeAgo(a.created_at)}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

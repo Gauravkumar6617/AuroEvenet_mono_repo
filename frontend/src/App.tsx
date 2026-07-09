@@ -45,12 +45,16 @@ import ToastViewport from "./components/ui/ToastViewport";
 import { ToastProvider } from "./contexts/ToastContext";
 import SearchPage from "./pages/SearchPage";
 import BasicAuth from "./components/BasicAuth";
+import MaintenanceGate from "./components/MaintenanceGate";
+import SiteAssistant from "./components/SiteAssistant";
+import AnnouncementBanner from "./components/AnnouncementBanner";
 
 const App: React.FC = () => {
   return (
     <BasicAuth>
       <ToastProvider>
         <AuthProvider>
+          <MaintenanceGate>
           <PostsProvider>
             <CategoriesProvider>
               <CommunityProvider>
@@ -62,6 +66,7 @@ const App: React.FC = () => {
                       background: "#f5f4f0",
                     }}
                   >
+                    <AnnouncementBanner />
                     <Navbar />
                     <ToastViewport />
                     <main className="flex-grow">
@@ -220,11 +225,13 @@ const App: React.FC = () => {
                     </main>
                     <Footer />
                     <ConsentBanner />
+                    <SiteAssistant />
                   </div>
                 </Router>
               </CommunityProvider>
             </CategoriesProvider>
           </PostsProvider>
+          </MaintenanceGate>
         </AuthProvider>
       </ToastProvider>
     </BasicAuth>

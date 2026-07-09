@@ -3,13 +3,22 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import PageContainer from "./layout/PageContainer";
+import { notificationsApi } from "../services/api/notificationsApi";
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, type: "answer", text: "priya_dev answered your question about FastAPI", time: "2m ago", unread: true },
-  { id: 2, type: "upvote", text: "Your post got 12 upvotes", time: "1h ago", unread: true },
-  { id: 3, type: "follow", text: "karthik_ai started following you", time: "3h ago", unread: false },
-  { id: 4, type: "mention", text: "You were mentioned in a discussion", time: "1d ago", unread: false },
-];
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function notificationText(n) {
+  const who = n.actor_username ? `@${n.actor_username}` : "Someone";
+  if (n.type === "follow") return `${who} started following you`;
+  if (n.type === "like") return `${who} liked your post "${n.post_title || "your post"}"`;
+  return `${who} interacted with your content`;
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -20,13 +29,45 @@ export default function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
   const createRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
+  useEffect(() => {
+    if (!user) return;
+    const poll = () => notificationsApi.unreadCount().then((r) => setUnreadCount(r.count)).catch(() => {});
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (!notifOpen || !user) return;
+    notificationsApi.list().then(setNotifications).catch(() => {});
+  }, [notifOpen, user]);
+
+  const handleMarkAllRead = () => {
+    notificationsApi.markAllRead().then(() => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    }).catch(() => {});
+  };
+
+  const handleNotificationClick = (n) => {
+    if (!n.is_read) {
+      notificationsApi.markRead(n.id).then(() => {
+        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }).catch(() => {});
+    }
+    setNotifOpen(false);
+    if (n.type === "like" && n.post_id) navigate(`/blog/${n.post_id}`);
+    else if (n.type === "follow" && n.actor_username) navigate(`/u/${n.actor_username}`);
+  };
 
   const navLinks = [
     { to: "/", label: "Home" },
@@ -75,8 +116,8 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm shadow-sm">N</div>
-              <span className="font-display text-lg font-bold text-[#1a1814]">Nex<span className="gradient-text">os</span></span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm shadow-sm">B</div>
+              <span className="font-display text-lg font-bold text-[#1a1814]">Blog<span className="gradient-text">Byte</span></span>
             </Link>
 
             {/* Search bar (desktop) */}
@@ -145,21 +186,24 @@ export default function Navbar() {
                           className="absolute right-0 top-full mt-2 w-80 surface overflow-hidden z-50">
                           <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(90,80,60,0.08)]">
                             <span className="text-sm font-bold text-[#1a1814]">Notifications</span>
-                            <button className="text-xs text-[#e85d26] font-semibold hover:underline">Mark all read</button>
+                            {unreadCount > 0 && (
+                              <button onClick={handleMarkAllRead} className="text-xs text-[#e85d26] font-semibold hover:underline">Mark all read</button>
+                            )}
                           </div>
-                          <div className="max-h-72 overflow-y-auto">
-                            {MOCK_NOTIFICATIONS.map((n) => (
-                              <div key={n.id} className={`flex items-start gap-3 px-4 py-3 border-b border-[rgba(90,80,60,0.05)] cursor-pointer hover:bg-[rgba(90,80,60,0.03)] transition-all ${n.unread ? "bg-[rgba(232,93,38,0.03)]" : ""}`}>
-                                <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${n.unread ? "bg-[#e85d26]" : "bg-transparent"}`} />
+                          <div className="max-h-80 overflow-y-auto">
+                            {notifications.length === 0 && (
+                              <div className="px-4 py-8 text-center text-xs text-[#a09880]">No notifications yet</div>
+                            )}
+                            {notifications.map((n) => (
+                              <button key={n.id} onClick={() => handleNotificationClick(n)}
+                                className={`flex w-full items-start gap-3 px-4 py-3 border-b border-[rgba(90,80,60,0.05)] text-left hover:bg-[rgba(90,80,60,0.03)] transition-all ${!n.is_read ? "bg-[rgba(232,93,38,0.03)]" : ""}`}>
+                                <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-[#e85d26]" : "bg-transparent"}`} />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-[#1a1814] leading-relaxed">{n.text}</p>
-                                  <p className="text-xs text-[#a09880] mt-0.5">{n.time}</p>
+                                  <p className="text-xs text-[#1a1814] leading-relaxed">{notificationText(n)}</p>
+                                  <p className="text-xs text-[#a09880] mt-0.5">{timeAgo(n.created_at)}</p>
                                 </div>
-                              </div>
+                              </button>
                             ))}
-                          </div>
-                          <div className="px-4 py-2.5 text-center border-t border-[rgba(90,80,60,0.08)]">
-                            <Link to="/dashboard" onClick={() => setNotifOpen(false)} className="text-xs text-[#e85d26] font-semibold hover:underline">View all notifications</Link>
                           </div>
                         </motion.div>
                       )}
@@ -189,6 +233,12 @@ export default function Navbar() {
                             { label: "Communities", to: "/communities", icon: "🌐" },
                             { label: "Topic preferences", to: "/settings/topics", icon: "🎯" },
                             { label: "Privacy", to: "/privacy", icon: "🔒" },
+                            ...(user?.role === "admin" || user?.role === "super_admin"
+                              ? [{ label: "Admin dashboard", to: "/admin", icon: "🛡️" }]
+                              : []),
+                            ...(user?.role === "super_admin"
+                              ? [{ label: "Super Admin", to: "/super-admin", icon: "🧬" }]
+                              : []),
                           ].map((item) => (
                             <Link key={item.label} to={item.to} onClick={() => setProfileOpen(false)}
                               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#6b6358] hover:bg-[rgba(90,80,60,0.04)] hover:text-[#1a1814] transition-all">
@@ -236,6 +286,12 @@ export default function Navbar() {
                     <Link to={`/u/${user?.username}`} className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">My Profile</Link>
                     <Link to="/dashboard" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Dashboard</Link>
                     <Link to="/settings/topics" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Topic Preferences</Link>
+                    {(user?.role === "admin" || user?.role === "super_admin") && (
+                      <Link to="/admin" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Admin Dashboard</Link>
+                    )}
+                    {user?.role === "super_admin" && (
+                      <Link to="/super-admin" className="block rounded-lg px-3 py-2.5 text-sm text-[#6b6358]">Super Admin</Link>
+                    )}
                     <button onClick={logout} className="block w-full text-left rounded-lg px-3 py-2.5 text-sm text-red-600 hover:bg-red-50">Sign out</button>
                   </>
                 ) : (
@@ -275,22 +331,15 @@ export default function Navbar() {
                         <span>{icon}</span>{label}
                       </Link>
                     ))}
-                    <p className="mt-2 px-2 py-1.5 text-xs font-bold uppercase tracking-widest text-[#a09880]">Trending topics</p>
+                    <p className="mt-2 px-2 py-1.5 text-xs font-bold uppercase tracking-widest text-[#a09880]">Popular topics</p>
                     <div className="flex flex-wrap gap-2 px-2 pt-1">
-                      {["#engineering", "#product", "#ai", "#devops", "#design", "#startup"].map((tag) => (
-                        <span key={tag} className="tag-pill">{tag}</span>
+                      {["engineering", "product", "ai", "devops", "design", "startup"].map((tag) => (
+                        <button key={tag} onClick={() => { navigate(`/search?q=${encodeURIComponent(tag)}`); setSearchOpen(false); }} className="tag-pill">#{tag}</button>
                       ))}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    {["How to structure FastAPI for scale", "React Query patterns 2026", "System design: message queues"].filter((r) => r.toLowerCase().includes(searchQuery.toLowerCase())).map((result) => (
-                      <button key={result} onClick={() => { navigate("/blog"); setSearchOpen(false); }}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#1a1814] hover:bg-[rgba(90,80,60,0.05)]">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a09880" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>
-                        {result}
-                      </button>
-                    ))}
                     <button onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#e85d26] font-semibold hover:bg-[#fdf0ea]">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>

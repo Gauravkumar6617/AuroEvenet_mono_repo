@@ -69,6 +69,7 @@ export interface LoginResponse {
 export interface OTPVerifyResponse {
   message: string;
   success: boolean;
+  access_token?: string;
 }
 
 export interface ValidationError {

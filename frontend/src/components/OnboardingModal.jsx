@@ -7,7 +7,7 @@ import { apiClient } from "../services/api";
 const fallbackGoalQuestions = [
   {
     id: "fallback_goal",
-    question: "What are you hoping to learn, build, or discover on Nexos?",
+    question: "What are you hoping to learn, build, or discover on BlogByte?",
   },
 ];
 
@@ -161,8 +161,8 @@ export default function OnboardingModal({ onClose }) {
         <div className="px-6 pt-6 pb-4 border-b border-[rgba(90,80,60,0.08)]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">N</div>
-              <span className="font-display text-base font-bold">Nexos</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">B</div>
+              <span className="font-display text-base font-bold">BlogByte</span>
             </div>
             <button onClick={onClose} className="text-xs text-[#a09880] hover:text-[#6b6358] transition-colors">Skip setup</button>
           </div>
@@ -186,8 +186,8 @@ export default function OnboardingModal({ onClose }) {
             {step === 0 && (
               <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="text-4xl mb-4">👋</div>
-                <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Welcome to Nexos!</h2>
-                <p className="text-[#6b6358] text-sm leading-relaxed mb-4">Answer a few quick prompts so Nexos can shape your feed around the topics, depth, and goals that matter to you.</p>
+                <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Welcome to BlogByte!</h2>
+                <p className="text-[#6b6358] text-sm leading-relaxed mb-4">Answer a few quick prompts so BlogByte can shape your feed around the topics, depth, and goals that matter to you.</p>
                 <div className="rounded-xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.15)] p-4">
                   <p className="text-sm font-semibold text-[#e85d26] mb-2">Your setup helps us tune:</p>
                   {["Topics that show up first", "The level of detail in recommendations", "Communities and posts worth your time"].map((item) => (
@@ -222,7 +222,7 @@ export default function OnboardingModal({ onClose }) {
                 ) : (
                   <div className="rounded-xl border border-[rgba(232,93,38,0.15)] bg-[#fdf0ea] p-4">
                     <p className="text-sm font-semibold text-[#1a1814] mb-1">We can still personalize your start.</p>
-                    <p className="text-sm text-[#6b6358]">The admin topic list is empty right now, so Nexos will ask two broad questions and save those as your first preferences.</p>
+                    <p className="text-sm text-[#6b6358]">The admin topic list is empty right now, so BlogByte will ask two broad questions and save those as your first preferences.</p>
                   </div>
                 )}
                 {selectedTopicIds.length > 0 && (
@@ -294,7 +294,7 @@ export default function OnboardingModal({ onClose }) {
             </Button>
           ) : (
             <Button onClick={handleFinish} disabled={isSubmitting || !canProceed()} className="shadow-[0_4px_16px_rgba(232,93,38,0.3)]">
-              {isSubmitting ? "Saving..." : "🎉 Enter Nexos"}
+              {isSubmitting ? "Saving..." : "🎉 Enter BlogByte"}
             </Button>
           )}
         </div>

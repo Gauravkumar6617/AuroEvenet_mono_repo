@@ -154,10 +154,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const response = await authApi.verifyOTP({ email, otp });
         if (response.success) {
-          // Backend sets cookies after OTP — fetch real user profile
-          const user = await authApi.getMe();
+          // Store the access_token in session — bypasses cross-origin cookie blocking
+          if (response.access_token) setAccessToken(response.access_token);
+          const user = await authApi.getMe(response.access_token ?? null);
           setAuth(user);
-          showToast("Email verified. Welcome to Nexos!", "success");
+          showToast("Email verified. Welcome to BlogByte!", "success");
         }
       } catch (error) {
         const errorMessage =

@@ -28,32 +28,18 @@ export default function Login() {
           <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-[#e85d26]/15 blur-3xl" />
           <div className="absolute -top-20 -left-20 h-48 w-48 rounded-full bg-[#2563eb]/10 blur-3xl" />
           <div className="relative z-10">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm mb-6">N</div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm mb-6">B</div>
             <p className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-3">Welcome back</p>
             <h1 className="font-display text-4xl font-bold leading-tight">Sign in and continue your knowledge journey.</h1>
             <p className="mt-4 text-[#a09880] text-sm leading-relaxed">Access your personalized feed, saved discussions, and contributor dashboard.</p>
-          </div>
-          <div className="relative z-10 space-y-3">
-            {[
-              { avatar: "P", name: "priya_arch", text: "Nexos is the only platform where I actually learn from discussions. The depth is unmatched." },
-              { avatar: "A", name: "alex_ops", text: "My answer got 200 upvotes in 2 days. This community genuinely rewards expertise." },
-            ].map((t) => (
-              <div key={t.name} className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                <p className="text-sm text-[#d0c8be] italic leading-relaxed">"{t.text}"</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="avatar h-6 w-6" style={{ fontSize: "0.65rem" }}>{t.avatar}</div>
-                  <span className="text-xs text-[#a09880]">@{t.name}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </motion.div>
 
         {/* Right panel */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="surface rounded-3xl p-8">
           <Link to="/" className="flex items-center gap-2 mb-6 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">N</div>
-            <span className="font-display text-lg font-bold">Nex<span className="gradient-text">os</span></span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">B</div>
+            <span className="font-display text-lg font-bold">Blog<span className="gradient-text">Byte</span></span>
           </Link>
           <h2 className="font-display text-3xl font-bold text-[#1a1814]">Sign in</h2>
           <p className="mt-1 text-sm text-[#6b6358]">Use your credentials or sign in with OAuth.</p>

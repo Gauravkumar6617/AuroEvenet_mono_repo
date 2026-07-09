@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import PageContainer from "../components/layout/PageContainer";
 import SectionHeader from "../components/layout/SectionHeader";
 import Card from "../components/ui/Card";
@@ -18,15 +17,7 @@ const features = [
   { icon: "🔍", title: "Powerful search", desc: "Full-text search across all posts, answers, tags, and user profiles with real-time results.", tag: "Discovery" },
 ];
 
-const PLANS = [
-  { name: "Free", price: "$0", period: "forever", features: ["Full feed access", "Post questions & discussions", "Vote and comment", "Save up to 50 posts", "Basic profile"], cta: "Get started", highlight: false },
-  { name: "Pro", price: "$8", period: "per month", features: ["Everything in Free", "Publish long-form articles", "Unlimited saves", "Analytics dashboard", "Verified badge", "Priority support"], cta: "Start free trial", highlight: true },
-  { name: "Team", price: "$24", period: "per month", features: ["Everything in Pro", "Private community spaces", "Team moderation tools", "Custom branding", "API access", "Dedicated support"], cta: "Contact us", highlight: false },
-];
-
 export default function Features() {
-  const [activePlan, setActivePlan] = useState("Pro");
-
   return (
     <div className="py-8 pb-20">
       <PageContainer>
@@ -35,7 +26,7 @@ export default function Features() {
           description="A single workspace for asking, answering, publishing, and moderating knowledge at scale."
           action={<Badge tone="success" dot>Free to start</Badge>} />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-20">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-16">
           {features.map((f, i) => (
             <Card key={i} hover className="rounded-2xl">
               <div className="flex items-start justify-between mb-3">
@@ -48,38 +39,11 @@ export default function Features() {
           ))}
         </div>
 
-        <SectionHeader eyebrow="Pricing" align="center" title="Simple, honest pricing" description="Start free. Upgrade when you need more power." />
-        <div className="grid gap-5 md:grid-cols-3 mb-16">
-          {PLANS.map((plan) => (
-            <div key={plan.name}
-              className={`rounded-3xl p-6 border-[1.5px] transition-all ${plan.highlight ? "border-[#e85d26] bg-[#1a1814] text-white shadow-[0_8px_32px_rgba(232,93,38,0.2)]" : "border-[rgba(90,80,60,0.12)] bg-white"}`}>
-              {plan.highlight && <Badge tone="brand" dot>Most popular</Badge>}
-              <div className={`mt-3 font-display text-xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.name}</div>
-              <div className="flex items-baseline gap-1 mt-1 mb-4">
-                <span className={`font-display text-4xl font-bold ${plan.highlight ? "text-white" : "text-[#1a1814]"}`}>{plan.price}</span>
-                <span className={`text-sm ${plan.highlight ? "text-[#a09880]" : "text-[#6b6358]"}`}>/{plan.period}</span>
-              </div>
-              <div className="space-y-2 mb-6">
-                {plan.features.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-sm">
-                    <span className={`text-xs font-bold ${plan.highlight ? "text-[#e85d26]" : "text-green-600"}`}>✓</span>
-                    <span className={plan.highlight ? "text-[#d0c8be]" : "text-[#6b6358]"}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <Button className={`w-full ${plan.highlight ? "bg-[#e85d26] hover:bg-[#c44718]" : ""}`}
-                variant={plan.highlight ? "primary" : "secondary"} size="lg">
-                {plan.cta}
-              </Button>
-            </div>
-          ))}
-        </div>
-
         <div className="rounded-3xl bg-[#fdf0ea] border border-[rgba(232,93,38,0.2)] p-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-3">Questions?</p>
-          <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Need help choosing a plan?</h2>
-          <p className="text-sm text-[#6b6358] mb-5">Talk to us and we'll find the right fit for your team or community.</p>
-          <Link to="/contact"><Button variant="outline">Get in touch →</Button></Link>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-3">Ready when you are</p>
+          <h2 className="font-display text-2xl font-bold text-[#1a1814] mb-2">Join BlogByte, free</h2>
+          <p className="text-sm text-[#6b6358] mb-5">Create an account and start sharing what you know.</p>
+          <Link to="/signup"><Button variant="outline">Get started →</Button></Link>
         </div>
       </PageContainer>
     </div>

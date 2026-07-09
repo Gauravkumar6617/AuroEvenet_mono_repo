@@ -31,6 +31,12 @@ export interface TopicWeightUpdate {
   weight: number;
 }
 
+export interface SimilarPostMatch {
+  id: number;
+  title: string;
+  slug: string;
+}
+
 export const aiApi = {
   getCommentSummary(postId: number) {
     return apiClientCore.request<{ summary: string }>(
@@ -90,6 +96,13 @@ export const aiApi = {
     return apiClientCore.request<{ detail: string }>(
       `/api/v1/ai/me/topics/${topicId}`,
       { method: "DELETE" },
+    );
+  },
+
+  checkSimilar(payload: { title: string; category_id?: number | null }) {
+    return apiClientCore.request<{ matches: SimilarPostMatch[] }>(
+      "/api/v1/ai/check-similar",
+      { method: "POST", body: JSON.stringify(payload) },
     );
   },
 };

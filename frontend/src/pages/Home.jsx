@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
 import SectionHeader from "../components/layout/SectionHeader";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
-import TerminalActivity from "../components/TerminalActivity";
 import OnboardingModal from "../components/OnboardingModal";
 import { useToast } from "../contexts/ToastContext";
 import { usePosts } from "../contexts/PostsContext";
@@ -16,23 +14,32 @@ import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 import { likesApi } from "../services/api/likesApi";
 import { userApi } from "../services/api/userApi";
 
-const STATS = [
-  { value: "1.9M", label: "Monthly discussions", icon: "💬" },
-  { value: "82%", label: "Answer resolution rate", icon: "✅" },
-  { value: "240+", label: "Active communities", icon: "🌐" },
-  { value: "48K", label: "Expert contributors", icon: "🧠" },
+const POST_FORMATS = [
+  { icon: "❓", label: "Question", desc: "Ask something specific and get answers from people who've solved it.", rotate: "-rotate-3", accent: "from-[#e85d26]/15 to-[#e85d26]/5", border: "border-[rgba(232,93,38,0.2)]" },
+  { icon: "💬", label: "Discussion", desc: "Start a conversation, share an opinion, and see where the community takes it.", rotate: "rotate-2", accent: "from-[#2563eb]/15 to-[#2563eb]/5", border: "border-[rgba(37,99,235,0.2)]" },
+  { icon: "📝", label: "Article", desc: "Write a long-form guide or deep-dive for people who want the full picture.", rotate: "-rotate-1", accent: "from-[#1a1814]/10 to-[#1a1814]/[0.02]", border: "border-[rgba(26,24,20,0.12)]" },
 ];
 
-const TOPICS = [
-  { id: 1, name: "Engineering", count: "1.2k", icon: "🛠️", color: "bg-blue-50 text-blue-700" },
-  { id: 2, name: "Product Design", count: "850", icon: "🎨", color: "bg-purple-50 text-purple-700" },
-  { id: 3, name: "AI & ML", count: "2.4k", icon: "🤖", color: "bg-green-50 text-green-700" },
-  { id: 4, name: "Growth", count: "500", icon: "📈", color: "bg-orange-50 text-orange-700" },
-  { id: 5, name: "Founder Logs", count: "320", icon: "🚀", color: "bg-pink-50 text-pink-700" },
-  { id: 6, name: "DevOps", count: "780", icon: "⚙️", color: "bg-slate-100 text-slate-700" },
-  { id: 7, name: "Open Source", count: "930", icon: "🔓", color: "bg-emerald-50 text-emerald-700" },
-  { id: 8, name: "Career", count: "1.1k", icon: "🎯", color: "bg-amber-50 text-amber-700" },
-];
+function HeroFormats() {
+  return (
+    <div className="relative space-y-4 py-4">
+      {POST_FORMATS.map((f) => (
+        <div
+          key={f.label}
+          className={`surface rounded-2xl p-4 border ${f.border} bg-gradient-to-br ${f.accent} shadow-sm hover:shadow-md hover:rotate-0 transition-all duration-300 ${f.rotate}`}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none">{f.icon}</span>
+            <div>
+              <p className="font-display text-sm font-bold text-[#1a1814]">{f.label}</p>
+              <p className="mt-0.5 text-xs text-[#6b6358] leading-relaxed">{f.desc}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // safely extract a string from a string or an object with name/tag property
 function asString(val) {
@@ -74,17 +81,15 @@ export default function Home() {
   const { showToast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const { posts, loading: postsLoading, fetchPosts, fetchPersonalizedFeed } = usePosts();
-  const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [likeCounts, setLikeCounts] = useState({});
   const [userLikes, setUserLikes] = useState({});
-  const onboardingStorageKey = user?.id ? `nexos_onboarding_skipped_${user.id}` : null;
+  const onboardingStorageKey = user?.id ? `blogbyte_onboarding_skipped_${user.id}` : null;
   const onboardingDebug = (...args) => console.info("[OnboardingDebug:Home]", ...args);
 
   useEffect(() => {
     const loadFeed = user ? fetchPersonalizedFeed : fetchPosts;
     loadFeed().catch(() => showToast("Failed to load posts", "error"));
-    setTimeout(() => setIsLoading(false), 800);
   }, [user, fetchPosts, fetchPersonalizedFeed]);
 
   useEffect(() => {
@@ -212,7 +217,7 @@ export default function Home() {
         <div className="absolute inset-0 noise pointer-events-none opacity-40" />
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[rgba(232,93,38,0.08)] to-transparent rounded-full blur-3xl pointer-events-none" />
         <PageContainer>
-          <div className="grid items-center gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="animate-fadeInUp">
               <Badge tone="brand" dot>The Knowledge Network · 2026</Badge>
               <h1 className="mt-5 font-display text-5xl font-bold leading-[1.1] text-[#1a1814] md:text-6xl lg:text-7xl" style={{ fontFamily: "Fraunces, Georgia, serif" }}>
@@ -233,59 +238,13 @@ export default function Home() {
                   <Button variant="secondary" size="lg">Browse Feed</Button>
                 </Link>
               </div>
-              <div className="mt-8 flex items-center gap-4">
-                <div className="flex -space-x-2">
-                  {["A", "S", "D", "K", "P"].map((l, i) => (
-                    <div key={i} className="avatar h-8 w-8 text-xs border-2 border-white" style={{ background: `hsl(${i * 50 + 20}, 70%, 55%)` }}>{l}</div>
-                  ))}
-                </div>
-                <p className="text-sm text-[#6b6358]"><span className="font-semibold text-[#1a1814]">2,400+</span> joined this week</p>
-              </div>
             </div>
-            <div className="animate-fadeInUp stagger-2">
-              <TerminalActivity />
+            <div className="hidden lg:block animate-fadeInUp stagger-2">
+              <HeroFormats />
             </div>
           </div>
         </PageContainer>
       </section>
-
-      {/* Stats row */}
-      <section className="border-y border-[rgba(90,80,60,0.08)] bg-white/60">
-        <PageContainer>
-          <div className="grid grid-cols-2 gap-0 md:grid-cols-4">
-            {STATS.map((stat, i) => (
-              <div key={stat.label} className={`flex flex-col items-center py-6 text-center ${i < 3 ? "border-r border-[rgba(90,80,60,0.08)]" : ""}`}>
-                <span className="text-2xl mb-1">{stat.icon}</span>
-                <p className="font-display text-3xl font-bold text-[#1a1814]">{stat.value}</p>
-                <p className="mt-1 text-xs text-[#a09880] font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </PageContainer>
-      </section>
-
-      {/* Topics cloud */}
-      <PageContainer className="mt-14">
-        <div className="flex flex-col items-center gap-4">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#a09880]">Explore Communities</p>
-          <div className="flex flex-wrap justify-center gap-2.5">
-            {isLoading ? (
-              Array(8).fill(0).map((_, i) => <div key={i} className="skeleton h-9 w-28 rounded-full" />)
-            ) : (
-              TOPICS.map((topic, i) => (
-                <motion.div key={topic.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-                  <Link to={`/blog`}
-                    className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium border border-[rgba(90,80,60,0.1)] bg-white hover:border-[#e85d26] hover:shadow-md transition-all ${topic.color}`}>
-                    <span>{topic.icon}</span>
-                    <span>{topic.name}</span>
-                    <span className="text-xs opacity-60">{topic.count}</span>
-                  </Link>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </div>
-      </PageContainer>
 
       {/* Feed preview */}
       <section className="py-16">
@@ -324,7 +283,7 @@ export default function Home() {
       {/* Feature trio */}
       <section className="py-12 bg-white/40 border-y border-[rgba(90,80,60,0.08)]">
         <PageContainer>
-          <SectionHeader eyebrow="Why Nexos" title="Built for serious knowledge sharing" align="center" />
+          <SectionHeader eyebrow="Why BlogByte" title="Built for serious knowledge sharing" align="center" />
           <div className="grid gap-5 md:grid-cols-3">
             {[
               { icon: "🎯", title: "Signal-first ranking", desc: "Posts ranked by community vote, expert endorsements, and answer quality — not recency or algorithmic hacks." },

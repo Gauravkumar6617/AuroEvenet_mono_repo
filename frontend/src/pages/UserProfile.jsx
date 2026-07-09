@@ -9,6 +9,7 @@ import { communitiesApi } from "../services/api/communitiesApi";
 import { userApi } from "../services/api/userApi";
 import { commentsApi } from "../services/api/commentsApi";
 import { apiClientCore } from "../services/api/client";
+import { useToast } from "../contexts/ToastContext";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -32,6 +33,7 @@ function TypeBadge({ type }) {
 export default function UserProfile() {
   const { username } = useParams();
   const { user: me } = useAuth();
+  const { showToast } = useToast();
   const [tab, setTab] = useState("posts");
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -127,8 +129,8 @@ export default function UserProfile() {
       const res = await apiClientCore.request(`/api/v1/social/follow/${profileUser.id}`, { method: "POST" });
       setIsFollowing(res.action === "followed");
       setStats(res.stats);
-    } catch {
-      // ignore
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update follow status", "error");
     } finally {
       setFollowLoading(false);
     }

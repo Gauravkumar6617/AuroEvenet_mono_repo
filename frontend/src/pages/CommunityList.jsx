@@ -208,23 +208,6 @@ export default function CommunityList() {
                 </div>
               </Card>
             </motion.div>
-
-            {/* Stats */}
-            <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="bg-gradient-to-br from-[#e85d26] to-[#c44718] border-0 text-white">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-75 mb-3">Platform stats</p>
-                {[
-                  { label: "Communities", value: "240+" },
-                  { label: "Active members", value: "48K" },
-                  { label: "Posts this week", value: "3.2K" },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/10 last:border-0">
-                    <span className="text-xs opacity-75">{label}</span>
-                    <span className="text-sm font-bold">{value}</span>
-                  </div>
-                ))}
-              </Card>
-            </motion.div>
           </div>
         </div>
       </PageContainer>
@@ -290,7 +273,7 @@ function CreateCommunityModal({ onClose }) {
           <div>
             <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Community name</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Rust Programming" className="input-field" />
-            {slug && <p className="text-xs text-[#a09880] mt-1">URL: nexos.dev/communities/<span className="text-[#e85d26] font-mono">{slug}</span></p>}
+            {slug && <p className="text-xs text-[#a09880] mt-1">URL: blogbyte.dev/communities/<span className="text-[#e85d26] font-mono">{slug}</span></p>}
           </div>
           <div>
             <label className="text-xs font-bold text-[#1a1814] mb-1.5 block">Description</label>

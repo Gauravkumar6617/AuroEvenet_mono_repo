@@ -8,9 +8,9 @@ export default function About() {
   return (
     <div className="py-10">
       <PageContainer>
-        <SectionHeader eyebrow="About Nexos" align="center"
+        <SectionHeader eyebrow="About BlogByte" align="center"
           title="A modern knowledge network for builders and learners"
-          description="Nexos combines fast community discussion with deep answer threads so technical knowledge is easier to share, discover, and trust." />
+          description="BlogByte combines fast community discussion with deep answer threads so technical knowledge is easier to share, discover, and trust." />
         <div className="grid gap-5 lg:grid-cols-3 mb-12">
           {[
             { icon: "🎯", title: "Signal over noise", desc: "We prioritize high-quality discussions, expert visibility, and moderation tooling that keeps conversations focused." },

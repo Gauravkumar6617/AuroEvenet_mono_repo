@@ -8,6 +8,7 @@ import { adminQuestionsApi } from "../services/api/adminQuestionsApi";
 import { adminCategoriesApi } from "../services/api/adminCategoriesApi";
 import { adminTopicsApi } from "../services/api/adminTopicsApi";
 import { userApi } from "../services/api/userApi";
+import { adminActivityApi } from "../services/api/adminActivityApi";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -73,7 +74,9 @@ export default function SuperAdminDashboard() {
   const [userSearch, setUserSearch] = useState("");
   const [announcementText, setAnnouncementText] = useState("");
   const [announcementColor, setAnnouncementColor] = useState("#e85d26");
-  const [banner, setBanner] = useState(null);
+  const [announcementActive, setAnnouncementActive] = useState(false);
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [announcementSaved, setAnnouncementSaved] = useState(false);
   const [hardDeleteText, setHardDeleteText] = useState("");
 
   // Real data
@@ -104,6 +107,14 @@ export default function SuperAdminDashboard() {
   // Topic interests
   const [interests, setInterests] = useState([]);
 
+  // Newsletter
+  const [subscribers, setSubscribers] = useState([]);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(false);
+
+  // Activity
+  const [activity, setActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
   useEffect(() => {
     apiClientCore
       .request("/api/v1/admin/users/stats", { method: "GET" })
@@ -112,6 +123,14 @@ export default function SuperAdminDashboard() {
     apiClientCore
       .request("/api/v1/admin/system/maintenance", { method: "GET" })
       .then((r) => setMaintenance(r.enabled))
+      .catch(() => {});
+    apiClientCore
+      .request("/api/v1/admin/system/announcement", { method: "GET" })
+      .then((r) => {
+        setAnnouncementText(r.message || "");
+        setAnnouncementColor(r.color || "#e85d26");
+        setAnnouncementActive(r.active);
+      })
       .catch(() => {});
   }, []);
 
@@ -135,6 +154,22 @@ export default function SuperAdminDashboard() {
     }
     if (section === "preferences" && userPreferences.length === 0) {
       loadUserPreferences();
+    }
+    if (section === "newsletter" && subscribers.length === 0) {
+      setLoadingSubscribers(true);
+      apiClientCore
+        .request("/api/v1/newsletter/subscribers", { method: "GET" })
+        .then(setSubscribers)
+        .catch(() => {})
+        .finally(() => setLoadingSubscribers(false));
+    }
+    if (section === "activity" && activity.length === 0) {
+      setLoadingActivity(true);
+      adminActivityApi
+        .list()
+        .then(setActivity)
+        .catch(() => {})
+        .finally(() => setLoadingActivity(false));
     }
   }, [section]);
 
@@ -434,6 +469,8 @@ export default function SuperAdminDashboard() {
   const navItems = [
     { key: "overview", label: "Platform Overview", icon: "📊" },
     { key: "users", label: "All Users", icon: "👥" },
+    { key: "newsletter", label: "Newsletter", icon: "📧" },
+    { key: "activity", label: "Activity Feed", icon: "🔔" },
     { key: "preferences", label: "User Preferences", icon: "🎯" },
     { key: "onboarding", label: "Onboarding Config", icon: "🚀" },
     { key: "config", label: "Site Config", icon: "⚙️" },
@@ -442,20 +479,6 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="py-8">
-      {banner && (
-        <div
-          style={{ background: announcementColor }}
-          className="fixed top-0 left-0 right-0 z-[300] flex items-center justify-between px-6 py-2.5 text-white text-sm font-medium shadow-lg"
-        >
-          <span>{banner}</span>
-          <button
-            onClick={() => setBanner(null)}
-            className="text-white/70 hover:text-white ml-4"
-          >
-            ✕
-          </button>
-        </div>
-      )}
       <PageContainer>
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -511,16 +534,16 @@ export default function SuperAdminDashboard() {
                         color: "text-blue-600 bg-blue-50",
                       },
                       {
+                        label: "Newsletter subscribers",
+                        value: stats?.newsletter_subscribers ?? "—",
+                        icon: "📧",
+                        color: "text-pink-600 bg-pink-50",
+                      },
+                      {
                         label: "Total posts",
                         value: stats?.total_posts ?? "—",
                         icon: "📝",
                         color: "text-emerald-600 bg-emerald-50",
-                      },
-                      {
-                        label: "Total comments",
-                        value: stats?.total_comments ?? "—",
-                        icon: "💬",
-                        color: "text-purple-600 bg-purple-50",
                       },
                       {
                         label: "Communities",
@@ -543,6 +566,27 @@ export default function SuperAdminDashboard() {
                         </p>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="surface rounded-2xl p-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">
+                      Platform activity
+                    </p>
+                    <div className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
+                      {[
+                        ["Active users", stats?.active_users],
+                        ["Banned users", stats?.banned_users],
+                        ["Verified users", stats?.verified_users],
+                        ["Total comments", stats?.total_comments],
+                        ["Total likes", stats?.total_likes],
+                        ["Total follows", stats?.total_follows],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex items-center justify-between border-b border-[rgba(90,80,60,0.06)] py-1.5">
+                          <span className="text-sm text-[#6b6358]">{label}</span>
+                          <span className="text-sm font-bold text-[#1a1814]">{value ?? "—"}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -676,6 +720,123 @@ export default function SuperAdminDashboard() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* NEWSLETTER */}
+              {section === "newsletter" && (
+                <div className="surface rounded-2xl p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-[#1a1814]">
+                        Newsletter Subscribers
+                      </h2>
+                      <p className="text-sm text-[#6b6358]">
+                        {subscribers.length} active subscriber{subscribers.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSubscribers([]);
+                        setLoadingSubscribers(true);
+                        apiClientCore
+                          .request("/api/v1/newsletter/subscribers", { method: "GET" })
+                          .then(setSubscribers)
+                          .catch(() => {})
+                          .finally(() => setLoadingSubscribers(false));
+                      }}
+                      disabled={loadingSubscribers}
+                    >
+                      {loadingSubscribers ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+                  {loadingSubscribers ? (
+                    <p className="text-sm text-[#a09880]">Loading…</p>
+                  ) : subscribers.length === 0 ? (
+                    <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-5 text-sm text-[#6b6358]">
+                      No newsletter subscribers yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[400px]">
+                        <thead>
+                          <tr className="border-b border-[rgba(90,80,60,0.1)]">
+                            {["Email", "Subscribed"].map((h) => (
+                              <th key={h} className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-[#a09880]">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subscribers.map((s) => (
+                            <tr key={s.id} className="border-b border-[rgba(90,80,60,0.05)] hover:bg-[rgba(90,80,60,0.02)] transition-colors">
+                              <td className="py-3 px-3 text-[#1a1814]">{s.email}</td>
+                              <td className="py-3 px-3 text-xs text-[#a09880]">
+                                {s.created_at ? new Date(s.created_at).toLocaleDateString() : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ACTIVITY FEED */}
+              {section === "activity" && (
+                <div className="surface rounded-2xl p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-[#1a1814]">
+                        Platform Activity
+                      </h2>
+                      <p className="text-sm text-[#6b6358]">
+                        Recent likes and follows across the whole platform.
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setActivity([]);
+                        setLoadingActivity(true);
+                        adminActivityApi.list().then(setActivity).catch(() => {}).finally(() => setLoadingActivity(false));
+                      }}
+                      disabled={loadingActivity}
+                    >
+                      {loadingActivity ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+                  {loadingActivity ? (
+                    <p className="text-sm text-[#a09880]">Loading…</p>
+                  ) : activity.length === 0 ? (
+                    <div className="rounded-xl border border-[rgba(90,80,60,0.08)] bg-[#faf9f7] p-5 text-sm text-[#6b6358]">
+                      No activity yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {activity.map((a) => (
+                        <div key={a.id} className="flex items-start gap-3 rounded-xl border border-[rgba(90,80,60,0.08)] p-3">
+                          <span className="text-lg shrink-0">{a.type === "follow" ? "👤" : "❤️"}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-[#1a1814]">
+                              <span className="font-semibold">@{a.actor_username}</span>{" "}
+                              {a.type === "follow" ? (
+                                <>started following <span className="font-semibold">@{a.recipient_username}</span></>
+                              ) : (
+                                <>liked <span className="font-semibold">@{a.recipient_username}</span>'s post "{a.post_title}"</>
+                              )}
+                            </p>
+                            <p className="text-xs text-[#a09880] mt-0.5">{timeAgo(a.created_at)}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1272,15 +1433,20 @@ export default function SuperAdminDashboard() {
               {section === "config" && (
                 <div className="space-y-4">
                   <div className="surface rounded-2xl p-5">
-                    <h3 className="font-display text-lg font-bold text-[#1a1814] mb-3">
-                      Announcement Banner
-                    </h3>
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="font-display text-lg font-bold text-[#1a1814]">
+                        Announcement Banner
+                      </h3>
+                      {announcementActive && (
+                        <Badge tone="success" dot>Live site-wide</Badge>
+                      )}
+                    </div>
                     <div className="space-y-3">
                       <input
                         className="input-field"
                         placeholder="Banner message..."
                         value={announcementText}
-                        onChange={(e) => setAnnouncementText(e.target.value)}
+                        onChange={(e) => { setAnnouncementText(e.target.value); setAnnouncementSaved(false); }}
                       />
                       <div className="flex items-center gap-3">
                         <label className="text-sm text-[#6b6358]">Color:</label>
@@ -1288,20 +1454,51 @@ export default function SuperAdminDashboard() {
                           (c) => (
                             <button
                               key={c}
-                              onClick={() => setAnnouncementColor(c)}
+                              onClick={() => { setAnnouncementColor(c); setAnnouncementSaved(false); }}
                               style={{ background: c }}
                               className={`h-6 w-6 rounded-full border-2 transition-all ${announcementColor === c ? "border-[#1a1814] scale-110" : "border-transparent"}`}
                             />
                           ),
                         )}
                       </div>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setBanner(announcementText)}
-                        disabled={!announcementText}
-                      >
-                        Publish banner
-                      </Button>
+                      <label className="flex items-center gap-2 text-sm text-[#6b6358]">
+                        <input
+                          type="checkbox"
+                          checked={announcementActive}
+                          onChange={(e) => { setAnnouncementActive(e.target.checked); setAnnouncementSaved(false); }}
+                        />
+                        Show live to all visitors
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="secondary"
+                          disabled={announcementLoading || (!announcementText && announcementActive)}
+                          onClick={async () => {
+                            setAnnouncementLoading(true);
+                            setAnnouncementSaved(false);
+                            try {
+                              await apiClientCore.request("/api/v1/admin/system/announcement", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                  message: announcementText,
+                                  color: announcementColor,
+                                  active: announcementActive,
+                                }),
+                              });
+                              setAnnouncementSaved(true);
+                            } catch {
+                              // leave unsaved state visible
+                            } finally {
+                              setAnnouncementLoading(false);
+                            }
+                          }}
+                        >
+                          {announcementLoading ? "Saving..." : "Save"}
+                        </Button>
+                        {announcementSaved && (
+                          <span className="text-xs font-semibold text-emerald-600">✓ Saved</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="surface rounded-2xl p-5">

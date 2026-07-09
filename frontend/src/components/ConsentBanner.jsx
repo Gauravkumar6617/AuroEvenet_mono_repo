@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
-const CONSENT_KEY = "nexos_consent_v1";
+const CONSENT_KEY = "blogbyte_consent_v1";
 
 export default function ConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -50,7 +50,7 @@ export default function ConsentBanner() {
                 🍪
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[#1a1814]">We track some data to make Nexos better for you</p>
+                <p className="text-sm font-bold text-[#1a1814]">We track some data to make BlogByte better for you</p>
                 <p className="text-xs text-[#6b6358] mt-0.5 leading-relaxed">
                   We use reading history and personalisation data to power your smart feed.
                   No ads. No selling to third parties.{" "}
