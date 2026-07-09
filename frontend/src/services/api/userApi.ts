@@ -14,6 +14,7 @@ export interface OnboardingTopic {
   slug: string;
   category_id: number;
   is_active: boolean;
+  post_count?: number;
   questions: OnboardingQuestion[];
 }
 
@@ -76,6 +77,15 @@ export const userApi = {
     );
   },
 
+  markOnboardingComplete() {
+    return apiClientCore.request<UserPreference>(
+      "/api/v1/preferences/onboarding-complete",
+      {
+        method: "POST",
+      },
+    );
+  },
+
   getPreferences() {
     return apiClientCore.request<UserPreference[]>("/api/v1/preferences", {
       method: "GET",
@@ -85,6 +95,19 @@ export const userApi = {
   getMyInterests() {
     return apiClientCore.request<string[]>("/api/v1/user/interests", {
       method: "GET",
+    });
+  },
+
+  getMyInterestsFull() {
+    return apiClientCore.request<Array<{tag_id: number; tag_name: string; slug: string; score: number}>>("/api/v1/user/interests/full", {
+      method: "GET",
+    });
+  },
+
+  bulkUpsertInterests(interests: Array<{tag_name: string; score: number}>) {
+    return apiClientCore.request<{saved: number}>("/api/v1/user/interests/bulk", {
+      method: "POST",
+      body: JSON.stringify({ interests }),
     });
   },
 };

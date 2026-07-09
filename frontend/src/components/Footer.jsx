@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import PageContainer from "./layout/PageContainer";
 import Button from "./ui/Button";
+import { newsletterApi } from "../services/api/newsletterApi";
 
 const footerLinks = {
   Product: [
@@ -20,9 +21,31 @@ const footerLinks = {
   ],
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
+
+  const handleSubscribe = async () => {
+    if (subscribing) return;
+    if (!EMAIL_RE.test(email)) {
+      setSubscribeError("Enter a valid email address");
+      return;
+    }
+    setSubscribing(true);
+    setSubscribeError("");
+    try {
+      await newsletterApi.subscribe(email);
+      setSubscribed(true);
+    } catch (err) {
+      setSubscribeError(err instanceof Error ? err.message : "Failed to subscribe");
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   return (
     <footer className="mt-16 border-t border-[rgba(90,80,60,0.08)] py-12">
@@ -31,7 +54,7 @@ export default function Footer() {
           {/* Top CTA row */}
           <div className="mb-8 grid gap-5 border-b border-[rgba(90,80,60,0.08)] pb-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <h3 className="font-display text-2xl font-bold text-[#1a1814]">Build smarter discussions with Nexos</h3>
+              <h3 className="font-display text-2xl font-bold text-[#1a1814]">Build smarter discussions with BlogByte</h3>
               <p className="mt-1 text-sm text-[#6b6358]">One place for questions, deep answers, and community knowledge.</p>
             </div>
             {subscribed ? (
@@ -39,9 +62,22 @@ export default function Footer() {
                 <span>✅</span> You're subscribed!
               </div>
             ) : (
-              <div className="flex gap-2">
-                <input className="input-field md:w-56" placeholder="Work email" value={email} onChange={e => setEmail(e.target.value)} type="email" />
-                <Button onClick={() => email && setSubscribed(true)}>Subscribe</Button>
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    className="input-field md:w-56"
+                    placeholder="Work email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setSubscribeError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+                    type="email"
+                    disabled={subscribing}
+                  />
+                  <Button onClick={handleSubscribe} disabled={subscribing}>
+                    {subscribing ? "Subscribing..." : "Subscribe"}
+                  </Button>
+                </div>
+                {subscribeError && <p className="mt-1.5 text-xs text-red-600">{subscribeError}</p>}
               </div>
             )}
           </div>
@@ -49,8 +85,8 @@ export default function Footer() {
           <div className="grid gap-8 md:grid-cols-4">
             <div>
               <Link to="/" className="flex items-center gap-2 mb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">N</div>
-                <span className="font-display text-lg font-bold text-[#1a1814]">Nex<span className="gradient-text">os</span></span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#e85d26] to-[#2563eb] font-bold text-white text-sm">B</div>
+                <span className="font-display text-lg font-bold text-[#1a1814]">Blog<span className="gradient-text">Byte</span></span>
               </Link>
               <p className="text-sm text-[#6b6358] leading-relaxed">A premium knowledge-sharing platform combining short-form conversation with in-depth answers.</p>
             </div>
@@ -67,7 +103,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-5 flex flex-col justify-between gap-2 text-xs text-[#a09880] sm:flex-row">
-          <p>© 2026 Nexos. All rights reserved.</p>
+          <p>© 2026 BlogByte. All rights reserved.</p>
           <div className="flex gap-4">{["Privacy", "Terms", "Status"].map(l => <span key={l} className="hover:text-[#6b6358] cursor-pointer transition-colors">{l}</span>)}</div>
         </div>
       </PageContainer>

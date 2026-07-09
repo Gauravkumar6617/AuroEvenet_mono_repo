@@ -34,6 +34,7 @@ from app.api.v1.enpoint.admin.categories import router as admin_category_router
 from app.api.v1.enpoint.admin.topics import router as admin_topic_router
 from app.api.v1.enpoint.admin.questions import router as admin_question_router
 from app.api.v1.enpoint.admin.users import router as admin_users_router
+from app.api.v1.enpoint.admin.system import router as admin_system_router
 
 ## Social / Onboarding system routers
 from app.api.v1.enpoint.userEndpoint import router as user_onboarding_router
@@ -62,6 +63,7 @@ app.include_router(admin_category_router, prefix="/api/v1")
 app.include_router(admin_topic_router, prefix="/api/v1")
 app.include_router(admin_question_router, prefix="/api/v1")
 app.include_router(admin_users_router, prefix="/api/v1")
+app.include_router(admin_system_router, prefix="/api/v1")
 app.include_router(user_onboarding_router, prefix="/api/v1")
 app.include_router(follow_router, prefix="/api/v1")
 app.include_router(contact_router, prefix="/api/v1")

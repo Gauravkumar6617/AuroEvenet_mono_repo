@@ -6,22 +6,28 @@ import { apiClientCore } from "../services/api/client";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
+export const PASSWORD_CHECKS = [
+  { label: "8+ characters", test: (p) => p.length >= 8 },
+  { label: "Uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { label: "Lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { label: "Number", test: (p) => /[0-9]/.test(p) },
+  { label: "Special character", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+export const isPasswordStrong = (password) => PASSWORD_CHECKS.every((c) => c.test(password));
+
 function PasswordStrength({ password }) {
-  const checks = [
-    { label: "8+ characters", ok: password.length >= 8 },
-    { label: "Uppercase letter", ok: /[A-Z]/.test(password) },
-    { label: "Number", ok: /[0-9]/.test(password) },
-  ];
+  const checks = PASSWORD_CHECKS.map((c) => ({ label: c.label, ok: c.test(password) }));
   const score = checks.filter(c => c.ok).length;
-  const bars = ["bg-red-400", "bg-amber-400", "bg-green-500"];
+  const bars = ["bg-red-400", "bg-red-400", "bg-amber-400", "bg-amber-400", "bg-green-500"];
   return password.length > 0 ? (
     <div className="mt-1.5 space-y-1.5">
       <div className="flex gap-1">
-        {[0, 1, 2].map(i => (
+        {checks.map((_, i) => (
           <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < score ? bars[score - 1] : "bg-[rgba(90,80,60,0.1)]"}`} />
         ))}
       </div>
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
         {checks.map((c) => (
           <span key={c.label} className={`text-xs flex items-center gap-1 ${c.ok ? "text-green-600" : "text-[#a09880]"}`}>
             <span>{c.ok ? "✓" : "○"}</span>{c.label}
@@ -74,6 +80,7 @@ export default function Signup() {
     e.preventDefault();
     if (!agreed) return;
     if (usernameStatus === 'taken') return;
+    if (!isPasswordStrong(form.password)) return;
     try {
       await register({ email: form.email, password: form.password, username: form.username || form.name, full_name: form.name });
       navigate("/verify-otp");
@@ -88,7 +95,7 @@ export default function Signup() {
           className="hidden lg:flex flex-col justify-between rounded-3xl bg-gradient-to-br from-[#e85d26] to-[#c44718] p-10 text-white overflow-hidden relative">
           <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-black/10 blur-3xl" />
           <div className="relative z-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-3">Join Nexos</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-3">Join BlogByte</p>
             <h1 className="font-display text-4xl font-bold leading-tight">Start building your knowledge profile today.</h1>
             <p className="mt-4 text-white/75 text-sm leading-relaxed">Free account. No credit card required. Instant access to the full feed.</p>
           </div>
@@ -158,7 +165,7 @@ export default function Signup() {
                 I agree to the <Link to="/about" className="text-[#e85d26] hover:underline">Terms of Service</Link> and <Link to="/about" className="text-[#e85d26] hover:underline">Privacy Policy</Link>
               </span>
             </label>
-            <Button type="submit" className="w-full" disabled={loading || !agreed || usernameStatus === 'taken'} size="lg">
+            <Button type="submit" className="w-full" disabled={loading || !agreed || usernameStatus === 'taken' || !isPasswordStrong(form.password)} size="lg">
               {loading ? "Creating account..." : "Create free account →"}
             </Button>
           </form>

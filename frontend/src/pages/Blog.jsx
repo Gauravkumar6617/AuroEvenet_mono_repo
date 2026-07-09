@@ -14,12 +14,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 
 const TAGS = ["All", "Engineering", "Frontend", "Backend", "DevOps", "Security", "Startup", "AI", "Career"];
-const SIDEBAR_TRENDING = [
-  { title: "How does LLM context window work?", votes: 312 },
-  { title: "Best practices for database indexing", votes: 248 },
-  { title: "Monolith vs modular monolith in 2026", votes: 195 },
-  { title: "How to do a proper technical interview prep", votes: 167 },
-];
 
 // safely extract a string from a string or an object with name/tag property
 function asString(val) {
@@ -68,8 +62,9 @@ export default function Blog() {
   const [userLikes, setUserLikes] = useState({});
 
   useEffect(() => {
+    console.info("[FeedDebug] loading public discovery feed", { sort, userId: user?.id });
     fetchPosts();
-  }, [fetchPosts]);
+  }, [user, fetchPosts]);
 
   useEffect(() => {
     if (posts && posts.length > 0) {
@@ -114,6 +109,13 @@ export default function Blog() {
     if (sort === "Unanswered") return base.filter((p) => p.comments === 0);
     return base;
   }, [posts, query, sort, activeTag, likeCounts]);
+
+  const sidebarTrending = useMemo(() => {
+    return (posts || [])
+      .map((raw) => ({ id: raw.id, title: raw.title, votes: likeCounts[raw.id] ?? raw.like_count ?? 0 }))
+      .sort((a, b) => b.votes - a.votes)
+      .slice(0, 4);
+  }, [posts, likeCounts]);
 
   const handleVote = async (postId) => {
     if (!user) {
@@ -162,7 +164,17 @@ export default function Blog() {
               </div>
               {/* Sort tabs */}
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <Tabs items={["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Tabs items={["Hot", "Top", "New", "Unanswered"]} active={sort} onChange={setSort} />
+                  {user && (
+                    <Link
+                      to="/for-you"
+                      className="rounded-lg border border-[rgba(90,80,60,0.12)] bg-white px-3 py-2 text-sm font-semibold text-[#6b6358] transition-all hover:border-[#e85d26] hover:bg-[#fdf0ea] hover:text-[#e85d26]"
+                    >
+                      For You
+                    </Link>
+                  )}
+                </div>
                 <p className="text-xs text-[#a09880] font-medium">{filtered.length} posts</p>
               </div>
               {/* Tag filter */}
@@ -226,8 +238,11 @@ export default function Blog() {
             <div className="surface p-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">🔥 Trending</h3>
               <div className="space-y-2.5">
-                {SIDEBAR_TRENDING.map((item, i) => (
-                  <Link key={i} to="/blog/1" className="flex items-start gap-2.5 group">
+                {sidebarTrending.length === 0 && (
+                  <p className="text-xs text-[#a09880]">No posts yet — be the first to publish one.</p>
+                )}
+                {sidebarTrending.map((item, i) => (
+                  <Link key={item.id} to={`/blog/${item.id}`} className="flex items-start gap-2.5 group">
                     <span className="font-display text-xl font-bold text-[rgba(90,80,60,0.2)] shrink-0 leading-none mt-0.5">{i + 1}</span>
                     <div>
                       <p className="text-sm font-medium text-[#1a1814] group-hover:text-[#e85d26] transition-colors leading-snug">{item.title}</p>
@@ -252,19 +267,6 @@ export default function Blog() {
                 <Link to="/create-post">
                   <Button className="w-full" size="sm">Create a Post</Button>
                 </Link>
-              </div>
-            </div>
-
-            {/* Active members */}
-            <div className="surface p-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">👥 Active Now</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {["gaurav", "priya", "alex", "sara", "ravi", "karthik", "dev", "anita"].map((name) => (
-                  <div key={name} className="flex items-center gap-1.5 rounded-full bg-[rgba(90,80,60,0.05)] px-2.5 py-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    <span className="text-xs text-[#6b6358]">@{name}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </aside>

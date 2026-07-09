@@ -61,9 +61,9 @@ export class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
 
     const config: RequestInit = {
+      ...options,
       headers: this.getHeaders(options, includeApiKey, token, includeAuth),
       credentials: includeCredentials ? "include" : "omit",
-      ...options,
     };
 
     try {
@@ -71,7 +71,18 @@ export class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const message = errorData.detail || `HTTP ${response.status}: ${response.statusText}`;
+        let message: string;
+        if (typeof errorData.detail === "string") {
+          message = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          // FastAPI validation errors: [{ msg: "Value error, ..." }, ...]
+          message = errorData.detail
+            .map((e: any) => (typeof e?.msg === "string" ? e.msg.replace(/^Value error,\s*/, "") : null))
+            .filter(Boolean)
+            .join("; ") || `HTTP ${response.status}: ${response.statusText}`;
+        } else {
+          message = `HTTP ${response.status}: ${response.statusText}`;
+        }
         // Don't log 401/403 as errors — those are normal auth states
         if (response.status !== 401 && response.status !== 403) {
           console.error("API request failed:", message);
@@ -79,7 +90,12 @@ export class ApiClient {
         throw new Error(message);
       }
 
-      return await response.json();
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      const text = await response.text();
+      return (text ? JSON.parse(text) : undefined) as T;
     } catch (error) {
       throw error;
     }

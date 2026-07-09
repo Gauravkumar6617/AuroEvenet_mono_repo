@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer";
@@ -11,9 +11,30 @@ import { useEffect } from "react";
 import BlogDetailSkeleton from "../components/skeletons/BlogDetailSkeleton";
 import { commentsApi } from "../services/api/commentsApi";
 import { likesApi } from "../services/api/likesApi";
+import { readingHistoryApi } from "../services/api/readingHistoryApi";
+import { apiClientCore } from "../services/api/client";
+import { aiApi } from "../services/api/aiApi";
 import { useToast } from "../contexts/ToastContext";
 
+async function shareLink(url, title, showToast) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url });
+      return;
+    } catch (err) {
+      if (err?.name === "AbortError") return; // user cancelled the native share sheet
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("Link copied to clipboard!", "success");
+  } catch {
+    showToast("Couldn't copy link", "error");
+  }
+}
+
 function CommentCard({ comment, depth = 0 }) {
+  const { showToast } = useToast();
   const [votes, setVotes] = useState(comment.votes ?? 0);
   const [voted, setVoted] = useState(null);
   const [showReply, setShowReply] = useState(false);
@@ -52,7 +73,7 @@ function CommentCard({ comment, depth = 0 }) {
             <div className="prose-content text-sm text-[#3a3530]" dangerouslySetInnerHTML={{ __html: comment.content || comment.text || "" }} />
             <div className="mt-3 flex items-center gap-3">
               <button onClick={() => setShowReply(!showReply)} className="text-xs text-[#6b6358] hover:text-[#e85d26] font-medium transition-colors">Reply</button>
-              <button className="text-xs text-[#6b6358] hover:text-[#6b6358] font-medium">Share</button>
+              <button onClick={() => shareLink(`${window.location.href.split("#")[0]}#comment-${comment.id}`, "Comment on BlogByte", showToast)} className="text-xs text-[#6b6358] hover:text-[#e85d26] font-medium transition-colors">Share</button>
             </div>
             {showReply && (
               <div className="mt-3 flex gap-2">
@@ -69,7 +90,8 @@ function CommentCard({ comment, depth = 0 }) {
 
 export default function BlogDetail() {
   const { id } = useParams();
-  const { currentPost, fetchPostById, loading, error } = usePosts();
+  const isNumericId = /^\d+$/.test(id || "");
+  const { currentPost, fetchPostById, fetchPostBySlug, loading, error } = usePosts();
   const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const [reply, setReply] = useState("");
@@ -78,13 +100,129 @@ export default function BlogDetail() {
   const [sortAnswers, setSortAnswers] = useState("Top");
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [relatedQuestions, setRelatedQuestions] = useState([]);
+  const [discussionSummary, setDiscussionSummary] = useState("");
+  const [loadingAiInsights, setLoadingAiInsights] = useState(false);
+  const readStartedAt = useRef(Date.now());
+  const scrolledToBottom = useRef(false);
+  const likedPost = useRef(false);
 
   useEffect(() => {
-    if (id) {
+    if (!id) return;
+    readStartedAt.current = Date.now();
+    scrolledToBottom.current = false;
+    likedPost.current = false;
+    if (isNumericId) {
       fetchPostById(Number(id));
-      fetchComments(Number(id));
+    } else {
+      fetchPostBySlug(id);
     }
-  }, [id, fetchPostById]);
+  }, [id, isNumericId, fetchPostById, fetchPostBySlug]);
+
+  // Comments need the post's real numeric id — resolve it once the post loads
+  // (matters when navigating by slug, since the URL param isn't the id).
+  useEffect(() => {
+    if (currentPost?.id) fetchComments(currentPost.id);
+  }, [currentPost?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentPost?.id) return;
+    const postId = currentPost.id;
+
+    const markScrollDepth = () => {
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 160;
+      if (scrollBottom >= threshold) scrolledToBottom.current = true;
+    };
+
+    const trackReading = () => {
+      const durationSeconds = Math.max(1, Math.round((Date.now() - readStartedAt.current) / 1000));
+      readingHistoryApi.trackReading({
+        post_id: postId,
+        duration_seconds: durationSeconds,
+        scrolled_to_bottom: scrolledToBottom.current,
+        liked: likedPost.current,
+      }).catch(() => {});
+    };
+
+    window.addEventListener("scroll", markScrollDepth, { passive: true });
+    const timer = window.setTimeout(trackReading, 8000);
+
+    return () => {
+      window.removeEventListener("scroll", markScrollDepth);
+      window.clearTimeout(timer);
+      trackReading();
+    };
+  }, [currentPost?.id, isAuthenticated]);
+
+  useEffect(() => {
+    const authorId = currentPost?.author_id;
+    if (!isAuthenticated || !authorId || authorId === user?.id) {
+      setIsFollowingAuthor(false);
+      return;
+    }
+    apiClientCore.request(`/api/v1/social/is-following/${authorId}`, { method: "GET" })
+      .then((r) => setIsFollowingAuthor(r.is_following))
+      .catch(() => {});
+  }, [currentPost?.author_id, isAuthenticated, user?.id]);
+
+  // AI: related questions to explore next
+  useEffect(() => {
+    if (!currentPost?.id || !isAuthenticated) {
+      setRelatedQuestions([]);
+      return;
+    }
+    aiApi.getRelatedQuestions(currentPost.id)
+      .then((r) => setRelatedQuestions(r.questions || []))
+      .catch(() => {});
+  }, [currentPost?.id, isAuthenticated]);
+
+  // AI: discussion TL;DR + debate detection, once there's enough conversation to summarize
+  useEffect(() => {
+    if (!currentPost?.id || comments.length < 3) {
+      setDiscussionSummary("");
+      return;
+    }
+    setLoadingAiInsights(true);
+    Promise.all([
+      aiApi.getCommentSummary(currentPost.id).catch(() => ({ summary: "" })),
+      aiApi.getDebateSummary(currentPost.id).catch(() => ({ summary: { is_debate: false } })),
+    ])
+      .then(([commentRes, debateRes]) => {
+        const debate = debateRes.summary;
+        if (debate && typeof debate === "object" && debate.is_debate) {
+          setDiscussionSummary(`🔥 Lively debate (controversy ${debate.controversy_score}/100) — "${debate.side_a}" vs. "${debate.side_b}"`);
+        } else {
+          setDiscussionSummary(commentRes.summary || "");
+        }
+      })
+      .finally(() => setLoadingAiInsights(false));
+  }, [currentPost?.id, comments.length]);
+
+  const handleFollowAuthor = async () => {
+    if (!isAuthenticated) {
+      showToast("Please sign in to follow authors", "error");
+      return;
+    }
+    const authorId = currentPost?.author_id;
+    if (!authorId || followLoading) return;
+    setFollowLoading(true);
+    try {
+      const res = await apiClientCore.request(`/api/v1/social/follow/${authorId}`, { method: "POST" });
+      setIsFollowingAuthor(res.action === "followed");
+      showToast(res.action === "followed" ? "Following author" : "Unfollowed author", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update follow status", "error");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleShare = () => {
+    shareLink(window.location.href, currentPost?.title || "BlogByte post", showToast);
+  };
 
   const fetchComments = async (postId) => {
     setCommentsLoading(true);
@@ -105,7 +243,8 @@ export default function BlogDetail() {
       return;
     }
     try {
-      await likesApi.createLike({ post_id: Number(id) });
+      await likesApi.createLike({ post_id: currentPost.id });
+      likedPost.current = true;
       setPostVote(v => v === "up" ? null : "up");
       showToast("Post liked!", "success");
     } catch (err) {
@@ -123,23 +262,23 @@ export default function BlogDetail() {
       return;
     }
     try {
-      await commentsApi.createComment({ content: reply, post_id: Number(id), user_id: user?.id || 0 });
+      await commentsApi.createComment({ content: reply, post_id: currentPost.id, user_id: user?.id || 0 });
       setReply("");
-      fetchComments(Number(id));
+      fetchComments(currentPost.id);
       showToast("Comment posted!", "success");
     } catch (err) {
       showToast("Failed to post comment. Please try again.", "error");
     }
   };
 
-  const hasRequestedPost = currentPost && Number(currentPost.id) === Number(id);
+  const hasRequestedPost = currentPost && (String(currentPost.id) === id || currentPost.slug === id);
 
   if (loading && !hasRequestedPost) return <BlogDetailSkeleton />;
   if (error) return (
     <div className="py-20 text-center">
       <p className="text-red-500 font-medium">Error loading post</p>
       <p className="text-sm text-[#a09880] mt-1">{error}</p>
-      <Button onClick={() => fetchPostById(Number(id))} className="mt-4" variant="secondary">Try Again</Button>
+      <Button onClick={() => (isNumericId ? fetchPostById(Number(id)) : fetchPostBySlug(id))} className="mt-4" variant="secondary">Try Again</Button>
     </div>
   );
   if (!hasRequestedPost) return <div className="py-20 text-center text-[#a09880]">Post not found.</div>;
@@ -198,7 +337,7 @@ export default function BlogDetail() {
                   )}
                   <div className="mt-5 prose-content text-sm text-[#3a3530] leading-relaxed" dangerouslySetInnerHTML={{ __html: POST.content }} />
                   <div className="mt-4 flex gap-2 flex-wrap">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={handleShare}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
                       Share
                     </Button>
@@ -267,6 +406,28 @@ export default function BlogDetail() {
 
           {/* Sidebar */}
           <aside className="space-y-4 hidden lg:block">
+            {(loadingAiInsights || discussionSummary) && (
+              <div className="surface rounded-2xl p-4 bg-gradient-to-br from-[#fdf0ea] to-white border border-[rgba(232,93,38,0.15)]">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#e85d26] mb-2">🤖 AI Discussion Summary</h3>
+                {loadingAiInsights ? (
+                  <p className="text-xs text-[#a09880]">Summarizing the conversation...</p>
+                ) : (
+                  <p className="text-sm text-[#3a3530] leading-relaxed">{discussionSummary}</p>
+                )}
+              </div>
+            )}
+            {relatedQuestions.length > 0 && (
+              <div className="surface rounded-2xl p-4">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#a09880] mb-3">🤖 Related Questions</h3>
+                <div className="space-y-2">
+                  {relatedQuestions.map((q, i) => (
+                    <Link key={i} to={`/search?q=${encodeURIComponent(q)}`} className="block text-sm text-[#1a1814] hover:text-[#e85d26] transition-colors leading-snug">
+                      {q}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="surface rounded-2xl p-4">
               <div className="flex justify-between text-xs text-[#a09880] mb-1">
                 <span>Post stats</span>
@@ -292,7 +453,17 @@ export default function BlogDetail() {
                   <p className="text-xs text-[#a09880]">Member</p>
                 </div>
               </div>
-              <Button variant="secondary" size="sm" className="w-full">Follow</Button>
+              {POST.author_id !== user?.id && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleFollowAuthor}
+                  disabled={followLoading}
+                >
+                  {followLoading ? "…" : isFollowingAuthor ? "Following ✓" : "Follow"}
+                </Button>
+              )}
             </div>
           </aside>
         </div>

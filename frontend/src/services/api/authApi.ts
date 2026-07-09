@@ -62,6 +62,20 @@ export const authApi = {
     );
   },
 
+  forgotPassword(email: string) {
+    return apiClientCore.request<{ message: string }>("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword(data: { email: string; otp: string; new_password: string }) {
+    return apiClientCore.request<{ message: string }>("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   googleCallback(code: string) {
     return apiClientCore.request<any>(`/api/v1/auth/google/callback?code=${code}`, {
       method: "GET",

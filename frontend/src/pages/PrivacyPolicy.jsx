@@ -6,7 +6,7 @@ const SECTIONS = [
   {
     icon: "📖",
     title: "What data we collect",
-    body: `We collect the minimum needed to run Nexos. This includes:
+    body: `We collect the minimum needed to run BlogByte. This includes:
     
 • **Account data** — email, username, hashed password (never plaintext).
 • **Content you create** — posts, comments, votes, bookmarks.
@@ -21,7 +21,7 @@ const SECTIONS = [
 
 • **Run the product** — authentication, serving your content, moderation.
 • **Personalise your feed** — reading history and topic weights rank posts you'll find relevant. You can disable this in Settings → Topic Preferences.
-• **Improve Nexos** — aggregated, anonymised analytics help us understand what's working.
+• **Improve BlogByte** — aggregated, anonymised analytics help us understand what's working.
 • **Security** — detect abuse, spam, and unauthorised access.
 
 We do **not** use your data to serve ads, train external AI models, or build profiles for third-party marketing.`,
@@ -45,7 +45,7 @@ No ad networks. No data brokers. No social media tracking pixels.`,
 • All data is encrypted in transit (TLS 1.3) and at rest (AES-256).
 • Session tokens are rotated on sensitive actions.
 • We run regular dependency audits and follow responsible disclosure for security reports.
-• Report vulnerabilities to: security@nexos.dev`,
+• Report vulnerabilities to: security@blogbyte.dev`,
   },
   {
     icon: "✅",
@@ -58,7 +58,7 @@ No ad networks. No data brokers. No social media tracking pixels.`,
 • **Portability** — export your posts and activity in JSON format.
 • **Withdraw consent** — change your tracking preferences from Settings → Privacy at any time.
 
-For GDPR / DPDP requests contact: privacy@nexos.dev`,
+For GDPR / DPDP requests contact: privacy@blogbyte.dev`,
   },
   {
     icon: "🍪",
@@ -74,7 +74,7 @@ We do not use third-party tracking scripts, Facebook Pixel, Google Analytics, or
   {
     icon: "🌍",
     title: "Data residency",
-    body: `Nexos data is stored on servers in the European Union (AWS eu-west-1) by default. If you are in India, your data may also be processed in ap-south-1 (Mumbai) for performance. Both regions are GDPR-compliant and follow India's DPDP Act 2023.`,
+    body: `BlogByte data is stored on servers in the European Union (AWS eu-west-1) by default. If you are in India, your data may also be processed in ap-south-1 (Mumbai) for performance. Both regions are GDPR-compliant and follow India's DPDP Act 2023.`,
   },
   {
     icon: "📅",
@@ -154,8 +154,8 @@ export default function PrivacyPolicy() {
             <p className="font-display text-lg font-bold mb-2">Questions about your privacy?</p>
             <p className="text-sm text-[rgba(255,255,255,0.6)] mb-4">We're humans, not bots. We actually read and respond to privacy emails.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="mailto:privacy@nexos.dev" className="btn-primary text-sm px-5 py-2.5 rounded-xl">
-                📧 privacy@nexos.dev
+              <a href="mailto:privacy@blogbyte.dev" className="btn-primary text-sm px-5 py-2.5 rounded-xl">
+                📧 privacy@blogbyte.dev
               </a>
               <Link to="/contact" className="btn-secondary text-sm px-5 py-2.5 rounded-xl bg-white/10 border-white/20 text-white hover:bg-white/20">
                 Contact form

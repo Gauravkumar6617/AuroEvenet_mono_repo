@@ -8,6 +8,7 @@ from app.schemas.admin.question import QuestionResponse
 
 
 class OnboardingTopicResponse(TopicResponse):
+    post_count: int = 0
     questions: list[QuestionResponse] = Field(default_factory=list)
 
 

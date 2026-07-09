@@ -213,7 +213,7 @@ export default function UserDashboard() {
                           <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(90,80,60,0.08)]">
                             <div className="h-8 w-8 rounded-lg bg-[rgba(90,80,60,0.06)] flex items-center justify-center text-sm font-bold text-[#a09880] shrink-0">{i + 1}</div>
                             <div className="flex-1 min-w-0">
-                              <Link to={`/blog/${h.post_slug || h.post_id}`} className="text-sm font-semibold text-[#1a1814] hover:text-[#e85d26] transition-colors line-clamp-1">
+                              <Link to={`/blog/${h.post_id}`} className="text-sm font-semibold text-[#1a1814] hover:text-[#e85d26] transition-colors line-clamp-1">
                                 {h.post_title || `Post #${h.post_id}`}
                               </Link>
                               <p className="text-xs text-[#a09880] mt-0.5">

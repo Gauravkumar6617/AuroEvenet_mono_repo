@@ -21,7 +21,6 @@ export const postsApi = {
     return apiClientCore.request<Post>("/api/v1/posts/", {
       method: "POST",
       body: formData,
-      headers: {},
     });
   },
 

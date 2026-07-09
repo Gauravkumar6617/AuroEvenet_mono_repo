@@ -25,6 +25,17 @@ async def create_post(
     current_user: User = Security(get_current_user),
 ):
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
+    print(
+        "[CreatePostDebug:API] creating post",
+        {
+            "user_id": current_user.id,
+            "category_id": category_id,
+            "community_id": community_id,
+            "tags": tag_list,
+            "title": title,
+        },
+        flush=True,
+    )
     return PostRepository.create_post(
         db=db,
         title=title,

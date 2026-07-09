@@ -3,16 +3,18 @@ import { apiClientCore } from "./client";
 export interface ReadingHistoryEntry {
   id: number;
   post_id: number;
-  user_id: number;
-  duration: number;
-  scrolled_to_bottom: boolean;
-  liked: boolean;
+  post_title?: string | null;
+  post_slug?: string | null;
+  author_name?: string | null;
+  duration_seconds: number;
+  scrolled_to_bottom?: boolean;
+  liked?: boolean;
   created_at: string;
 }
 
 export interface TrackHistoryRequest {
   post_id: number;
-  duration?: number;
+  duration_seconds?: number;
   scrolled_to_bottom?: boolean;
   liked?: boolean;
 }

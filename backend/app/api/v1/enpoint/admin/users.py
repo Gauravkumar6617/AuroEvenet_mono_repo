@@ -11,6 +11,11 @@ from app.models.postModel import Post
 from app.models.likeModel import Like
 from app.models.commentModel import Comment
 from app.models.communityModel import Community
+from app.models.userPreferenceModel import UserPreference
+from app.models.topicModel import Topic
+from app.models.onboardingQuestionModel import OnboardingQuestion
+from app.models.userInterestModel import UserInterest
+from app.models.tagModel import Tag
 from app.schemas.userSchema import UserResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -42,7 +47,7 @@ class UserStats(BaseModel):
 
 class UserWithStats(UserResponse):
     role: str
-    auth_provider: str
+    auth_provider: str = "email"
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     stats: Optional[UserStats] = None
@@ -74,7 +79,8 @@ def list_users(
             "username": user.username,
             "is_active": user.is_active,
             "is_verified": user.is_verified,
-            "oauth_provider": user.auth_provider or "email",
+            "oauth_provider": "none",
+            "auth_provider": user.auth_provider or "email",
             "role": user.role or "user",
             "created_at": str(user.created_at) if hasattr(user, "created_at") and user.created_at else None,
             "updated_at": str(user.updated_at) if hasattr(user, "updated_at") and user.updated_at else None,
@@ -98,7 +104,11 @@ def update_user_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.role = payload.get("role", user.role)
+    next_role = payload.get("role", user.role)
+    allowed_roles = {"user", "admin", "super_admin"}
+    if next_role not in allowed_roles:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    user.role = next_role
     db.commit()
     return {"detail": "Role updated"}
 
@@ -115,6 +125,105 @@ def ban_user(
     user.is_active = False
     db.commit()
     return {"detail": "User banned"}
+
+
+@router.get("/preferences")
+def list_user_preferences(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    result = []
+
+    for user in users:
+        preferences = (
+            db.query(UserPreference)
+            .filter(
+                UserPreference.user_id == user.id,
+                UserPreference.is_deleted.isnot(True),
+            )
+            .order_by(UserPreference.created_at.desc())
+            .all()
+        )
+
+        topic_ids = sorted({pref.topic_id for pref in preferences if pref.topic_id})
+        topics = (
+            db.query(Topic)
+            .filter(Topic.id.in_(topic_ids))
+            .all()
+            if topic_ids
+            else []
+        )
+        topic_map = {topic.id: topic for topic in topics}
+
+        question_ids = sorted({pref.question_id for pref in preferences if pref.question_id})
+        questions = (
+            db.query(OnboardingQuestion)
+            .filter(OnboardingQuestion.id.in_(question_ids))
+            .all()
+            if question_ids
+            else []
+        )
+        question_map = {question.id: question for question in questions}
+
+        interests = (
+            db.query(Tag.name, UserInterest.score)
+            .join(UserInterest, UserInterest.tag_id == Tag.id)
+            .filter(
+                UserInterest.user_id == user.id,
+                UserInterest.is_deleted.isnot(True),
+            )
+            .order_by(UserInterest.score.desc())
+            .limit(12)
+            .all()
+        )
+
+        selected_topics = [
+            {
+                "id": topic.id,
+                "name": topic.name,
+                "slug": topic.slug,
+            }
+            for topic in topics
+        ]
+
+        answers = [
+            {
+                "id": pref.id,
+                "topic": topic_map.get(pref.topic_id).name if pref.topic_id in topic_map else None,
+                "question": question_map.get(pref.question_id).question if pref.question_id in question_map else None,
+                "answer": pref.answer,
+                "created_at": str(pref.created_at) if pref.created_at else None,
+            }
+            for pref in preferences
+            if pref.question_id or (pref.answer and pref.answer not in {"selected", "onboarding_completed"})
+        ]
+
+        result.append(
+            {
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "role": user.role or "user",
+                    "is_active": user.is_active,
+                    "created_at": str(user.created_at) if user.created_at else None,
+                },
+                "selected_topics": selected_topics,
+                "answers": answers,
+                "interests": [
+                    {"name": name, "score": round(float(score or 0), 2)}
+                    for name, score in interests
+                ],
+                "summary": {
+                    "topic_count": len(selected_topics),
+                    "answer_count": len(answers),
+                    "interest_count": len(interests),
+                },
+            }
+        )
+
+    return result
 
 
 @router.get("/{user_id}", response_model=UserDetail)
@@ -140,7 +249,8 @@ def get_user_detail(
         "username": user.username,
         "is_active": user.is_active,
         "is_verified": user.is_verified,
-        "oauth_provider": user.auth_provider or "email",
+        "oauth_provider": "none",
+        "auth_provider": user.auth_provider or "email",
         "role": user.role or "user",
         "created_at": str(user.created_at) if hasattr(user, "created_at") and user.created_at else None,
         "updated_at": str(user.updated_at) if hasattr(user, "updated_at") and user.updated_at else None,

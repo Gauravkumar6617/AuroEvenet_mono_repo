@@ -37,7 +37,7 @@ def _post_cache_key(post_id: int) -> str:
 
 
 def _post_list_cache_key(skip: int, limit: int) -> str:
-    return f"posts:list:{skip}:{limit}"
+    return f"posts:list:v2:{skip}:{limit}"
 
 
 def _invalidate_post_cache(post_id: int | None = None, include_lists: bool = True) -> None:
@@ -133,6 +133,7 @@ class PostRepository:
             category_id=category_id,
             community_id=community_id,
             thumbnail_url=image_url,
+            is_active=True,
         )
         db.add(new_post)
         db.flush()  # get new_post.id
@@ -186,6 +187,8 @@ class PostRepository:
                 joinedload(Post.category),
                 selectinload(Post.post_tags),
             )
+            .filter(Post.is_deleted.isnot(True), Post.is_active.isnot(False))
+            .order_by(Post.created_at.desc())
             .offset(skip)
             .limit(limit)
             .all()
@@ -286,7 +289,7 @@ class PostRepository:
                 UserInterest,
                 (UserInterest.tag_id == Tag.id) & (UserInterest.user_id == user_id),
             )
-            .filter(Post.is_active == True)
+            .filter(Post.is_deleted == False)
             .group_by(Post.id)
             .subquery()
         )
@@ -304,7 +307,10 @@ class PostRepository:
             db.query(Post)
             .outerjoin(interest_score, interest_score.c.id == Post.id)
             .outerjoin(recently_read, recently_read.c.post_id == Post.id)
-            .filter(Post.is_active == True)
+            .filter(
+                Post.is_deleted == False,
+                Post.is_active == True,
+            )
             .order_by(
                 func.coalesce(interest_score.c.score, 0).desc(),
                 case(
@@ -316,6 +322,11 @@ class PostRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+        print(
+            "[FeedDebug:API] personalized feed",
+            {"user_id": user_id, "returned_posts": len(posts), "skip": skip, "limit": limit},
+            flush=True,
         )
         return posts
 

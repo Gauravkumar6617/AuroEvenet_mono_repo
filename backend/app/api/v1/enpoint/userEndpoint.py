@@ -5,11 +5,13 @@ All routes require an authenticated user (`get_current_user`).
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from slugify import slugify
 from pydantic import BaseModel
 from typing import Optional
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_user
 from app.models.userModel import User
 from app.models.category import Category
 from app.models.topicModel import Topic
@@ -17,6 +19,8 @@ from app.models.onboardingQuestionModel import OnboardingQuestion
 from app.models.userPreferenceModel import UserPreference
 from app.models.userInterestModel import UserInterest
 from app.models.tagModel import Tag
+from app.models.postModel import Post
+from app.models.postTagModel import PostTag
 
 from app.schemas.onboarding import (
     OnboardingResponse,
@@ -40,6 +44,64 @@ class ProfileUpdateRequest(BaseModel):
     location: Optional[str] = None
     website: Optional[str] = None
     avatar_url: Optional[str] = None
+
+
+def _topic_tag_names(topic: Topic) -> set[str]:
+    """Possible tag values that should map to this onboarding topic."""
+    values = {topic.name, topic.slug, slugify(topic.name or "")}
+    return {v.strip().lower() for v in values if v and v.strip()}
+
+
+def _topic_post_count(db: Session, topic: Topic) -> int:
+    tag_names = _topic_tag_names(topic)
+    if not tag_names:
+        return 0
+    return (
+        db.query(func.count(func.distinct(Post.id)))
+        .join(PostTag, PostTag.post_id == Post.id)
+        .filter(
+            Post.is_deleted == False,
+            func.lower(PostTag.tag).in_(tag_names),
+        )
+        .scalar()
+        or 0
+    )
+
+
+def _seed_user_interest_from_topic(db: Session, user_id: int, topic: Topic) -> tuple[str | None, int]:
+    tag_names = _topic_tag_names(topic)
+    if not tag_names:
+        return None, 0
+
+    tag = (
+        db.query(Tag)
+        .filter(
+            (func.lower(Tag.name).in_(tag_names))
+            | (func.lower(Tag.slug).in_(tag_names))
+        )
+        .first()
+    )
+    if not tag:
+        return None, 0
+
+    interest = (
+        db.query(UserInterest)
+        .filter(UserInterest.user_id == user_id, UserInterest.tag_id == tag.id)
+        .first()
+    )
+    if interest:
+        interest.score = max(interest.score, 3.0)
+    else:
+        db.add(UserInterest(user_id=user_id, tag_id=tag.id, score=3.0))
+
+    post_count = (
+        db.query(func.count(func.distinct(Post.id)))
+        .join(PostTag, PostTag.post_id == Post.id)
+        .filter(Post.is_deleted == False, func.lower(PostTag.tag) == tag.name.lower())
+        .scalar()
+        or 0
+    )
+    return tag.name, post_count
 
 
 @router.get("/user/profile", response_model=UserResponse)
@@ -93,7 +155,7 @@ def get_my_interests(
 ):
     """Return tag names the user has interacted with (interests)."""
     rows = (
-        db.query(Tag.name)
+        db.query(Tag.name, UserInterest.score)
         .join(UserInterest, UserInterest.tag_id == Tag.id)
         .filter(UserInterest.user_id == user.id)
         .order_by(UserInterest.score.desc())
@@ -101,6 +163,82 @@ def get_my_interests(
         .all()
     )
     return [r.name for r in rows]
+
+
+@router.get("/user/interests/full")
+def get_my_interests_full(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return full interest objects with tag id, name, score."""
+    rows = (
+        db.query(Tag.id, Tag.name, Tag.slug, UserInterest.score)
+        .join(UserInterest, UserInterest.tag_id == Tag.id)
+        .filter(UserInterest.user_id == user.id)
+        .order_by(UserInterest.score.desc())
+        .all()
+    )
+    return [{"tag_id": r.id, "tag_name": r.name, "slug": r.slug, "score": round(float(r.score or 0), 2)} for r in rows]
+
+
+@router.post("/user/interests")
+def upsert_interest(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Set a specific tag interest score. Creates or updates."""
+    tag_name = payload.get("tag_name", "").lower().strip()
+    score = float(payload.get("score", 5.0))
+    if not tag_name:
+        raise HTTPException(status_code=400, detail="tag_name required")
+
+    tag = db.query(Tag).filter(Tag.name == tag_name).first()
+    if not tag:
+        from slugify import slugify
+        tag = Tag(name=tag_name, slug=slugify(tag_name))
+        db.add(tag)
+        db.flush()
+
+    interest = db.query(UserInterest).filter(
+        UserInterest.user_id == user.id, UserInterest.tag_id == tag.id
+    ).first()
+    if interest:
+        interest.score = score
+    else:
+        db.add(UserInterest(user_id=user.id, tag_id=tag.id, score=score))
+    db.commit()
+    return {"tag_name": tag_name, "score": score}
+
+
+@router.post("/user/interests/bulk")
+def bulk_upsert_interests(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Bulk set interest scores. payload: {interests: [{tag_name, score}]}"""
+    from slugify import slugify
+    items = payload.get("interests", [])
+    for item in items:
+        tag_name = item.get("tag_name", "").lower().strip()
+        score = float(item.get("score", 5.0))
+        if not tag_name:
+            continue
+        tag = db.query(Tag).filter(Tag.name == tag_name).first()
+        if not tag:
+            tag = Tag(name=tag_name, slug=slugify(tag_name))
+            db.add(tag)
+            db.flush()
+        interest = db.query(UserInterest).filter(
+            UserInterest.user_id == user.id, UserInterest.tag_id == tag.id
+        ).first()
+        if interest:
+            interest.score = score
+        else:
+            db.add(UserInterest(user_id=user.id, tag_id=tag.id, score=score))
+    db.commit()
+    return {"saved": len(items)}
 
 
 @router.get("/user/public/{username}")
@@ -225,7 +363,7 @@ def update_user_profile(
 @router.get("/onboarding", response_model=OnboardingResponse)
 def get_onboarding_data(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User | None = Depends(get_optional_user),
 ):
     """
     Returns the full onboarding payload grouped:
@@ -239,6 +377,16 @@ def get_onboarding_data(
             joinedload(Category.topics).joinedload(Topic.questions)
         )
         .all()
+    )
+
+    print(
+        "[OnboardingDebug:API] active categories loaded",
+        {
+            "category_count": len(categories),
+            "topic_count": sum(len(cat.topics) for cat in categories),
+            "question_count": sum(len(topic.questions) for cat in categories for topic in cat.topics),
+        },
+        flush=True,
     )
 
     result: list[OnboardingCategoryResponse] = []
@@ -255,6 +403,7 @@ def get_onboarding_data(
             active_topics.append(
                 OnboardingTopicResponse(
                     **TopicResponseFields(topic),
+                    post_count=_topic_post_count(db, topic),
                     questions=questions,
                 )
             )
@@ -264,6 +413,16 @@ def get_onboarding_data(
                 topics=active_topics,
             )
         )
+
+    print(
+        "[OnboardingDebug:API] onboarding response",
+        {
+            "category_count": len(result),
+            "topic_count": sum(len(cat.topics) for cat in result),
+            "question_count": sum(len(topic.questions) for cat in result for topic in cat.topics),
+        },
+        flush=True,
+    )
 
     return OnboardingResponse(categories=result)
 
@@ -328,9 +487,33 @@ def save_selected_topics(
         UserPreference.question_id.is_(None),
     ).delete(synchronize_session="fetch")
 
+    selected_topics = (
+        db.query(Topic)
+        .filter(Topic.id.in_(payload.topic_ids), Topic.is_deleted == False)
+        .all()
+    )
+
+    topic_debug = []
+    for topic in selected_topics:
+        matched_tag, post_count = _seed_user_interest_from_topic(db, user.id, topic)
+        topic_debug.append(
+            {
+                "topic_id": topic.id,
+                "topic_name": topic.name,
+                "matched_tag": matched_tag,
+                "available_posts": post_count,
+            }
+        )
+
+    print(
+        "[OnboardingDebug:API] user selected topics",
+        {"user_id": user.id, "topics": topic_debug},
+        flush=True,
+    )
+
     # Insert fresh
     prefs = [
-        UserPreference(user_id=user.id, topic_id=tid)
+        UserPreference(user_id=user.id, topic_id=tid, answer="selected")
         for tid in payload.topic_ids
     ]
     db.add_all(prefs)
@@ -343,6 +526,32 @@ def save_selected_topics(
 
 
 # ────────────────── Preferences — Answers ────────────────────
+
+
+@router.post(
+    "/preferences/onboarding-complete",
+    response_model=UserPreferenceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def mark_onboarding_complete(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Mark onboarding complete when there is no configured topic/question to attach.
+    """
+    db.query(UserPreference).filter(
+        UserPreference.user_id == user.id,
+        UserPreference.topic_id.is_(None),
+        UserPreference.question_id.is_(None),
+        UserPreference.answer == "onboarding_completed",
+    ).delete(synchronize_session="fetch")
+
+    pref = UserPreference(user_id=user.id, answer="onboarding_completed")
+    db.add(pref)
+    db.commit()
+    db.refresh(pref)
+    return pref
 
 
 @router.post(

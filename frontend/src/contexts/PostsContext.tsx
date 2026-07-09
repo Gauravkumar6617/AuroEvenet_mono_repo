@@ -27,6 +27,10 @@ interface PostsContextType extends PostsState {
     limit?: number;
     category_id?: number;
   }) => Promise<void>;
+  fetchPersonalizedFeed: (params?: {
+    skip?: number;
+    limit?: number;
+  }) => Promise<void>;
   fetchPostById: (postId: number) => Promise<void>;
   fetchPostBySlug: (slug: string) => Promise<void>;
   createPost: (postData: {
@@ -75,14 +79,38 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
   } = usePostsStore();
 
   const fetchPosts = useCallback(
-    async (params?: {
-      skip?: number;
-      limit?: number;
-      category_id?: number;
-    }) => {
+    async (params?: { skip?: number; limit?: number; category_id?: number }) => {
       setLoading(true);
       try {
         const response = await apiClient.getAllPosts(params);
+        const postsData = Array.isArray(response)
+          ? (response as Post[])
+          : (response as any).posts || [];
+        setPosts(postsData, (response as any)?.total || postsData.length);
+        if (params?.skip !== undefined || params?.limit !== undefined) {
+          setPagination({ skip: params.skip || 0, limit: params.limit || 20 });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch posts";
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setPosts, setLoading, setError, setPagination],
+  );
+
+  const fetchPersonalizedFeed = useCallback(
+    async (params?: {
+      skip?: number;
+      limit?: number;
+    }) => {
+      setLoading(true);
+      try {
+        const response = await apiClient.getPersonalizedFeed(
+          params?.skip,
+          params?.limit,
+        );
         const postsData = Array.isArray(response)
           ? (response as Post[])
           : (response as any).posts || [];
@@ -90,11 +118,11 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
 
         setPosts(postsData, total);
         if (params?.skip !== undefined || params?.limit !== undefined) {
-          setPagination({ skip: params.skip || 0, limit: params.limit || 10 });
+          setPagination({ skip: params.skip || 0, limit: params.limit || 20 });
         }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Failed to fetch posts";
+          error instanceof Error ? error.message : "Failed to fetch personalized feed";
         setError(errorMessage);
         throw error;
       }
@@ -226,6 +254,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       error,
       pagination,
       fetchPosts,
+      fetchPersonalizedFeed,
       fetchPostById,
       fetchPostBySlug,
       createPost,
@@ -241,6 +270,7 @@ export const PostsProvider: React.FC<PostsProviderProps> = ({ children }) => {
       error,
       pagination,
       fetchPosts,
+      fetchPersonalizedFeed,
       fetchPostById,
       fetchPostBySlug,
       createPost,

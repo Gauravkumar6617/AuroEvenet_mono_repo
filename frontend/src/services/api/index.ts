@@ -9,6 +9,8 @@ import { communitiesApi } from "./communitiesApi";
 import { aiApi } from "./aiApi";
 import { userApi } from "./userApi";
 import { adminQuestionsApi } from "./adminQuestionsApi";
+import { adminCategoriesApi } from "./adminCategoriesApi";
+import { adminTopicsApi } from "./adminTopicsApi";
 
 export * from "./types";
 export * from "./commentsApi";
@@ -18,6 +20,8 @@ export * from "./communitiesApi";
 export * from "./aiApi";
 export * from "./userApi";
 export * from "./adminQuestionsApi";
+export * from "./adminCategoriesApi";
+export * from "./adminTopicsApi";
 export { ApiClient, apiClientCore } from "./client";
 
 // Backward-compatible facade with existing apiClient.method() usage.
@@ -33,4 +37,6 @@ export const apiClient = {
   ...aiApi,
   ...userApi,
   ...adminQuestionsApi,
+  ...adminCategoriesApi,
+  ...adminTopicsApi,
 };
